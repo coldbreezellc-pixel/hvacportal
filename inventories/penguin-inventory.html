@@ -404,19 +404,27 @@ const SEED_DATA = {
     ["AHU #1–#4",4,"Merv 13 24x24x4",15,60,227],
     ["AHU #1–#4",4,"Merv 13 12x24x4",5,20,20],
     ["AHU #1–#4",4,"Merv 13 12x24x4 Gasket",0,0,0],
-    ["AHU #5 (×8), #6 (×8), #7 (×12), G1 Mammoth (×6)",4,"Merv 11 24x24x4","8/8/12/6",34,0],
+    ["AHU #5",1,"Merv 11 24x24x4",8,8,0],
+    ["AHU #6",1,"Merv 11 24x24x4",8,8,0],
+    ["AHU #7",1,"Merv 11 24x24x4",12,12,0],
+    ["AHU G1 Mammoth",1,"Merv 11 24x24x4",6,6,0],
     ["AHU #7",1,"Merv 11 12x24x4",4,4,59],
-    ["FCU B-1 (×1), B-2 (×2), G-5 (×1)",3,"Plt 16x20x2","1/2/1",4,12],
+    ["FCU B-1",1,"Plt 16x20x2",1,1,12],
+    ["FCU B-2",1,"Plt 16x20x2",2,2,0],
+    ["FCU G-5",1,"Plt 16x20x2",1,1,0],
     ["FCU B-1",1,"Plt 16x25x2",1,1,13],
     ["FCU G-1",1,"RP 14x54x1",1,1,18],
     ["FCU G-2, G-3, G-4, 1-1, 1-2, 1-3, 2-4, 2-5",8,"RP 12x36x1",1,8,7],
     ["FCU 1-1A",1,"RP 20½x44",1,1,11],
     ["FCU 2-1, 2-2",2,"Plt 29x29x2",2,4,12],
     ["FCU Penthouse, AC-B1 Trane",2,"Plt 20x20x1",1,2,0],
-    ["HV #1, #3 (×2 ea), #2, #2A (×1 ea)",4,"RP 24x48","2/2/1/1",6,26],
+    ["HV #1 + #3 Ring Panel",2,"RP 24x48",2,4,26],
+    ["HV #2 + #2A Ring Panel",2,"RP 24x48",1,2,0],
     ["HV #1, #3, #2, #2A Ring Panel",4,"RP 12x48",1,4,18],
-    ["HV #1, #3 (×4 ea), #2, #2A (×2 ea)",4,"Plastic 24x24x4","4/4/2/2",12,24],
-    ["HV #1, #3 (×2 ea), #2, #2A (×2 ea)",4,"Plastic 12x24x4",2,8,15],
+    ["HV #1 + #3 Main",2,"Plastic 24x24x4",4,8,24],
+    ["HV #2 + #2A Main",2,"Plastic 24x24x4",2,4,0],
+    ["HV #1 + #3 Main",2,"Plastic 12x24x4",2,4,15],
+    ["HV #2 + #2A Main",2,"Plastic 12x24x4",2,4,0],
     ["Diecut Frame Stock",0,"Merv 13 24x24x4 Diecut",0,0,249],
     ["Diecut Frame Stock",0,"Merv 13 12x24x4 Diecut",0,0,89],
     ["Diecut Frame Stock",0,"Merv 11 24x24x4 Diecut",0,0,0],
@@ -424,11 +432,17 @@ const SEED_DATA = {
     ["Make-Up Carbon",3,"20x20x2 (Carbon)",0,0,0],
     ["Make-Up Media",3,"20x20x1 (Media)",4,12,28],
     ["Make-Up Box",3,"20x20x4 (Mini Pleat)",2,6,29],
-    ["CAC CER RM + 3A–5A (×3), 6A–9A (×4), 1A (×4), 2A (×4), NOC #1,#2,#2A (×3)",26,"Merv 11 24x24x4","3/4/4/4/3",84,0],
+    ["CAC CER RM + 3A–5A",17,"Merv 11 24x24x4",3,51,0],
+    ["CAC 6A, 7A, 8A, 9A",4,"Merv 11 24x24x4",4,16,0],
+    ["CAC-1A",1,"Merv 11 24x24x4",4,4,0],
+    ["CAC-2A",1,"Merv 11 24x24x4",4,4,0],
+    ["CAC NOC #1, #2, #2A",3,"Merv 11 24x24x4",3,9,0],
     ["CAC NOC #3 + North, Challengers #15–18",6,"28x29x4",1,6,32],
     ["CAC Challengers #15–18",4,"Merv 11 20x25x4",0,0,6],
     ["CAC Challengers #15–18",4,"Merv 11 20x24x4",0,0,0],
-    ["CAC B-1–4 (×6), B-5–8 (×4), B-9–12 (×6)",12,"18x24x4","6/4/6",64,138],
+    ["CAC B-1 thru B-4",4,"18x24x4",6,24,138],
+    ["CAC B-5 thru B-8",4,"18x24x4",4,16,0],
+    ["CAC B-9 thru B-12",4,"18x24x4",6,24,0],
     ["AHU Buffalo (Pre)",18,"Merv 13 Pre 24x24x2",12,216,223],
     ["AHU Buffalo (Pre)",18,"Merv 13 Pre 12x24x2",4,72,36],
     ["AHU Buffalo (HEPA)",18,"HEPA 24x24x4",12,216,249],
@@ -1088,93 +1102,108 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
           <div style={{ fontFamily: F.body, fontSize: 12, color: "#64748b", marginBottom: 10 }}>{items.length} filters</div>
           <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, overflow: "hidden", overflowX: "auto" }}>
             {/* Table Header */}
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(100px,1.5fr) 40px minmax(100px,1.5fr) 55px 45px 50px 50px 50px", background: "#f1f5f9", padding: "6px 8px", borderBottom: "2px solid #cbd5e1", gap: 4, minWidth: 540 }}>
-              {["Unit ID","#","Filter Size","Per Unit","Total","Stock","Order","+/−"].map(h => (
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(100px,1.5fr) 55px minmax(100px,1.5fr) 55px 45px 50px 50px 50px", background: "#f1f5f9", padding: "6px 8px", borderBottom: "2px solid #cbd5e1", gap: 4, minWidth: 560 }}>
+              {["Unit ID","Units","Filter Size","Per Unit","Total","Stock","Order","+/−"].map(h => (
                 <span key={h} style={{ fontFamily: F.heading, fontSize: 9, color: "#475569", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".3px", textAlign: h === "Unit ID" || h === "Filter Size" ? "left" : "center" }}>{h}</span>
               ))}
             </div>
-            {items.map((i, idx) => {
-              const total = i.totalNeeded || 0;
-              const stock = i.qty || 0;
-              const order = total > 0 ? Math.max(0, (total * 2) - stock) : 0;
-              const isLow = total > 0 && stock < total;
-              const isOut = total > 0 && stock === 0;
-              const rowBg = idx % 2 === 0 ? "#fff" : "#fafbfc";
-              return (
-                <div key={i.id}>
-                  <div style={{ display: "grid", gridTemplateColumns: "minmax(100px,1.5fr) 40px minmax(100px,1.5fr) 55px 45px 50px 50px 50px", padding: "8px 8px", borderBottom: "1px solid #f1f5f9", alignItems: "center", background: expanded === i.id ? "#f0fdfa" : rowBg, cursor: "pointer", gap: 4, minWidth: 540 }}
-                    onClick={() => setExpanded(expanded === i.id ? null : i.id)}>
-                    <div style={{ fontFamily: F.body, fontSize: 12, color: "#334155", fontWeight: 600, lineHeight: 1.3, wordBreak: "break-word" }}>{i.unitId || "—"}</div>
-                    <div style={{ fontFamily: F.mono, fontSize: 12, color: "#64748b", textAlign: "center" }}>{i.qtyUnits || "—"}</div>
-                    <div style={{ fontFamily: F.heading, fontSize: 12, color: "#0f172a", fontWeight: 600 }}>{i.name}</div>
-                    <div style={{ fontFamily: F.mono, fontSize: typeof i.qtyPerUnit === "string" && i.qtyPerUnit.includes("/") ? 10 : 12, color: "#64748b", textAlign: "center", lineHeight: 1.2 }}>{i.qtyPerUnit || "—"}</div>
-                    <div style={{ fontFamily: F.mono, fontSize: 13, color: "#334155", textAlign: "center", fontWeight: 700 }}>{total || "—"}</div>
-                    <div style={{ fontFamily: F.mono, fontSize: 13, textAlign: "center", fontWeight: 700, color: isOut ? "#ef4444" : isLow ? "#f59e0b" : "#16a34a" }}>{stock}</div>
-                    <div style={{ fontFamily: F.mono, fontSize: 13, textAlign: "center", fontWeight: 700, color: order > 0 ? "#dc2626" : "#94a3b8", background: order > 0 ? "#fef2f2" : "transparent", borderRadius: 4, padding: "2px 0" }}>{order || "—"}</div>
-                    <div style={{ display: "flex", gap: 2, justifyContent: "center" }} onClick={e => e.stopPropagation()}>
-                      <button style={{ ...S.qtyBtn, width: 22, height: 22, fontSize: 12, borderRadius: 6 }} onClick={() => onAdjust(i.id, -1)}>−</button>
-                      <button style={{ ...S.qtyBtn, width: 22, height: 22, fontSize: 12, borderRadius: 6 }} onClick={() => onAdjust(i.id, 1)}>+</button>
+            {(() => {
+              // Group items by filter size (name)
+              const groups = [];
+              const seen = {};
+              items.forEach(i => {
+                if (!seen[i.name]) { seen[i.name] = []; groups.push(i.name); }
+                seen[i.name].push(i);
+              });
+              let rowIdx = 0;
+              return groups.map(filterSize => {
+                const groupItems = seen[filterSize];
+                const sumTotal = groupItems.reduce((s, i) => s + (i.totalNeeded || 0), 0);
+                const sumStock = groupItems.reduce((s, i) => s + (i.qty || 0), 0);
+                const sumOrder = groupItems.reduce((s, i) => {
+                  const t = i.totalNeeded || 0;
+                  return s + (t > 0 ? Math.max(0, (t * 2) - (i.qty || 0)) : 0);
+                }, 0);
+                return (
+                  <div key={filterSize}>
+                    {groupItems.map(i => {
+                      const total = i.totalNeeded || 0;
+                      const stock = i.qty || 0;
+                      const order = total > 0 ? Math.max(0, (total * 2) - stock) : 0;
+                      const isLow = total > 0 && stock < total;
+                      const isOut = total > 0 && stock === 0;
+                      const rowBg = rowIdx % 2 === 0 ? "#fff" : "#fafbfc";
+                      rowIdx++;
+                      return (
+                        <div key={i.id}>
+                          <div style={{ display: "grid", gridTemplateColumns: "minmax(100px,1.5fr) 55px minmax(100px,1.5fr) 55px 45px 50px 50px 50px", padding: "8px 8px", borderBottom: "1px solid #f1f5f9", alignItems: "center", background: expanded === i.id ? "#f0fdfa" : rowBg, cursor: "pointer", gap: 4, minWidth: 560 }}
+                            onClick={() => setExpanded(expanded === i.id ? null : i.id)}>
+                            <div style={{ fontFamily: F.body, fontSize: 12, color: "#334155", fontWeight: 600, lineHeight: 1.3, wordBreak: "break-word" }}>{i.unitId || "—"}</div>
+                            <div style={{ fontFamily: F.mono, fontSize: 12, color: "#64748b", textAlign: "center" }}>{i.qtyUnits || "—"}</div>
+                            <div style={{ fontFamily: F.heading, fontSize: 12, color: "#0f172a", fontWeight: 600 }}>{i.name}</div>
+                            <div style={{ fontFamily: F.mono, fontSize: typeof i.qtyPerUnit === "string" && i.qtyPerUnit.includes("/") ? 10 : 12, color: "#64748b", textAlign: "center", lineHeight: 1.2 }}>{i.qtyPerUnit || "—"}</div>
+                            <div style={{ fontFamily: F.mono, fontSize: 13, color: "#334155", textAlign: "center", fontWeight: 700 }}>{total || "—"}</div>
+                            <div style={{ fontFamily: F.mono, fontSize: 13, textAlign: "center", fontWeight: 700, color: isOut ? "#ef4444" : isLow ? "#f59e0b" : "#16a34a" }}>{stock}</div>
+                            <div style={{ fontFamily: F.mono, fontSize: 13, textAlign: "center", fontWeight: 700, color: order > 0 ? "#dc2626" : "#94a3b8", background: order > 0 ? "#fef2f2" : "transparent", borderRadius: 4, padding: "2px 0" }}>{order || "—"}</div>
+                            <div style={{ display: "flex", gap: 2, justifyContent: "center" }} onClick={e => e.stopPropagation()}>
+                              <button style={{ ...S.qtyBtn, width: 22, height: 22, fontSize: 12, borderRadius: 6 }} onClick={() => onAdjust(i.id, -1)}>−</button>
+                              <button style={{ ...S.qtyBtn, width: 22, height: 22, fontSize: 12, borderRadius: 6 }} onClick={() => onAdjust(i.id, 1)}>+</button>
+                            </div>
+                          </div>
+                          {expanded === i.id && (
+                            <div style={{ padding: "10px 12px 14px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                              {inlineEdit?.id === i.id ? (
+                                <>
+                                  <label style={S.label}>Filter Size (Name)</label>
+                                  <input style={S.input} value={inlineEdit.name} onChange={e => setInlineEdit({ ...inlineEdit, name: e.target.value })} />
+                                  <label style={S.label}>Notes</label>
+                                  <textarea style={{ ...S.input, minHeight: 50, resize: "vertical", marginBottom: 0 }} value={inlineEdit.notes} onChange={e => setInlineEdit({ ...inlineEdit, notes: e.target.value })} placeholder="Add notes…" />
+                                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                                    <button style={{ ...S.btnPrimary, width: "auto", padding: "8px 16px" }} onClick={() => { if (inlineEdit.name.trim()) { onUpdate(i.id, { name: inlineEdit.name, notes: inlineEdit.notes }); setInlineEdit(null); } }}>Save</button>
+                                    <button style={S.btnSecondary} onClick={() => setInlineEdit(null)}>Cancel</button>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <p style={S.detailLine}><b>Unit ID:</b> {i.unitId || "—"}</p>
+                                  <p style={S.detailLine}><b># of Units:</b> {i.qtyUnits || "—"}</p>
+                                  <p style={S.detailLine}><b>Filter Size:</b> {i.name}</p>
+                                  <p style={S.detailLine}><b>Qty Per Unit:</b> {i.qtyPerUnit || "—"}</p>
+                                  <p style={S.detailLine}><b>Total Needed:</b> {total}</p>
+                                  <p style={S.detailLine}><b>In Stock:</b> {stock}</p>
+                                  <p style={S.detailLine}><b>Order (Total×2 − Stock):</b> <span style={{ color: order > 0 ? "#dc2626" : "#16a34a", fontWeight: 700 }}>{order}</span></p>
+                                  {i.notes && <p style={S.detailLine}><b>Notes:</b> {i.notes}</p>}
+                                  <p style={S.detailLine}><b>Last updated:</b> {new Date(i.lastUpdated).toLocaleDateString()} {i.updatedBy ? `by ${i.updatedBy}` : ""}</p>
+                                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                                    <button style={S.btnSecondary} onClick={() => setInlineEdit({ id: i.id, name: i.name, notes: i.notes || "" })}>✏️ Edit</button>
+                                    {isAdmin && <button style={S.btnSecondary} onClick={() => { setEditing(i); setShowForm(true); setExpanded(null); }}>Full Edit</button>}
+                                    {isAdmin && confirmDelItem !== i.id && <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }} onClick={() => setConfirmDelItem(i.id)}>Delete</button>}
+                                    {isAdmin && confirmDelItem === i.id && (
+                                      <>
+                                        <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }} onClick={() => { onDelete(i.id); setConfirmDelItem(null); setExpanded(null); }}>Yes, Delete</button>
+                                        <button style={S.btnSecondary} onClick={() => setConfirmDelItem(null)}>Cancel</button>
+                                      </>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {/* Subtotal row for this filter size */}
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(100px,1.5fr) 55px minmax(100px,1.5fr) 55px 45px 50px 50px 50px", padding: "6px 8px", background: "#1e293b", gap: 4, minWidth: 560, borderBottom: "3px solid #0d9488" }}>
+                      <div style={{ gridColumn: "1 / 4", fontFamily: F.heading, fontSize: 11, color: "#94a3b8", fontWeight: 700 }}>SUBTOTAL: {filterSize}</div>
+                      <div></div>
+                      <div style={{ fontFamily: F.mono, fontSize: 12, color: "#fff", textAlign: "center", fontWeight: 800 }}>{sumTotal}</div>
+                      <div style={{ fontFamily: F.mono, fontSize: 12, color: "#4ade80", textAlign: "center", fontWeight: 800 }}>{sumStock}</div>
+                      <div style={{ fontFamily: F.mono, fontSize: 12, color: sumOrder > 0 ? "#f87171" : "#4ade80", textAlign: "center", fontWeight: 800 }}>{sumOrder || "—"}</div>
+                      <div></div>
                     </div>
                   </div>
-                  {expanded === i.id && (
-                    <div style={{ padding: "10px 12px 14px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
-                      {inlineEdit?.id === i.id ? (
-                        <>
-                          <label style={S.label}>Filter Size (Name)</label>
-                          <input style={S.input} value={inlineEdit.name} onChange={e => setInlineEdit({ ...inlineEdit, name: e.target.value })} />
-                          <label style={S.label}>Notes</label>
-                          <textarea style={{ ...S.input, minHeight: 50, resize: "vertical", marginBottom: 0 }} value={inlineEdit.notes} onChange={e => setInlineEdit({ ...inlineEdit, notes: e.target.value })} placeholder="Add notes…" />
-                          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                            <button style={{ ...S.btnPrimary, width: "auto", padding: "8px 16px" }} onClick={() => { if (inlineEdit.name.trim()) { onUpdate(i.id, { name: inlineEdit.name, notes: inlineEdit.notes }); setInlineEdit(null); } }}>Save</button>
-                            <button style={S.btnSecondary} onClick={() => setInlineEdit(null)}>Cancel</button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <p style={S.detailLine}><b>Unit ID:</b> {i.unitId || "—"}</p>
-                          <p style={S.detailLine}><b># of Units:</b> {i.qtyUnits || "—"}</p>
-                          <p style={S.detailLine}><b>Filter Size:</b> {i.name}</p>
-                          <p style={S.detailLine}><b>Qty Per Unit:</b> {i.qtyPerUnit || "—"}</p>
-                          <p style={S.detailLine}><b>Total Needed:</b> {total}</p>
-                          <p style={S.detailLine}><b>In Stock:</b> {stock}</p>
-                          <p style={S.detailLine}><b>Order (Total×2 − Stock):</b> <span style={{ color: order > 0 ? "#dc2626" : "#16a34a", fontWeight: 700 }}>{order}</span></p>
-                          {i.notes && <p style={S.detailLine}><b>Notes:</b> {i.notes}</p>}
-                          <p style={S.detailLine}><b>Last updated:</b> {new Date(i.lastUpdated).toLocaleDateString()} {i.updatedBy ? `by ${i.updatedBy}` : ""}</p>
-                          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                            <button style={S.btnSecondary} onClick={() => setInlineEdit({ id: i.id, name: i.name, notes: i.notes || "" })}>✏️ Edit</button>
-                            {isAdmin && <button style={S.btnSecondary} onClick={() => { setEditing(i); setShowForm(true); setExpanded(null); }}>Full Edit</button>}
-                            {isAdmin && confirmDelItem !== i.id && <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }} onClick={() => setConfirmDelItem(i.id)}>Delete</button>}
-                            {isAdmin && confirmDelItem === i.id && (
-                              <>
-                                <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }} onClick={() => { onDelete(i.id); setConfirmDelItem(null); setExpanded(null); }}>Yes, Delete</button>
-                                <button style={S.btnSecondary} onClick={() => setConfirmDelItem(null)}>Cancel</button>
-                              </>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {/* ── TOTALS ROW ── */}
-            {(() => {
-              const sumTotal = items.reduce((s, i) => s + (i.totalNeeded || 0), 0);
-              const sumStock = items.reduce((s, i) => s + (i.qty || 0), 0);
-              const sumOrder = items.reduce((s, i) => {
-                const t = i.totalNeeded || 0;
-                return s + (t > 0 ? Math.max(0, (t * 2) - (i.qty || 0)) : 0);
-              }, 0);
-              return (
-                <div style={{ display: "grid", gridTemplateColumns: "minmax(100px,1.5fr) 40px minmax(100px,1.5fr) 55px 45px 50px 50px 50px", padding: "10px 8px", background: "#0f172a", gap: 4, minWidth: 540, borderTop: "2px solid #334155" }}>
-                  <div style={{ fontFamily: F.heading, fontSize: 13, color: "#fff", fontWeight: 800, gridColumn: "1 / 5" }}>TOTALS</div>
-                  <div style={{ fontFamily: F.mono, fontSize: 14, color: "#fff", textAlign: "center", fontWeight: 800 }}>{sumTotal}</div>
-                  <div style={{ fontFamily: F.mono, fontSize: 14, color: "#22c55e", textAlign: "center", fontWeight: 800 }}>{sumStock}</div>
-                  <div style={{ fontFamily: F.mono, fontSize: 14, color: sumOrder > 0 ? "#f87171" : "#22c55e", textAlign: "center", fontWeight: 800, background: sumOrder > 0 ? "rgba(239,68,68,0.15)" : "transparent", borderRadius: 4 }}>{sumOrder}</div>
-                  <div></div>
-                </div>
-              );
+                );
+              });
             })()}
           </div>
           <div style={{ height: 80 }} />
