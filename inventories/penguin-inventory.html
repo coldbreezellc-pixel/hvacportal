@@ -1210,6 +1210,14 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
               });
             })()}
           </div>
+          {isAdmin && (
+            <button style={{ width: "100%", padding: "14px", marginTop: 12, background: "#dc2626", border: "none", borderRadius: 10, color: "#fff", fontFamily: F.heading, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: ".5px", transition: "opacity .2s" }}
+              onClick={() => {
+                if (confirm("⚠️ Reset ALL stock quantities to 0 for " + selectedGroup + "?\n\nThis cannot be undone.")) {
+                  items.forEach(i => onAdjust(i.id, -(i.qty || 0)));
+                }
+              }}>🗑 Reset All Stock to Zero</button>
+          )}
           <div style={{ height: 80 }} />
         </div>
       )}
