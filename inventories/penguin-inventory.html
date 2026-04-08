@@ -503,16 +503,19 @@ const Diamond = ({ size = 40 }) => (
   </svg>
 );
 
-// ── Default admin seed ──
-const ADMIN_SEED = {
-  id: "admin-root",
-  username: "admin",
-  displayName: "Admin",
-  role: "admin",
-  passwordHash: null, // set on first load
-  createdAt: new Date().toISOString(),
-  mustResetPw: false,
-};
+// ── Default team accounts ──
+const TEAM_SEED = [
+  { id: "mtargosz", username: "mtargosz", displayName: "Mateusz Targosz", email: "", role: "admin", passwordHash: "68fcf56570a0f0829ff668b49bf5b808530f76df71f3d0194b5c03070390e425", createdAt: new Date().toISOString(), mustResetPw: false },
+  { id: "sfanning", username: "sfanning", displayName: "Sean Fanning", email: "", role: "admin", passwordHash: "c22efa46b39e57656adc7bbf7a739a4409c1d6ac9fdd91db1cd0bf97d33a6a9e", createdAt: new Date().toISOString(), mustResetPw: false },
+  { id: "cdellandrino", username: "cdellandrino", displayName: "Christian Dell'Andrino", email: "", role: "crew", passwordHash: "c22efa46b39e57656adc7bbf7a739a4409c1d6ac9fdd91db1cd0bf97d33a6a9e", createdAt: new Date().toISOString(), mustResetPw: false },
+  { id: "rsinnott", username: "rsinnott", displayName: "Ray Sinnott", email: "", role: "crew", passwordHash: "c22efa46b39e57656adc7bbf7a739a4409c1d6ac9fdd91db1cd0bf97d33a6a9e", createdAt: new Date().toISOString(), mustResetPw: false },
+  { id: "bscudder", username: "bscudder", displayName: "Brian Scudder", email: "", role: "crew", passwordHash: "c22efa46b39e57656adc7bbf7a739a4409c1d6ac9fdd91db1cd0bf97d33a6a9e", createdAt: new Date().toISOString(), mustResetPw: false },
+  { id: "armandom", username: "armandom", displayName: "Armando M", email: "", role: "crew", passwordHash: "c22efa46b39e57656adc7bbf7a739a4409c1d6ac9fdd91db1cd0bf97d33a6a9e", createdAt: new Date().toISOString(), mustResetPw: false },
+  { id: "rmursch", username: "rmursch", displayName: "Ray Mursch", email: "", role: "crew", passwordHash: "c22efa46b39e57656adc7bbf7a739a4409c1d6ac9fdd91db1cd0bf97d33a6a9e", createdAt: new Date().toISOString(), mustResetPw: false },
+  { id: "tdellorusso", username: "tdellorusso", displayName: "Tyler Dellorusso", email: "", role: "crew", passwordHash: "c22efa46b39e57656adc7bbf7a739a4409c1d6ac9fdd91db1cd0bf97d33a6a9e", createdAt: new Date().toISOString(), mustResetPw: false },
+  { id: "mgallo", username: "mgallo", displayName: "Matthew Gallo", email: "", role: "crew", passwordHash: "c22efa46b39e57656adc7bbf7a739a4409c1d6ac9fdd91db1cd0bf97d33a6a9e", createdAt: new Date().toISOString(), mustResetPw: false },
+  { id: "rroszkowski", username: "rroszkowski", displayName: "Robert Roszkowski", email: "", role: "crew", passwordHash: "c22efa46b39e57656adc7bbf7a739a4409c1d6ac9fdd91db1cd0bf97d33a6a9e", createdAt: new Date().toISOString(), mustResetPw: false },
+];
 
 function App() {
   const [ready, setReady] = useState(false);
@@ -584,10 +587,19 @@ function App() {
     (async () => {
       let existingUsers = await loadUsers();
       if (!existingUsers || existingUsers.length === 0) {
-        const h = await hash("admin123$");
-        ADMIN_SEED.passwordHash = h;
-        existingUsers = [ADMIN_SEED];
+        existingUsers = [...TEAM_SEED];
         await saveUsers(existingUsers);
+      } else {
+        // Ensure all team accounts exist on this device
+        const existingUsernames = new Set(existingUsers.map(u => u.username));
+        let added = false;
+        for (const seed of TEAM_SEED) {
+          if (!existingUsernames.has(seed.username)) {
+            existingUsers.push(seed);
+            added = true;
+          }
+        }
+        if (added) await saveUsers(existingUsers);
       }
       setUsers(existingUsers);
       let inv = await loadItems();
@@ -651,8 +663,8 @@ function App() {
 
   // ── Auth ──
   const login = async (username, password) => {
-    const h = await hash(password);
-    const u = users.find(x => x.username.toLowerCase() === username.toLowerCase() && x.passwordHash === h);
+    const h = await hash(password.trim());
+    const u = users.find(x => x.username.toLowerCase() === username.trim().toLowerCase() && x.passwordHash === h);
     if (!u) return flash("Invalid username or password.", "err");
     setCurrentUser(u);
     await window.storage.set("pm_session", JSON.stringify({ userId: u.id }), false);
@@ -670,7 +682,7 @@ function App() {
 
   // ── User CRUD (admin) ──
   const createUser = async (data) => {
-    const h = await hash(data.password);
+    const h = await hash(data.password.trim());
     const nu = { id: uid(), username: data.username, displayName: data.displayName, email: data.email || "", role: data.role, passwordHash: h, createdAt: new Date().toISOString(), mustResetPw: true };
     const updated = [...users, nu];
     setUsers(updated);
@@ -699,7 +711,7 @@ function App() {
   };
 
   const resetPassword = async (id, newPw) => {
-    const h = await hash(newPw);
+    const h = await hash(newPw.trim());
     const updated = users.map(u => u.id === id ? { ...u, passwordHash: h, mustResetPw: true } : u);
     setUsers(updated);
     await saveUsers(updated);
@@ -708,7 +720,7 @@ function App() {
   };
 
   const changeOwnPassword = async (newPw) => {
-    const h = await hash(newPw);
+    const h = await hash(newPw.trim());
     const updated = users.map(u => u.id === currentUser.id ? { ...u, passwordHash: h, mustResetPw: false } : u);
     setUsers(updated);
     await saveUsers(updated);
@@ -822,7 +834,7 @@ function LoginScreen({ onLogin, onForgot }) {
   const [u, setU] = useState("");
   const [p, setP] = useState("");
   const [loading, setLoading] = useState(false);
-  const submit = async () => { setLoading(true); await onLogin(u, p); setLoading(false); };
+  const submit = async () => { if (!u.trim() || !p.trim()) return; setLoading(true); await onLogin(u.trim(), p.trim()); setLoading(false); };
   return (
     <div style={S.authWrap}>
       <div style={S.authCard}>
@@ -833,9 +845,9 @@ function LoginScreen({ onLogin, onForgot }) {
           <p style={{ fontFamily: F.body, fontSize: 13, color: "#94a3b8", margin: 0 }}>Maintenance Inventory · Versant Media</p>
         </div>
         <label style={S.label}>Username</label>
-        <input style={S.input} value={u} onChange={e => setU(e.target.value)} placeholder="Enter username" onKeyDown={e => e.key === "Enter" && submit()} autoCapitalize="off" />
+        <input style={S.input} value={u} onChange={e => setU(e.target.value)} placeholder="Enter username" onKeyDown={e => e.key === "Enter" && submit()} autoCapitalize="off" autoCorrect="off" autoComplete="username" spellCheck="false" />
         <label style={S.label}>Password</label>
-        <input style={S.input} type="password" value={p} onChange={e => setP(e.target.value)} placeholder="Enter password" onKeyDown={e => e.key === "Enter" && submit()} />
+        <input style={S.input} type="password" value={p} onChange={e => setP(e.target.value)} placeholder="Enter password" onKeyDown={e => e.key === "Enter" && submit()} autoCapitalize="off" autoCorrect="off" autoComplete="current-password" spellCheck="false" />
         <button style={{ ...S.btnPrimary, marginTop: 8, opacity: loading ? 0.6 : 1 }} onClick={submit} disabled={loading}>{loading ? "Signing in…" : "Sign In"}</button>
         <button style={S.btnLink} onClick={onForgot}>Forgot password?</button>
       </div>
