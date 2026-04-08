@@ -1,1 +1,1520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0d9488" />
+  <title>Penguin Maintenance · Inventory Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐧</text></svg>" />
+  <style>
+    html, body, #root { margin: 0; padding: 0; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+  <script type="text/babel">
+    // ── localStorage shim for window.storage API ──
+    window.storage = {
+      async get(key, shared) {
+        const val = localStorage.getItem(key);
+        if (val === null) throw new Error("Key not found");
+        return { key, value: val, shared: !!shared };
+      },
+      async set(key, value, shared) {
+        localStorage.setItem(key, value);
+        return { key, value, shared: !!shared };
+      },
+      async delete(key, shared) {
+        localStorage.removeItem(key);
+        return { key, deleted: true, shared: !!shared };
+      },
+      async list(prefix, shared) {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!prefix || k.startsWith(prefix)) keys.push(k);
+        }
+        return { keys, prefix, shared: !!shared };
+      }
+    };
+
+    const { useState, useEffect, useCallback, useRef } = React;
+
+// ── Utility helpers ──
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const hash = async (pw) => {
+  const enc = new TextEncoder().encode(pw + "penguin-maint-2026");
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+};
+
+const INVENTORY_GROUPS = ["Plumbing", "Faucet Parts", "Air Filters 900", "Air Filters 904", "Electrical", "HVAC", "Lighting", "Hardware", "Safety", "Tools", "AV/Tech", "Misc"];
+
+const SEED_DATA = {
+  "Plumbing": [
+    ["Sloan WC-1.6","A - 41 - A",1,"Flushometer repair kit 1.6 GPF"],
+    ["Sloan","EBV1023A",2,"Flushometer repair kit .5 GPF"],
+    ["Sloan URINAL","A - 42 - A",6,"Flushometer repair kit 1.0 GPF"],
+    ["Sloan","EBV1020A",3,"Flushometer repair kit"],
+    ["Oately","49K218",0,"\"2 Urinal Flange Kit"],
+    ["Sloan","2XU18",3,"electronic module"],
+    ["Sloan VACUUM BREAKER","V - 551 - A",7,""],
+    ["Sloan","2XU17",3,"electroinc module"],
+    ["Sloan HANDLE KIT","B - 50 - A",5,"WC handle repair kit"],
+    ["Sloan","EBV129A-C",6,"electronic module"],
+    ["Sloan Stop repair kit","H541AWH",0,""],
+    ["Sloan Faucets","EAF-100-P",0,""],
+    ["Sloan Power Packs","EAF-11",0,""],
+    ["Sloan Solenoid","EAF-2",2,""],
+    ["Sloan","EBV129aA-U",5,"electronic module"],
+    ["Sloan Royal Flushometer Body","115-1.6",2,""],
+    ["Sloan optima plus","8111-1.28",3,""],
+    ["Sloan Mouting Kit","EAF-1",0,""],
+    ["Sloan button cover","EBV130A",3,""],
+    ["Sloan 1\" Stop Repair Kit","H-541-ASD",6,""],
+    ["Sloan Solenoid","EBV136A",11,""],
+    ["Sloan 3/4\" Stop Repair Kit","H-543-ASD",3,""],
+    ["Sloan sweat solder 3/4\"","H-636-AA",2,""],
+    ["Sloan Fauct Trim Plates","ETF-607-A",20,""],
+    ["Sloan 3/4\" caps","H-1009A",2,""],
+    ["Sloan Vandal Resistant Cap","H-1010A",9,""],
+    ["Sloan Sweat Solder Kit","H634AA1",7,""],
+    ["Sloan","4LW59",0,""],
+    ["Sloan 1\" Gasket","F5",47,""],
+    ["Sloan 1 1/4\" Gasket","F5",17,""],
+    ["Sloan 1\" Gasket","F3",50,""],
+    ["Sloan 1 1/4\" Gasket","F3",34,""],
+    ["Sloan 1 1/2\" Gasket","F3",48,""],
+    ["Sloan Round 1\" Gasket","G44",14,""],
+    ["Sloan Round 1\" Gasket","H553",92,""],
+    ["Sloan","4LW58",0,""],
+    ["FAUCET KIT","T&S 50-2063-H",0,""],
+    ["FAUCET KIT","T&S 50-2063-C",0,""],
+    ["Sloan Flushmate 503 series 1.6GPF","M101526-F3B",1,""],
+    ["Elkay hot cartrige","A155157-R",0,"Fitness center faucets"],
+    ["Elkay cold cartrige","A155158-R",0,"Fitness center faucets"],
+    ["Zurn Auto FLUSH O METER","ZERK - CPM",0,""],
+    ["Zurn E-Z Flush Rapair Kit - Green Tip Light","",7,""],
+    ["Zurn E-Z Flush Rapair Kit - Blue Tim Light","",12,""],
+    ["PLUMBERS CLOTH","9171",0,""],
+    ["Elkay Sink Drain Fitting","LKVR-18B",0,""],
+    ["Kohler Faucet Tempering Valve","13601-NA",0,""],
+    ["Therm. Mixing Valve (GPS)","AM101C1070-US-ILF",8,""],
+    ["Part Description","Part Number",0,"Used for"],
+    ["Kingston Elongated Bowl","4330-0",0,""],
+    ["KOHLER Toilet Seats","4760-D-0",0,""],
+    ["KOHLER Toilet Seats","4653-96",1,""],
+    ["Kohler Faucet Mixer Pressure Balance Kit","GP76851",0,""],
+    ["Kohler Screen Inlet","K77478",0,""],
+    ["Kohler Faucet Gasket","K50507",0,""],
+    ["Kohler Solenoids","ESCRS-73708",0,""],
+    ["Kohler Sensors","ECNNC-60104",0,""],
+    ["Kohler Faucet No Touch","13666",0,""],
+    ["Kohler Accesory Kit","9459-CP",0,""],
+    ["Kohler Mixer Cap for Valve","GP77759",0,""],
+    ["Kohler Trim &Lever Handle","K-T6910-4A",0,""],
+    ["Kohler shower drain","9132-CP",0,""],
+    ["Kohler Trim Cover","77971-47",0,""],
+    ["Kohler Power Pack","13667",0,""],
+    ["Watts Angle Stops","894001",0,""],
+    ["Watts Angle Stop Duel Handle","DV389400",0,""],
+    ["Watts Angle Stops 3 way","3894001",0,""],
+    ["Dishwasher Tail - Brass","",6,""],
+    ["Moen Shower Pressure Balance","3175",0,""],
+    ["Water Works Cartrige","29-47297-79011",0,""],
+    ["Water Works Cartrige","29-35156-38046",0,""],
+    ["Bemis Toilet Seat","2P888",4,""],
+    ["Hercules Johni-Ring for urinals","90-260",4,""],
+    ["Hercules Johni-Ring for back outlet toilets","90-270",4,""],
+    ["Danco Aerator","36084B",0,""],
+    ["IPS Drain Grids","ABA1736",1,""],
+    ["Kohler Plastic F and C Plate","1731610",0,""],
+    ["Keeny Branch Tail Piece","51SRB",0,""],
+    ["Keeny P-Traps","305CP",2,""],
+    ["Proflo 3/8\" Compression Braided Hose","PF146322",0,""],
+    ["Washing Machine Hose Black Rubber","",0,""],
+    ["Watts 72\" Braided Hose","298236",0,""],
+    ["Brasscraft  72\" Washing Machine Hose","BL12-72WA",0,""],
+    ["Moen Cartridge Hot","52000",0,""],
+    ["Moen Cartridge Cold","52001",0,""],
+    ["Plumbshop Sink Hole Cover","P52335",0,""],
+    ["Danco - sink repair pull rod  3/16x12","",0,""],
+    ["Kohler Gaskets","38820",0,""],
+    ["Part Description","Part Number",0,"Used for"],
+    ["Proflo P-Trap","PF8622J",2,""],
+    ["Proflo P-Trap","PF8617J",0,""],
+    ["W and R Faucet aerators","",0,""],
+    ["Watts P-Trap","503173",0,""],
+    ["Watts Pressure/Temperature Relief Valve","140x",0,""],
+    ["Watts Pressure/Temperature Relief Valve","40xl",0,""],
+    ["Watts Quick Fit Strainer","644003",0,""],
+    ["Conbraco Gasket 1\" round","",0,""],
+    ["WHAM","Gallons",0,""],
+    ["moen faucet","8225",0,""],
+    ["Apollo series 10","",1,"safety relief valve"],
+    ["Brasscraft","B1-72DW6D",3,""],
+    ["Fluid Master","PRO6F16",9,""],
+    ["Sloan Flush Handles","",0,""],
+    ["Fluid Master Braided Hose","B1F16",19,""],
+    ["Fluid Master Braided Hose","BGW72",0,""],
+    ["Fluid Master Braided Hose","B1F12",4,""],
+    ["Fluid Master Braided Hose","B8F12",1,""],
+    ["Fluid Master Braided Hose","B6F12",0,""],
+    ["Urinal Spud","",4,""],
+    ["Toilet Spud","",6,""],
+    ["BALL VALVES","1/4\" sweat",5,""],
+    ["BALL VALVES Lead Free","1/4\" sweat",0,""],
+    ["LEAD FREE BALL VALVES","1\" sweat",0,""],
+    ["Part Description","Part Number",0,"Used for"],
+    ["Nipples/Fittings","",0,""],
+    ["Black","1/4\" x close",3,"quantity"],
+    ["2\"x6\"","1/4 x sholder",0,"3"],
+    ["2\"x5\"","1/4 x1 1/2\"",0,"3"],
+    ["2\"x4\"","1/4 x 2\"",0,"6"],
+    ["2\"xshoulder","1/4 x 3\"",0,"1"],
+    ["1-1/2\"x4\"","1/4 x 4\"",0,"2"],
+    ["Brass","1/4\"x 5\"",0,""],
+    ["1/2\"x6\"","1/2\" x close",3,"5"],
+    ["1/2\"x5\"","1/2\" x sholder",8,"1"],
+    ["1/8\"x3\"","1/2\" x 1 1/2\"",1,"8"],
+    ["1/8\"x2-1/2\"","1/2\" x 2\"",6,"4"],
+    ["1/8\"x2\"","1/2\" x 3\"",2,"3"],
+    ["1/8\"x1-1/2\"","1/2\" x 4\"",3,"1"],
+    ["1/8\"xclose","1 1/2\" x6\"",0,"1"],
+    ["1\"x2-1/2\"","1/2\"x7\"",1,"3"],
+    ["1\"xclose","3/4\" x close",4,"1"],
+    ["3/4\" mix Galvanized","3/4\" x sholder",1,"38"],
+    ["2-1/2 mix Galvanized","3/4\" x 1 1/2\"",0,"15"],
+    ["1-1/4\" mix Galvanized","3/4\" x 2\"",0,"5"],
+    ["1-1/2\" mix Galvanized","3/4\" x 3\"",2,"2"],
+    ["1/2\" mix Galvanized","3/4\" x 4\"",0,"10"],
+    ["3/8\" mix Galvanized","3/4\" x 6\"",6,"25"],
+    ["1/4\" mix Galvanized","",0,"47"],
+    ["COUPLINGS","1/4\"NPT",5,""],
+    ["Unions","1/4\"NPT",0,""],
+    ["ELS 90°","1/4\"NPT",10,""],
+    ["1/4\" CAPS","1/4\"NPT",0,""],
+    ["BUSHINGS","1/4\" X 1/2\"",4,""],
+    ["PLUGS NPT","1 1/2\"",5,""],
+    ["904 building","",0,""],
+    ["Part Description","Part Number",0,""],
+    ["Flushometer WC","A-41-A",0,""],
+    ["Flushometer URINAL","A-42A",0,""],
+    ["VACUUM BREAKER","V-551-A",0,""],
+    ["HANDLE KIT","B-50-A",0,""],
+    ["Sloan Faucets","EAF-150-ISM",0,""],
+    ["diverter rebuild kit","DV50A",0,""],
+    ["Sloan solenoid Rebuild kit","ETF1009A",0,""],
+    ["Sloan Battery","EAF-1000",0,""],
+    ["Toilet Seats","1966ct-000",0,""],
+    ["BALL VALVES","1/4\" sweat",0,""],
+    ["Part Description","Part Number",0,""],
+    ["BALL VALVES Lead Free","1/4\"",0,""],
+    ["Updated Parts","",0,""],
+    ["PVC Parts","",0,""],
+    ["Caps","1/2\"",7,""],
+    ["Tees","1/2\"",6,""],
+    ["45 degree elbow","1/2\"",3,""],
+    ["90 degree elbow","1/2\"",19,""],
+    ["Unions","1/2\"",4,""],
+    ["Coupling","1/2\"",5,""],
+    ["Plugs","1/2\"",6,""],
+    ["WYE","1-1/2\"",8,""],
+    ["Assorted nipples","",8,""],
+    ["Adapters","3/4\" male",63,""],
+    ["George Fisher PVC Flange","2\" Flange",5,""],
+    ["Ball valves","3/4\"",13,""],
+    ["Union Ball valve","3/4\" UNION",3,""],
+    ["Cash Acme","38EG45",5,"Pressure/Temp Relief Valve"],
+    ["Sloan","F-5-AT",1,"spud coup flange kit"],
+    ["Sloan","F-5-AW",7,"spud coup flange kit"],
+    ["Sloan","F-5-AU",2,"spud coup flange kit"],
+    ["Dishawasher tailpiece","444J25",4,"Chrome"],
+    ["Gasket","20RG71",5,""],
+    ["Gasket","444K81",1,"Tank to bowl for AM STND"],
+    ["Urinal strainers","",11,""],
+    ["American STND flange kit","4THK6",2,""],
+    ["American Standard","3KTE1",11,"gasket"],
+    ["Watts","29HZ37",2,"thermostatic mixin valve"],
+    ["Braided Hose","BFC30",15,""],
+    ["Braided Hose","PN-48005N",7,""],
+    ["Sloan","EAF1008",4,"flexible hose"],
+    ["Braided Hose","LBLKSPC20-88CP",2,""],
+    ["Compressor tank","097-1756-0418",4,"drain valve"],
+    ["Flex Hose CAFÉ","5WMx4",3,""],
+    ["Fluid master hose","12IM72",2,""],
+    ["Fluid master hose","C6LT02",1,""],
+    ["Braided Hose","1004650242",3,"Ice Maker"],
+    ["T&S","2WMF8",1,"pre rinse spring"],
+    ["T&S","06X",1,"8\" swing nozzle"],
+    ["AB&A","ABA8549",2,"Urinal spigot adj flange"],
+    ["2\"PVC horizontal flange kit","49K218",3,"Urinal flange kit pvc"],
+    ["Sloan","used",6,"Control Stop Assembly"],
+    ["Eye wash station caps","1FBE8",15,"Cover Caps"],
+    ["Pro Press Fittings","",0,""],
+    ["90 degree elbow","1/2\"",5,""],
+    ["45 degree elbow","3/4\"",10,""],
+    ["90 degree street elbow","3/4\"",10,""],
+    ["45 degree street elbow","3/4\"",10,""],
+    ["Tees","1/2\"",2,""],
+    ["Couplings","1-1/2\"x1-1/2\"",26,""],
+    ["Unions","1/2\"x1/2\"",1,""],
+    ["Caps","1/2\"",3,""],
+    ["Pro Press","1/2\"",1,"Ball Valves"],
+    ["Assorted used ball valve handles","used",38,""],
+    ["1-1/2\"x1-1/4\" FTG","901-2-7",9,"Trap Adapter"],
+    ["Assorted Black Nipples","",0,""],
+    ["3/4\" mix","",21,""],
+    ["1\" mix","",6,""],
+    ["1/2\" mix","",11,""],
+    ["Assorted Brass Nipples 2\"","",15,""],
+    ["No Hub Couplings","",0,""],
+    ["2\"","",90,""],
+    ["1-1/2\"","",3,""],
+    ["3\"","",12,""],
+    ["4\"","",22,""],
+    ["3\"x4\"","",3,""],
+    ["2\"x2\" Fernco","",3,""],
+    ["4\"x2\" Fernco","",1,""],
+    ["Cast Iron No Hub Fittings","",0,""],
+    ["2\" Test Tee","",11,""],
+    ["2\" P Trap","",13,""],
+    ["2\" End Cap","",0,""],
+    ["3\" End Cap","",1,""],
+    ["2\" short sweep wye","",6,""],
+    ["2\" long sweep wye","",9,""],
+    ["2\"wye","",7,""],
+    ["3\"x3\"x2\" short sweep wye","",2,""],
+    ["2\" 90 long sweep elbow","",4,""],
+    ["2\" 90 degree elbow","",8,""],
+    ["2\" 22-1/2 degree elbow","",10,""],
+    ["2\" 45 degree elbow","",12,""],
+    ["2\" 90 degree long bend elbow","",8,""],
+  ],
+  "Faucet Parts": [
+    ["Dorn Bracht entrie faucet","33815888",0,"Pantry Faucet (new)Elkay"],
+    ["Dorn Bracht Cartrige","9015050300090",0,"Pantry Faucet (new)Elkay"],
+    ["Sloan Faucet Complete","EAF-150-ISM",0,"Sloan Bathroom Sink Faucets"],
+    ["Motion Sensor for battery model","EAF-3-A",0,"Sloan Bathroom Sink Faucets"],
+    ["Diverter Rebuild Kit","DV50A",0,"Sloan Bathroom Sink Faucets"],
+    ["Sloan solenoid","EAF-2",0,"Sloan Bathroom Sink Faucets"],
+    ["Sloan Battery","EAF-1000",0,"Sloan Bathroom Sink Faucets"],
+    ["Sloan Faucets","EAF-100-P",0,"Sloan Bathroom Sink Faucets"],
+    ["Supply Hoses","EAF-1008",0,"Sloan Bathroom Sink Faucets"],
+    ["Sloan Power Packs","EAF-11",0,"Sloan Bathroom Sink Faucets"],
+    ["Sloan Solenoid","EAF-2",0,"Sloan Bathroom Sink Faucets"],
+    ["Sloan Faucet Trim Plates","ETF-607-A",18,"Sloan Bathroom Sink Faucets"],
+    ["Motion Sensor for power pack model","EAF-6-A",0,"Sloan Bathroom Sink Faucets"],
+    ["Stainer Filter Screen","EAF-9",38,"Sloan Bathroom Sink Faucets"],
+    ["Honeywell Mixing Valve","AM101C1070-US-1LF",0,"Sloan Bathroom Sink Faucets"],
+    ["Diverter Rebuild Kit","DV50A",1,"Sloan Bathroom Sink Faucets"],
+    ["Elkay (with hose connection)","LK69CH",4,"Janitors Closet Faucets ( Elkay )"],
+    ["Elkay (without hose connection )","LK69CP",10,"Janitors Closet Faucets ( Elkay )"],
+    ["Sloan 8\" trim plate","ETF-608A",1,"Janitors Closet Faucets ( Elkay )"],
+    ["Kohler","K-7443-5A",0,"Fitness Center Sink Facuets"],
+    ["Wristblade lever handles","K-16012-5",0,"Fitness Center Sink Facuets"],
+    ["Hot Cartridge","29-35156-38046",7,"Fitness Center Sink Facuets"],
+    ["Cold Cartridge","29-47297-79011",8,"Fitness Center Sink Facuets"],
+    ["Moen Shower Kit","3175",1,"Fitness Center Shower Parts"],
+    ["Trim Kohler \"Forte\"","K-T10276",1,"Fitness Center Shower Parts"],
+    ["Drain JR Smith","-",0,"Fitness Center Shower Parts"],
+    ["Shower Pressure balance with Regulator","GP76851",2,"Fitness Center Shower Parts"],
+    ["Shower Shower Cartrige only","GP77759",5,"Fitness Center Shower Parts"],
+    ["Shower Valve Rebuild Kit","GP500520",2,"Fitness Center Shower Parts"],
+    ["Kholer shower faucet trim","TS14423-4-BL",2,"Fitness Center Shower Parts"],
+    ["Elkay Complete Facuet","LK2432BH",0,"Pantry Faucets Old"],
+    ["Elkay hot cartrige","A155157-R",4,"Pantry Faucets Old"],
+    ["Elkay cold cartrige","A155158-R",3,"Pantry Faucets Old"],
+    ["Moen Complete Facuet","8255",1,"Pantry Faucets Old"],
+    ["Moen Cartridge Hot (Grainger-4NEF5)","52000",11,"Pantry Faucets Old"],
+    ["Moen Cartridge Cold (Grainger-4NEF6)","52001",6,"Pantry Faucets Old"],
+    ["Complete Faucet","LK500AT08T4",0,"Pantry Faucet (new)Elkay"],
+    ["4\" Handles \"Pair \"","45919C",3,"Pantry Faucet (new)Elkay"],
+    ["Left Hot Cartridge","45924C",12,"Pantry Faucet (new)Elkay"],
+    ["Right Cold Cartridge","45923C",13,"Pantry Faucet (new)Elkay"],
+    ["Spout","A55393",0,"Pantry Faucet (new)Elkay"],
+    ["Body","45915C",0,"Pantry Faucet (new)Elkay"],
+    ["Aerator Assembly","LK734",1,"Pantry Faucet (new)Elkay"],
+    ["Aerator Assembly","LK733",6,"Pantry Faucet (new)Elkay"],
+    ["\"Eemax\" Heater","SP4277",0,"Pantry Accessories"],
+    ["\"Emax\"Aeretor","EX0061-0.5AER",10,"Pantry Accessories"],
+    ["\"Floodstop\"","FS 3/4 NPT",6,"Pantry Accessories"],
+    ["\"Floodstop\" Sensor","ES-01",10,"Pantry Accessories"],
+    ["(NEW) Sink Drain tamper Proof \"Elkay\"","LKVR18B",6,"Pantry Accessories"],
+    ["(OLD) Watts Kwik-Fit Sink Strainer","644003",0,"Pantry Accessories"],
+    ["T&S Triple Wash Sink - Cold Water","002711-40",19,"Kitchen Faucets"],
+    ["T&S Triple Wash Sink - Hot Water","002712-40",23,"Kitchen Faucets"],
+    ["T&S Triple Wash Sink Sprayer Head","B-0107",4,"Kitchen Faucets"],
+    ["T&S Triple Wash Sink Sprayer Hose","B-0044-H",0,"Kitchen Faucets"],
+    ["T&S Triple Wash Sink Sprayer Bonnet","002856-40M",2,"Kitchen Faucets"],
+    ["T&S Wall Bracket Holidng Goose Neck","B-0109-01",6,"Kitchen Faucets"],
+    ["T&S Tripple Wash Sink Retro Kit","EZ-K",3,"Kitchen Faucets"],
+    ["T&S Tripple Wash Sink  Overflow drain","011356-45",5,"Kitchen Faucets"],
+    ["T&S Triple Sink Foot Valve","B-3942",5,"Kitchen Faucets"],
+    ["T&S Lavatory Rebuild Kit Hot","50-2063-H",1,"Kitchen Faucets"],
+    ["T&S Lavatory Rebuild Kit Cold","50-2063-C",0,"Kitchen Faucets"],
+    ["Faucet Cartrige Set \"Advance Tabco\"","K-00",5,"Kitchen Samll Hand Sinks"],
+    ["T&S Spindle Assembly (LTC)","009754-25",3,"Penthouse Hand Sink"],
+    ["T&S Spindle Assembly (RTC)","009753-25",3,"Penthouse Hand Sink"],
+    ["Entire Vent","EA79A1004",7,"Honeywell 3/4 \"Air Vents"],
+    ["Rebuild Kit","P79B1003",15,"Honeywell 3/4 \"Air Vents"],
+    ["Part #","In stock",0,"Honeywell 3/4 \"Air Vents"],
+    ["Honeywell 1/8\" Air Vents","FV180",16,"Honeywell 3/4 \"Air Vents"],
+    ["1/2 O.D. Tubing","",0,"Honeywell 3/4 \"Air Vents"],
+    ["Taco 400 HY-Vent","1",0,"Honeywell 3/4 \"Air Vents"],
+    ["Bell&Gosset #79 water vent","4",0,"Honeywell 3/4 \"Air Vents"],
+    ["Chicago Faucet handles","97-4123",5,"Common Parts 900 and 904"],
+    ["TOTO Brass nozzle assy","TH559EDV567",2,"Common Parts 900 and 904"],
+    ["403 vacuum Breaker Kit","5001228",1,"Common Parts 900 and 904"],
+    ["Aerator 2.0 GPM","A112.18.1M",4,"Common Parts 900 and 904"],
+    ["Blue Fin Ptrap 1-1/2\"","TB120-150-BLCO",5,"Common Parts 900 and 904"],
+    ["Blue Fin Ptrap 1-1/4\"","TB122-125-LCO",5,"Common Parts 900 and 904"],
+    ["4\" Guardian DrainLock","DGDL-4000",1,"Common Parts 900 and 904"],
+    ["Blue fin 1-1/2\" flanged tailpiece","TB217-150-12F",10,"Common Parts 900 and 904"],
+    ["Grainger drain extension","1PNP6A",6,"Common Parts 900 and 904"],
+    ["Blue fin 1-1/4x12 tailpiece","TB217-125-12T",1,"Common Parts 900 and 904"],
+    ["Blue fin 1-1/2x6 tailpiece","TB217-150-6F",10,"Common Parts 900 and 904"],
+    ["T&S 14\" swing nozzle","063X",1,"Common Parts 900 and 904"],
+    ["Plastic drain extension","1PN25A",2,"Common Parts 900 and 904"],
+    ["Grainger shower strainers","20RG72",3,"Common Parts 900 and 904"],
+    ["Escutcheons","1PPE4B",4,"Common Parts 900 and 904"],
+    ["Kissler grid strainer pop-up","08-1005",5,"Common Parts 900 and 904"],
+    ["Escutcheons 1\" plastic","38VP21",12,"Common Parts 900 and 904"],
+    ["Watts Angle supply stop 1/2\"","LF890003",3,"Common Parts 900 and 904"],
+    ["Watts Angle supply stop 5/8\"","LF894151",1,"Common Parts 900 and 904"],
+    ["Brass craft 1/4 turn angle stop","G2CR19XC",12,"Common Parts 900 and 904"],
+    ["Brass craft 1/4 turn angle ball stop","KTR17XC",10,"Common Parts 900 and 904"],
+    ["T&S Double pantry Faucet","B-0300",1,"Common Parts 900 and 904"],
+    ["T&S Double pantry Faucet","B-0231",1,"Common Parts 900 and 904"],
+    ["T&S Sill Faucet self closing","B-0706",1,"Common Parts 900 and 904"],
+    ["Used Restroom Escutcheons","used",9,"Common Parts 900 and 904"],
+    ["Used Assorted Escutcheons","used",21,"Common Parts 900 and 904"],
+    ["Quadtro wash machine outlet box","38529",1,"Common Parts 900 and 904"],
+  ],
+  "Air Filters 900": [
+    ["Merv 13 24x24x4","",0,"AHU #1--#4 · September / March"],
+    ["Merv 13  12x24x4","",0,"AHU #1--#4 · September / March"],
+    ["Mrv 13 12x24x4 gskt","",0,"AHU #1--#4 · September / March"],
+    ["Merv 11 24x24x4","",0,"AHU#5 · September / March"],
+    ["Merv 11 24x24x4","",0,"AHU#6 · September / March"],
+    ["Merv 11 24x24x4","",0,"AHU#7 · September / March"],
+    ["Merv 11  12x24x4","",0,"AHU#7 · September / March"],
+    ["Merv 10 12x24x4","",0,"AHU#7 · September / March"],
+    ["Merv 11 24x24x4","",0,"AHU' G1 MAMMOTH · September / March"],
+    ["Merv 11) 24x24x4","",0,"CAC'S CER RM + · July / January"],
+    ["Merv 11) 24x24x4","",0,"CAC 6A,  7A, 8A, and 9A · July / January"],
+    ["Merv 11) 24x24x4","",0,"CAC-1A · July / January"],
+    ["Merv 11) 24x24x4","",0,"CAC-2A · July / January"],
+    ["Merv 11) 24x24x4","",0,"CAC'S NOC #1, 2,and  2A · July / January"],
+    ["28x29x4","",0,"CAC NOC # 3 and North · July / January"],
+    ["28x29x4","",0,"CAC'S CHALLENGERs · July / January"],
+    ["Merv 11 20x25x4","",6,"#15, 16, 17, and 18 · July / January"],
+    ["Merv 11 20x24x4","",0,"#15, 16, 17, and 18 · July / January"],
+    ["18x24x4","",0,"CAC'S  B-1 through 4 · July / January"],
+    ["18x24x4","",0,"CAC'S  B-5 through 8 · July / January"],
+    ["18x24x4","",0,"CAC'S  B-9 through12 · July / January"],
+    ["RP) 19x19x1","",16,"CAC'S  B-9 through12 · November / May"],
+    ["RP) 19x30x1","",9,"CAC'S  B-9 through12 · November / May"],
+    ["RP) 11X14X1","",76,"CAC'S  B-9 through12 · November / May"],
+    ["RP) 13X14X1","",39,"CAC'S  B-9 through12 · November / May"],
+    ["RP) 15X17X1","",39,"CAC'S  B-9 through12 · November / May"],
+    ["RP) 17x18x1","",8,"CAC'S  B-9 through12 · November / May"],
+    ["RP 20x30","",0,"CAC'S  B-9 through12 · November / May"],
+    ["RP 30x44","",0,"CAC'S  B-9 through12 · November / May"],
+    ["PLT 27.5x33.5x2","",25,"CAC'S  B-9 through12 · November / May"],
+    ["Merv 11 20x25x2","",72,"CAC'S  B-9 through12 · November / May"],
+    ["Plt ) 16x20x2","",0,"FCU B-1 · September / March"],
+    ["Plt ) 16x25x2","",0,"FCU B-1 · September / March"],
+    ["Plt ) 16X20X2","",0,"FCU B-2 · September / March"],
+    ["RP) 14X54X1","",0,"FCU G-1 · September / March"],
+    ["RP) 12x36x1","",0,"FCU G-2 · September / March"],
+    ["RP) 12x36x1","",0,"FCU G-3 · September / March"],
+    ["RP) 12x36x1","",0,"FCU G-4 · September / March"],
+    ["Plt )  16x20x2","",0,"FCU G-5 · September / March"],
+    ["RP) 12x36x1","",0,"FCU 1-1 · September / March"],
+    ["RP) 20 1/2 x44","",0,"FCU 1-1A · September / March"],
+    ["RP) 12x36x1","",0,"FCU 1-2 · September / March"],
+    ["RP) 12x36x1","",0,"FCU 1-3 · September / March"],
+    ["Plt ) 29X29X2","",0,"FCU 2-1 · September / March"],
+    ["Plt ) 29X29X2","",0,"FCU 2-2 · September / March"],
+    ["RP) 12x36x1","",0,"FCU 2-4 · September / March"],
+    ["RP) 12x36x1","",0,"FCU 2-5 · September / March"],
+    ["Plt) 20x20x1","",0,"FCU Penthouse · September / March"],
+    ["Plt) 20x20x1","",0,"AC-B1  Trane · September / March"],
+    ["RP 25x40","",8,"September / March"],
+    ["RP) 24x48","",0,"HV #1 + HV #3  Ring Panel · September / March"],
+    ["RP) 12x48","",0,"HV #1 + HV #3  Ring Panel · September / March"],
+    ["RP) 24x48","",0,"HV #2 + #2A     Ring Panel · September / March"],
+    ["RP) 12x48","",0,"HV #2 + #2A     Ring Panel · September / March"],
+    ["24x24x4","",0,"HV #1 + HV #3  Main Plastic · September / March"],
+    ["12x24x4","",0,"HV #1 + HV #3  Main Plastic · September / March"],
+    ["Merv 13 12x24x4","",89,"Diecut Frame · September / March"],
+    ["24x24x4","",0,"HV #2 + #2A     Main Plastic · September / March"],
+    ["12x24x4","",0,"HV #2 + #2A     Main Plastic · September / March"],
+    ["Merv 13 24x24x4","",249,"Diecut Frame · September / March"],
+    ["Merv 11 24x24x4","",0,"Diecut Frame · September / March"],
+    ["20x20x2 (Carbon)","",0,"Diecut Frame · September / March"],
+    ["20x20x1 (Carbon)","",23,"Diecut Frame · September / March"],
+    ["20x20x1 ( Media)","",28,"Diecut Frame · September / March"],
+    ["20x20x4 (Mini Pleat)","",29,"Diecut Frame · September / March"],
+    ["Merv 13 Pre 24x24x2","",223,"AHU'S BUFFALO ( Pre ) · August / February"],
+    ["Merv 13 Pre 12x24x2","",36,"AHU'S BUFFALO ( Pre ) · August / February"],
+    ["Hepa) 24x24x4","",249,"AHU'S BUFFALO ( Pre ) · August / February"],
+    ["Hepa) 12x24x4","",81,"AHU'S BUFFALO ( Pre ) · August / February"],
+    ["Ply) 20x30","",22,"BARD UNITS · June / December"],
+    ["RP) 8 1/2 X 21","",12,"Cab Htrs Stair 1-5 · November / May"],
+    ["x","",0,"West Lobby Cabinet Heaters · November / May"],
+    ["9x31x1","",16,"West Lobby Cabinet Heaters · November / May"],
+    ["9x22.25x1","",0,"West Lobby Cabinet Heaters · November / May"],
+    ["Charcoal CHW Filter","",12,"West Lobby Cabinet Heaters · Every 4 months"],
+    ["CHW Filter","",41,"West Lobby Cabinet Heaters · Every 4 months"],
+  ],
+  "Air Filters 904": [
+    ["20X20X2","",0,"AHU 1-1 · April / October"],
+    ["20x20x2","",0,"AHU 1-2 · April / October"],
+    ["20x20x2","",0,"AHU 2-1 · April / October"],
+    ["20x20x2","",0,"AHU 2-2 · April / October"],
+    ["Mega Pleat 12x24x4","",0,"H+V  #1 · September / March"],
+    ["Mega Pleat 24x20x4","",0,"1 · September / March"],
+    ["Mega Pleat 24x24x4","",0,"1 · September / March"],
+    ["Mega Pleat 24x20x4","",0,"H+V  #2 · September / March"],
+    ["12x20x1","",0,"SAC B-1 · September / March"],
+    ["16x25x4","",0,"SAC 2-1 · September / March"],
+    ["28x34x2","",0,"SAC 2-2   (New Unit) · September / March"],
+    ["28x34x2","",0,"SAC 2-4   (New Unit) · September / March"],
+    ["9.5x32.5x1","",42,"SAC 2-4   (New Unit) · September / March"],
+    ["20X20X1","",3,"ACB1 · September / March"],
+    ["33x10x1","",0,"FCU-1 · September / March"],
+    ["33x10x1","",0,"FCU-2 · September / March"],
+    ["33x10x1","",0,"FCU-3 · September / March"],
+    ["33x10x1","",0,"FCU-4 · September / March"],
+    ["33x10x1","",0,"FCU-5 · September / March"],
+  ],
+};
+
+// Convert seed data to inventory items
+const buildSeedItems = (group, arr) => arr.map((r, i) => ({
+  id: group.slice(0,2).toLowerCase() + "-" + i,
+  name: r[0], partNumber: r[1], qty: r[2], notes: r[3],
+  group, category: "", minQty: 0, location: "",
+  createdBy: "Import", createdAt: new Date().toISOString(), lastUpdated: new Date().toISOString(),
+}));
+const POLL_MS = 4000;
+
+const Diamond = ({ size = 40 }) => (
+  <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 2L38 20L20 38L2 20L20 2Z" fill="#0e8c8c" opacity="0.3" />
+    <path d="M20 6L34 20L20 34L6 20L20 6Z" fill="#0e8c8c" opacity="0.5" />
+    <path d="M20 10L30 20L20 30L10 20L20 10Z" fill="#0e8c8c" />
+    <path d="M20 10L30 20L20 20L10 20L20 10Z" fill="#0fb3b3" />
+  </svg>
+);
+
+// ── Default admin seed ──
+const ADMIN_SEED = {
+  id: "admin-root",
+  username: "admin",
+  displayName: "Admin",
+  role: "admin",
+  passwordHash: null, // set on first load
+  createdAt: new Date().toISOString(),
+  mustResetPw: false,
+};
+
+function App() {
+  const [ready, setReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [view, setView] = useState("login"); // login | forgot | dashboard | inventory | users | profile
+  const [users, setUsers] = useState([]);
+  const [items, setItems] = useState([]);
+  const [toast, setToast] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+  const [activeGroup, setActiveGroup] = useState("Plumbing");
+  const pollRef = useRef(null);
+
+  // ── Toast ──
+  const flash = useCallback((msg, type = "ok") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  // ── Storage helpers ──
+  const loadUsers = useCallback(async () => {
+    try {
+      const r = await window.storage.get("pm_users", true);
+      if (r?.value) return JSON.parse(r.value);
+    } catch {}
+    return null;
+  }, []);
+
+  const saveUsers = useCallback(async (u) => {
+    await window.storage.set("pm_users", JSON.stringify(u), true);
+  }, []);
+
+  const loadItems = useCallback(async () => {
+    try {
+      const r = await window.storage.get("pm_inventory", true);
+      if (r?.value) return JSON.parse(r.value);
+    } catch {}
+    return [];
+  }, []);
+
+  const saveItems = useCallback(async (list) => {
+    await window.storage.set("pm_inventory", JSON.stringify(list), true);
+  }, []);
+
+  const loadLogs = useCallback(async () => {
+    try {
+      const r = await window.storage.get("pm_logs", true);
+      if (r?.value) return JSON.parse(r.value);
+    } catch {}
+    return [];
+  }, []);
+
+  const saveLogs = useCallback(async (list) => {
+    await window.storage.set("pm_logs", JSON.stringify(list), true);
+  }, []);
+
+  const addLog = useCallback(async (action, detail, userName) => {
+    const entry = { id: uid(), action, detail, user: userName || "System", ts: new Date().toISOString() };
+    setLogs(prev => {
+      const updated = [entry, ...prev].slice(0, 500); // keep last 500
+      saveLogs(updated);
+      return updated;
+    });
+  }, [saveLogs]);
+
+  // ── Init ──
+  useEffect(() => {
+    (async () => {
+      let existingUsers = await loadUsers();
+      if (!existingUsers || existingUsers.length === 0) {
+        const h = await hash("admin123$");
+        ADMIN_SEED.passwordHash = h;
+        existingUsers = [ADMIN_SEED];
+        await saveUsers(existingUsers);
+      }
+      setUsers(existingUsers);
+      let inv = await loadItems();
+      if (!inv || inv.length === 0) {
+        inv = [];
+        for (const [group, arr] of Object.entries(SEED_DATA)) {
+          inv.push(...buildSeedItems(group, arr));
+        }
+        await saveItems(inv);
+      } else {
+        // Remove old "Air Filters" group if split into 900/904
+        inv = inv.filter(i => i.group !== "Air Filters");
+        // Add any new seed groups not yet in storage
+        const existingGroups = new Set(inv.map(i => i.group));
+        let added = false;
+        for (const [group, arr] of Object.entries(SEED_DATA)) {
+          if (!existingGroups.has(group)) {
+            inv.push(...buildSeedItems(group, arr));
+            added = true;
+          }
+        }
+        if (added) await saveItems(inv);
+      }
+      setItems(inv);
+      const lg = await loadLogs();
+      setLogs(lg || []);
+      // check session
+      try {
+        const sess = await window.storage.get("pm_session", false);
+        if (sess?.value) {
+          const s = JSON.parse(sess.value);
+          const u = existingUsers.find(x => x.id === s.userId);
+          if (u) {
+            setCurrentUser(u);
+            setView(u.mustResetPw ? "profile" : "dashboard");
+          }
+        }
+      } catch {}
+      setReady(true);
+    })();
+  }, []);
+
+  // ── Polling for live updates ──
+  useEffect(() => {
+    if (!currentUser) return;
+    pollRef.current = setInterval(async () => {
+      const inv = await loadItems();
+      if (inv) setItems(inv);
+      const u = await loadUsers();
+      if (u) setUsers(u);
+      const lg = await loadLogs();
+      if (lg) setLogs(lg);
+    }, POLL_MS);
+    return () => clearInterval(pollRef.current);
+  }, [currentUser]);
+
+  // ── Auth ──
+  const login = async (username, password) => {
+    const h = await hash(password);
+    const u = users.find(x => x.username.toLowerCase() === username.toLowerCase() && x.passwordHash === h);
+    if (!u) return flash("Invalid username or password.", "err");
+    setCurrentUser(u);
+    await window.storage.set("pm_session", JSON.stringify({ userId: u.id }), false);
+    setView(u.mustResetPw ? "profile" : "dashboard");
+    addLog("Login", `${u.displayName} signed in`, u.displayName);
+    flash(`Welcome back, ${u.displayName}`);
+  };
+
+  const logout = async () => {
+    addLog("Logout", `${currentUser.displayName} signed out`, currentUser.displayName);
+    setCurrentUser(null);
+    setView("login");
+    try { await window.storage.delete("pm_session", false); } catch {}
+  };
+
+  // ── User CRUD (admin) ──
+  const createUser = async (data) => {
+    const h = await hash(data.password);
+    const nu = { id: uid(), username: data.username, displayName: data.displayName, email: data.email || "", role: data.role, passwordHash: h, createdAt: new Date().toISOString(), mustResetPw: true };
+    const updated = [...users, nu];
+    setUsers(updated);
+    await saveUsers(updated);
+    addLog("User Created", `Created user "${data.username}" (${data.role})`, currentUser?.displayName);
+    flash(`User "${data.username}" created.`);
+    return nu;
+  };
+
+  const updateUser = async (id, data) => {
+    const target = users.find(u => u.id === id);
+    let updated = users.map(u => u.id === id ? { ...u, ...data } : u);
+    setUsers(updated);
+    await saveUsers(updated);
+    addLog("User Updated", `Updated user "${target?.displayName || id}"`, currentUser?.displayName);
+    flash("User updated.");
+  };
+
+  const deleteUser = async (id) => {
+    const target = users.find(u => u.id === id);
+    const updated = users.filter(u => u.id !== id);
+    setUsers(updated);
+    await saveUsers(updated);
+    addLog("User Deleted", `Deleted user "${target?.displayName || id}"`, currentUser?.displayName);
+    flash("User deleted.");
+  };
+
+  const resetPassword = async (id, newPw) => {
+    const h = await hash(newPw);
+    const updated = users.map(u => u.id === id ? { ...u, passwordHash: h, mustResetPw: true } : u);
+    setUsers(updated);
+    await saveUsers(updated);
+    addLog("Password Reset", `Reset password for "${users.find(u => u.id === id)?.displayName || id}"`, currentUser?.displayName);
+    flash("Password reset. User must change on next login.");
+  };
+
+  const changeOwnPassword = async (newPw) => {
+    const h = await hash(newPw);
+    const updated = users.map(u => u.id === currentUser.id ? { ...u, passwordHash: h, mustResetPw: false } : u);
+    setUsers(updated);
+    await saveUsers(updated);
+    setCurrentUser({ ...currentUser, passwordHash: h, mustResetPw: false });
+    addLog("Password Changed", `${currentUser.displayName} changed their password`, currentUser.displayName);
+    flash("Password changed.");
+    setView("dashboard");
+  };
+
+  // ── Inventory CRUD ──
+  const addItem = async (item) => {
+    const ni = { ...item, group: item.group || activeGroup, id: uid(), createdBy: currentUser.displayName, createdAt: new Date().toISOString(), lastUpdated: new Date().toISOString() };
+    const updated = [...items, ni];
+    setItems(updated);
+    await saveItems(updated);
+    addLog("Item Added", `Added "${item.name}" to ${ni.group} (qty: ${ni.qty})`, currentUser.displayName);
+    flash(`"${item.name}" added.`);
+  };
+
+  const updateItem = async (id, data) => {
+    const old = items.find(i => i.id === id);
+    const updated = items.map(i => i.id === id ? { ...i, ...data, lastUpdated: new Date().toISOString(), updatedBy: currentUser.displayName } : i);
+    setItems(updated);
+    await saveItems(updated);
+    const changes = [];
+    if (data.name && data.name !== old?.name) changes.push(`name: "${old?.name}" → "${data.name}"`);
+    if (data.notes !== undefined && data.notes !== old?.notes) changes.push("description updated");
+    if (data.qty !== undefined && data.qty !== old?.qty) changes.push(`qty: ${old?.qty} → ${data.qty}`);
+    addLog("Item Updated", `Updated "${old?.name || id}"${changes.length ? " — " + changes.join(", ") : ""}`, currentUser.displayName);
+    flash("Item updated.");
+  };
+
+  const deleteItem = async (id) => {
+    const target = items.find(i => i.id === id);
+    const updated = items.filter(i => i.id !== id);
+    setItems(updated);
+    await saveItems(updated);
+    addLog("Item Deleted", `Deleted "${target?.name || id}" from ${target?.group || "unknown"}`, currentUser.displayName);
+    flash("Item removed.");
+  };
+
+  const adjustQty = async (id, delta) => {
+    const old = items.find(i => i.id === id);
+    const updated = items.map(i => {
+      if (i.id !== id) return i;
+      const nq = Math.max(0, (i.qty || 0) + delta);
+      return { ...i, qty: nq, lastUpdated: new Date().toISOString(), updatedBy: currentUser.displayName };
+    });
+    setItems(updated);
+    await saveItems(updated);
+    const nq = Math.max(0, (old?.qty || 0) + delta);
+    addLog("Qty Changed", `"${old?.name}" qty: ${old?.qty} → ${nq}`, currentUser.displayName);
+  };
+
+  // ── Filtered / sorted items ──
+  const filtered = items
+    .filter(i => (i.group || "Misc") === activeGroup)
+    .filter(i => !search || i.name.toLowerCase().includes(search.toLowerCase()) || (i.partNumber || "").toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      if (sortBy === "qty") return (a.qty || 0) - (b.qty || 0);
+      return 0;
+    });
+
+  const lowStock = items.filter(i => (i.qty || 0) <= (i.minQty || 0) && (i.minQty || 0) > 0);
+
+  if (!ready) return <div style={S.loadWrap}><div style={S.spinner} /><p style={{ color: "#64748b", marginTop: 16, fontFamily: F.body }}>Loading inventory…</p></div>;
+
+  return (
+    <div style={S.shell}>
+      <style>{globalCSS}</style>
+      {toast && <div style={{ ...S.toast, background: toast.type === "err" ? "#dc2626" : "#16a34a" }}>{toast.msg}</div>}
+
+      {!currentUser ? (
+        view === "forgot" ? <ForgotScreen onBack={() => setView("login")} users={users} flash={flash} /> : <LoginScreen onLogin={login} onForgot={() => setView("forgot")} />
+      ) : (
+        <>
+          <Header user={currentUser} view={view} setView={setView} logout={logout} lowStock={lowStock.length} />
+          {currentUser.mustResetPw && view !== "profile" ? (
+            <div style={S.page}><div style={S.card}><p style={{ fontFamily: F.body, color: "#d97706", margin: 0 }}>⚠ You must change your password before continuing.</p><button style={S.btnPrimary} onClick={() => setView("profile")}>Change Password</button></div></div>
+          ) : (
+            <>
+              {view === "dashboard" && <Dashboard items={items} lowStock={lowStock} setView={setView} setActiveGroup={setActiveGroup} />}
+              {view === "inventory" && (
+                <InventoryView
+                  items={filtered} allItems={items} search={search} setSearch={setSearch}
+                  activeGroup={activeGroup} setActiveGroup={setActiveGroup}
+                  sortBy={sortBy} setSortBy={setSortBy}
+                  onAdd={addItem} onUpdate={updateItem} onDelete={deleteItem} onAdjust={adjustQty}
+                  isAdmin={currentUser.role === "admin"}
+                />
+              )}
+              {view === "users" && currentUser.role === "admin" && (
+                <UsersView users={users} onCreate={createUser} onUpdate={updateUser} onDelete={deleteUser} onResetPw={resetPassword} currentUserId={currentUser.id} />
+              )}
+              {view === "logs" && currentUser.role === "admin" && <LogsView logs={logs} />}
+              {view === "profile" && <ProfileView user={currentUser} onChangePw={changeOwnPassword} mustReset={currentUser.mustResetPw} />}
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+//  SUB-COMPONENTS
+// ══════════════════════════════════════════
+
+function LoginScreen({ onLogin, onForgot }) {
+  const [u, setU] = useState("");
+  const [p, setP] = useState("");
+  const [loading, setLoading] = useState(false);
+  const submit = async () => { setLoading(true); await onLogin(u, p); setLoading(false); };
+  return (
+    <div style={S.authWrap}>
+      <div style={S.authCard}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <Diamond size={52} />
+          <h1 style={{ fontFamily: F.heading, fontSize: 26, color: "#0f172a", margin: "10px 0 0", letterSpacing: 2, fontWeight: 800 }}>PENGUIN</h1>
+          <p style={{ fontFamily: F.body, fontSize: 11, color: "#0d9488", margin: "2px 0 10px", letterSpacing: 1.5, fontWeight: 700 }}>An EMCOR Company</p>
+          <p style={{ fontFamily: F.body, fontSize: 13, color: "#94a3b8", margin: 0 }}>Maintenance Inventory · Versant Media</p>
+        </div>
+        <label style={S.label}>Username</label>
+        <input style={S.input} value={u} onChange={e => setU(e.target.value)} placeholder="Enter username" onKeyDown={e => e.key === "Enter" && submit()} autoCapitalize="off" />
+        <label style={S.label}>Password</label>
+        <input style={S.input} type="password" value={p} onChange={e => setP(e.target.value)} placeholder="Enter password" onKeyDown={e => e.key === "Enter" && submit()} />
+        <button style={{ ...S.btnPrimary, marginTop: 8, opacity: loading ? 0.6 : 1 }} onClick={submit} disabled={loading}>{loading ? "Signing in…" : "Sign In"}</button>
+        <button style={S.btnLink} onClick={onForgot}>Forgot password?</button>
+      </div>
+    </div>
+  );
+}
+
+function ForgotScreen({ onBack, users, flash }) {
+  const [u, setU] = useState("");
+  const [sent, setSent] = useState(false);
+  const submit = () => {
+    const found = users.find(x => x.username.toLowerCase() === u.toLowerCase());
+    if (!found) { flash("Username not found.", "err"); return; }
+    // In real app this would email. Here we notify the admin.
+    setSent(true);
+  };
+  return (
+    <div style={S.authWrap}>
+      <div style={S.authCard}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <Diamond size={44} />
+          <h1 style={{ fontFamily: F.heading, fontSize: 20, color: "#0f172a", margin: "10px 0 4px", letterSpacing: 1, fontWeight: 800 }}>Reset Password</h1>
+        </div>
+        {sent ? (
+          <>
+            <div style={{ ...S.card, background: "#f0fdf4", border: "1px solid #86efac", textAlign: "center" }}>
+              <p style={{ fontFamily: F.body, color: "#16a34a", margin: 0, fontSize: 14 }}>✓ Password reset request sent to admin.<br />Contact your administrator to get your temporary password.</p>
+            </div>
+            <button style={{ ...S.btnSecondary, marginTop: 16 }} onClick={onBack}>Back to Login</button>
+          </>
+        ) : (
+          <>
+            <p style={{ fontFamily: F.body, fontSize: 13, color: "#64748b", margin: "0 0 16px" }}>Enter your username. The admin will be notified and will reset your password.</p>
+            <label style={S.label}>Username</label>
+            <input style={S.input} value={u} onChange={e => setU(e.target.value)} placeholder="Your username" onKeyDown={e => e.key === "Enter" && submit()} autoCapitalize="off" />
+            <button style={{ ...S.btnPrimary, marginTop: 8 }} onClick={submit}>Request Reset</button>
+            <button style={S.btnLink} onClick={onBack}>Back to Login</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Header({ user, view, setView, logout, lowStock }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isAdmin = user.role === "admin";
+  const navItems = [
+    { key: "dashboard", label: "Dashboard", icon: "📊" },
+    { key: "inventory", label: "Inventory", icon: "📦" },
+    ...(isAdmin ? [{ key: "users", label: "Users", icon: "👥" }] : []),
+    ...(isAdmin ? [{ key: "logs", label: "Logs", icon: "📋" }] : []),
+    { key: "profile", label: "Profile", icon: "⚙" },
+  ];
+  return (
+    <>
+      <header style={S.header}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Diamond size={28} />
+          <span style={{ fontFamily: F.heading, fontSize: 15, color: "#0f172a", letterSpacing: 1.5, fontWeight: 700 }}>PENGUIN</span>
+          {lowStock > 0 && <span style={S.badge}>{lowStock}</span>}
+        </div>
+        <button style={S.hamburger} onClick={() => setMenuOpen(!menuOpen)}>
+          <span style={{ fontSize: 22 }}>{menuOpen ? "✕" : "☰"}</span>
+        </button>
+      </header>
+      {menuOpen && <div style={S.menuOverlay} onClick={() => setMenuOpen(false)} />}
+      <div style={{ ...S.drawer, transform: menuOpen ? "translateX(0)" : "translateX(100%)" }}>
+        <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid #f1f5f9" }}>
+          <p style={{ fontFamily: F.heading, color: "#0f172a", margin: 0, fontSize: 15 }}>{user.displayName}</p>
+          <p style={{ fontFamily: F.body, color: "#64748b", margin: "2px 0 0", fontSize: 12 }}>{user.role === "admin" ? "Administrator" : "Crew Member"}</p>
+        </div>
+        {navItems.map(n => (
+          <button key={n.key} style={{ ...S.drawerItem, background: view === n.key ? "#f1f5f9" : "transparent" }}
+            onClick={() => { setView(n.key); setMenuOpen(false); }}>
+            <span>{n.icon}</span> {n.label}
+          </button>
+        ))}
+        <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 8, paddingTop: 8 }}>
+          <button style={{ ...S.drawerItem, color: "#dc2626" }} onClick={logout}>🚪 Sign Out</button>
+        </div>
+      </div>
+      {/* Bottom nav for mobile */}
+      <nav style={S.bottomNav}>
+        {navItems.map(n => (
+          <button key={n.key} style={{ ...S.bottomNavBtn, color: view === n.key ? "#0d9488" : "#94a3b8" }}
+            onClick={() => setView(n.key)}>
+            <span style={{ fontSize: 18 }}>{n.icon}</span>
+            <span style={{ fontSize: 10, marginTop: 2 }}>{n.label}</span>
+          </button>
+        ))}
+      </nav>
+    </>
+  );
+}
+
+function Dashboard({ items, lowStock, setView, setActiveGroup }) {
+  const totalItems = items.length;
+  const totalUnits = items.reduce((s, i) => s + (i.qty || 0), 0);
+  const groups = {};
+  items.forEach(i => {
+    const g = i.group || "Misc";
+    if (!groups[g]) groups[g] = { count: 0, units: 0, zero: 0 };
+    groups[g].count++;
+    groups[g].units += (i.qty || 0);
+    if ((i.qty || 0) === 0) groups[g].zero++;
+  });
+
+  return (
+    <div style={S.page}>
+      <h2 style={S.pageTitle}>Dashboard</h2>
+      <div style={S.statRow}>
+        <div style={{ ...S.statCard, borderLeft: "3px solid #38bdf8" }}>
+          <div style={S.statNum}>{totalItems}</div>
+          <div style={S.statLabel}>Item Types</div>
+        </div>
+        <div style={{ ...S.statCard, borderLeft: "3px solid #4ade80" }}>
+          <div style={S.statNum}>{totalUnits}</div>
+          <div style={S.statLabel}>Total Units</div>
+        </div>
+        <div style={{ ...S.statCard, borderLeft: lowStock.length ? "3px solid #f59e0b" : "3px solid #334155" }}>
+          <div style={{ ...S.statNum, color: lowStock.length ? "#f59e0b" : "#e2e8f0" }}>{lowStock.length}</div>
+          <div style={S.statLabel}>Low Stock</div>
+        </div>
+      </div>
+
+      <div style={S.card}>
+        <h3 style={{ fontFamily: F.heading, fontSize: 14, color: "#64748b", margin: "0 0 12px" }}>Inventory Groups</h3>
+        {Object.entries(groups).sort((a, b) => b[1].units - a[1].units).map(([group, data]) => (
+          <div key={group} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, cursor: "pointer", padding: "10px 12px", borderRadius: 10, background: "#ffffff", border: "1.5px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}
+            onClick={() => { setActiveGroup(group); setView("inventory"); }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: F.heading, fontSize: 14, color: "#0f172a", fontWeight: 700, marginBottom: 2 }}>{group}</div>
+              <div style={{ fontFamily: F.body, fontSize: 11, color: "#64748b" }}>{data.count} items · {data.units} units{data.zero > 0 ? ` · ${data.zero} out of stock` : ""}</div>
+              <div style={{ height: 5, borderRadius: 3, background: "#e2e8f0", overflow: "hidden", marginTop: 4 }}>
+                <div style={{ height: "100%", borderRadius: 3, background: "#0d9488", width: `${Math.min(100, (data.units / Math.max(1, totalUnits)) * 100)}%`, transition: "width .4s" }} />
+              </div>
+            </div>
+            <span style={{ fontFamily: F.mono, fontSize: 14, color: "#64748b" }}>→</span>
+          </div>
+        ))}
+        {Object.keys(groups).length === 0 && <p style={{ fontFamily: F.body, fontSize: 13, color: "#64748b" }}>No items yet.</p>}
+      </div>
+
+      {lowStock.length > 0 && (
+        <div style={{ ...S.card, border: "1px solid #fbbf24", background: "#fffbeb" }}>
+          <h3 style={{ fontFamily: F.heading, fontSize: 14, color: "#f59e0b", margin: "0 0 10px" }}>⚠ Low Stock Alerts</h3>
+          {lowStock.map(i => (
+            <div key={i.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #fef3c7", fontFamily: F.body, fontSize: 13 }}>
+              <span style={{ color: "#1e293b" }}>{i.name} <span style={{ color: "#64748b" }}>({i.group})</span></span>
+              <span style={{ color: "#f59e0b", fontWeight: 600 }}>{i.qty} / {i.minQty} min</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InventoryView({ items, allItems, search, setSearch, activeGroup, setActiveGroup, sortBy, setSortBy, onAdd, onUpdate, onDelete, onAdjust, isAdmin }) {
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [expanded, setExpanded] = useState(null);
+  const [confirmDelItem, setConfirmDelItem] = useState(null);
+  const [inlineEdit, setInlineEdit] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+
+  // Get groups that have items
+  const groupsWithItems = INVENTORY_GROUPS.filter(g => allItems.some(i => (i.group || "Misc") === g));
+  const extraGroups = [...new Set(allItems.map(i => i.group || "Misc"))].filter(g => !INVENTORY_GROUPS.includes(g));
+  const allGroups = [...groupsWithItems, ...extraGroups];
+
+  const openGroup = (g) => { setSelectedGroup(g); setActiveGroup(g); setSearch(""); setExpanded(null); };
+  const goBack = () => { setSelectedGroup(null); setShowForm(false); setEditing(null); setExpanded(null); setSearch(""); };
+
+  // ── GROUP LANDING PAGE ──
+  if (!selectedGroup) {
+    const groupIcons = { "Plumbing": "🔧", "Faucet Parts": "🚿", "Air Filters 900": "🏢", "Air Filters 904": "🏗", "Electrical": "⚡", "HVAC": "❄️", "Lighting": "💡", "Hardware": "🔩", "Safety": "🦺", "Tools": "🛠", "AV/Tech": "📡", "Misc": "📦" };
+    return (
+      <div style={S.page}>
+        <h2 style={S.pageTitle}>Inventory</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {allGroups.map(g => {
+            const groupItems = allItems.filter(i => (i.group || "Misc") === g);
+            const totalUnits = groupItems.reduce((s, i) => s + (i.qty || 0), 0);
+            const outOfStock = groupItems.filter(i => (i.qty || 0) === 0).length;
+            return (
+              <button key={g} onClick={() => openGroup(g)} style={{
+                background: "#ffffff", border: "1.5px solid #e2e8f0", borderRadius: 14, padding: "20px 16px",
+                cursor: "pointer", textAlign: "left", transition: "all .2s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>{groupIcons[g] || "📦"}</div>
+                <div style={{ fontFamily: F.heading, fontSize: 15, color: "#0f172a", fontWeight: 700, marginBottom: 4 }}>{g}</div>
+                <div style={{ fontFamily: F.body, fontSize: 12, color: "#64748b" }}>{groupItems.length} items · {totalUnits} units</div>
+                {outOfStock > 0 && <div style={{ fontFamily: F.body, fontSize: 11, color: "#ef4444", marginTop: 3 }}>{outOfStock} out of stock</div>}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ height: 80 }} />
+      </div>
+    );
+  }
+
+  // ── ITEM LIST FOR SELECTED GROUP ──
+  return (
+    <div style={S.page}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <button onClick={goBack} style={{ background: "none", border: "none", color: "#0d9488", fontSize: 24, cursor: "pointer", fontWeight: 700, padding: "4px 0", lineHeight: 1 }}>←</button>
+        <h2 style={{ ...S.pageTitle, margin: 0, flex: 1 }}>{selectedGroup}</h2>
+        <button style={{ ...S.btnPrimary, width: "auto", padding: "8px 16px" }} onClick={() => { setEditing(null); setShowForm(true); }}>+ Add</button>
+      </div>
+
+      <input style={S.input} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search items or part #…" />
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, marginTop: 6 }}>
+        <select style={S.select} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="name">Sort: Name</option>
+          <option value="qty">Sort: Qty</option>
+        </select>
+        <span style={{ fontFamily: F.body, fontSize: 12, color: "#64748b", display: "flex", alignItems: "center" }}>{items.length} items</span>
+      </div>
+
+      {showForm && (
+        <ItemForm item={editing} activeGroup={activeGroup} onSave={async (data) => {
+          if (editing) await onUpdate(editing.id, data);
+          else await onAdd(data);
+          setShowForm(false); setEditing(null);
+        }} onCancel={() => { setShowForm(false); setEditing(null); }} />
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {items.map(i => (
+          <div key={i.id} style={S.itemCard}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
+              onClick={() => setExpanded(expanded === i.id ? null : i.id)}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: F.heading, fontSize: 14, color: "#1e293b" }}>{i.name}</div>
+                <div style={{ fontFamily: F.body, fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                  {i.partNumber ? `#${i.partNumber}` : ""}{i.notes ? (i.partNumber ? " · " : "") + i.notes : ""}
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button style={S.qtyBtn} onClick={e => { e.stopPropagation(); onAdjust(i.id, -1); }}>−</button>
+                <span style={{ fontFamily: F.mono, fontSize: 16, color: (i.qty || 0) <= (i.minQty || 0) && (i.minQty || 0) > 0 ? "#f59e0b" : (i.qty || 0) === 0 ? "#ef4444" : "#0f172a", minWidth: 28, textAlign: "center" }}>{i.qty || 0}</span>
+                <button style={S.qtyBtn} onClick={e => { e.stopPropagation(); onAdjust(i.id, 1); }}>+</button>
+              </div>
+            </div>
+            {expanded === i.id && (
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #e2e8f0" }}>
+                {inlineEdit?.id === i.id ? (
+                  <>
+                    <label style={S.label}>Name</label>
+                    <input style={S.input} value={inlineEdit.name} onChange={e => setInlineEdit({ ...inlineEdit, name: e.target.value })} />
+                    <label style={S.label}>Description / Notes</label>
+                    <textarea style={{ ...S.input, minHeight: 50, resize: "vertical", marginBottom: 0 }} value={inlineEdit.notes} onChange={e => setInlineEdit({ ...inlineEdit, notes: e.target.value })} placeholder="Add description…" />
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <button style={{ ...S.btnPrimary, width: "auto", padding: "8px 16px" }} onClick={() => { if (inlineEdit.name.trim()) { onUpdate(i.id, { name: inlineEdit.name, notes: inlineEdit.notes }); setInlineEdit(null); } }}>Save</button>
+                      <button style={S.btnSecondary} onClick={() => setInlineEdit(null)}>Cancel</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {i.partNumber && <p style={S.detailLine}><b>Part #:</b> {i.partNumber}</p>}
+                    {i.location && <p style={S.detailLine}><b>Location:</b> {i.location}</p>}
+                    {i.minQty > 0 && <p style={S.detailLine}><b>Min stock:</b> {i.minQty}</p>}
+                    {i.notes && <p style={S.detailLine}><b>Notes:</b> {i.notes}</p>}
+                    <p style={S.detailLine}><b>Last updated:</b> {new Date(i.lastUpdated).toLocaleDateString()} {i.updatedBy ? `by ${i.updatedBy}` : ""}</p>
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <button style={S.btnSecondary} onClick={() => setInlineEdit({ id: i.id, name: i.name, notes: i.notes || "" })}>✏️ Edit</button>
+                      {isAdmin && <button style={S.btnSecondary} onClick={() => { setEditing(i); setShowForm(true); setExpanded(null); }}>Full Edit</button>}
+                      {isAdmin && confirmDelItem !== i.id && <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }} onClick={() => setConfirmDelItem(i.id)}>Delete</button>}
+                      {isAdmin && confirmDelItem === i.id && (
+                        <>
+                          <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }} onClick={() => { onDelete(i.id); setConfirmDelItem(null); setExpanded(null); }}>Yes, Delete</button>
+                          <button style={S.btnSecondary} onClick={() => setConfirmDelItem(null)}>Cancel</button>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+        {items.length === 0 && <p style={{ fontFamily: F.body, fontSize: 13, color: "#64748b", textAlign: "center", padding: 32 }}>No items in this group{search ? " matching your search" : ""}.</p>}
+      </div>
+      <div style={{ height: 80 }} />
+    </div>
+  );
+}
+
+function ItemForm({ item, activeGroup, onSave, onCancel }) {
+  const [f, setF] = useState({
+    name: item?.name || "", group: item?.group || activeGroup, qty: item?.qty ?? 1,
+    minQty: item?.minQty ?? 0, partNumber: item?.partNumber || "", location: item?.location || "",
+    notes: item?.notes || "",
+  });
+  const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
+  return (
+    <div style={{ ...S.card, border: "1.5px solid #e2e8f0", marginBottom: 12 }}>
+      <h3 style={{ fontFamily: F.heading, fontSize: 15, color: "#1e293b", margin: "0 0 12px" }}>{item ? "Edit Item" : "New Item"}</h3>
+      <label style={S.label}>Name *</label>
+      <input style={S.input} value={f.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Sloan Faucet Kit" />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div><label style={S.label}>Group</label><select style={S.select} value={f.group} onChange={e => set("group", e.target.value)}>{INVENTORY_GROUPS.map(c => <option key={c}>{c}</option>)}</select></div>
+        <div><label style={S.label}>Part #</label><input style={S.input} value={f.partNumber} onChange={e => set("partNumber", e.target.value)} placeholder="Optional" /></div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div><label style={S.label}>Quantity</label><input style={S.input} type="number" min="0" value={f.qty} onChange={e => set("qty", Math.max(0, +e.target.value))} /></div>
+        <div><label style={S.label}>Min Stock Alert</label><input style={S.input} type="number" min="0" value={f.minQty} onChange={e => set("minQty", Math.max(0, +e.target.value))} /></div>
+      </div>
+      <label style={S.label}>Storage Location</label>
+      <input style={S.input} value={f.location} onChange={e => set("location", e.target.value)} placeholder="e.g. Van #2, Shelf B3" />
+      <label style={S.label}>Notes</label>
+      <textarea style={{ ...S.input, minHeight: 60, resize: "vertical" }} value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Optional notes…" />
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button style={S.btnPrimary} onClick={() => { if (!f.name.trim()) return; onSave(f); }}>Save</button>
+        <button style={S.btnSecondary} onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function UsersView({ users, onCreate, onUpdate, onDelete, onResetPw, currentUserId }) {
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [rpUser, setRpUser] = useState(null);
+  const [newPw, setNewPw] = useState("");
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  return (
+    <div style={S.page}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h2 style={{ ...S.pageTitle, margin: 0 }}>User Management</h2>
+        <button style={S.btnPrimary} onClick={() => { setEditing(null); setShowForm(true); }}>+ Add User</button>
+      </div>
+
+      {showForm && (
+        <UserForm user={editing} onSave={async (data) => {
+          if (editing) {
+            const { password, ...rest } = data;
+            await onUpdate(editing.id, rest);
+          } else {
+            await onCreate(data);
+          }
+          setShowForm(false); setEditing(null);
+        }} onCancel={() => { setShowForm(false); setEditing(null); }} />
+      )}
+
+      {rpUser && (
+        <div style={{ ...S.card, border: "1.5px solid #e2e8f0", marginBottom: 12 }}>
+          <h3 style={{ fontFamily: F.heading, fontSize: 14, color: "#1e293b", margin: "0 0 10px" }}>Reset Password — {rpUser.displayName}</h3>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <label style={S.label}>New Temporary Password</label>
+              <input style={S.input} type="text" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="Temporary password" />
+            </div>
+            <button style={{ ...S.btnSecondary, padding: "10px 12px" }} onClick={() => {
+              const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+              let pw = ""; for (let i = 0; i < 8; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+              setNewPw(pw);
+            }}>🎲</button>
+          </div>
+          <p style={{ fontFamily: F.body, fontSize: 12, color: "#64748b", margin: "4px 0 10px" }}>User will be required to change this on next login.</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button style={S.btnPrimary} onClick={() => {
+              if (newPw.length < 4) return;
+              onResetPw(rpUser.id, newPw);
+              setRpUser(null); setNewPw("");
+            }}>Reset Password</button>
+            <button style={S.btnSecondary} onClick={() => { setRpUser(null); setNewPw(""); }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {users.map(u => (
+        <div key={u.id} style={S.itemCard}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ fontFamily: F.heading, fontSize: 14, color: "#1e293b" }}>{u.displayName}</div>
+              <div style={{ fontFamily: F.body, fontSize: 12, color: "#64748b" }}>@{u.username} · {u.role}{u.mustResetPw ? " · ⚠ must reset pw" : ""}</div>
+              {u.email && <div style={{ fontFamily: F.body, fontSize: 11, color: "#64748b" }}>{u.email}</div>}
+            </div>
+            {u.id !== currentUserId && (
+              <div style={{ display: "flex", gap: 6 }}>
+                <button style={{ ...S.qtyBtn, fontSize: 12 }} title="Reset Password" onClick={() => { setRpUser(u); setNewPw(""); }}>🔑</button>
+                <button style={{ ...S.qtyBtn, fontSize: 12 }} title="Edit" onClick={() => { setEditing(u); setShowForm(true); }}>✏️</button>
+                <button style={{ ...S.qtyBtn, fontSize: 12, color: "#ef4444" }} title="Delete" onClick={() => setConfirmDel(u.id)}>✕</button>
+              </div>
+            )}
+          </div>
+          {confirmDel === u.id && (
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontFamily: F.body, fontSize: 13, color: "#f87171", flex: 1 }}>Delete {u.displayName}?</span>
+              <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5", padding: "6px 14px", fontSize: 12 }} onClick={() => { onDelete(u.id); setConfirmDel(null); }}>Yes, Delete</button>
+              <button style={{ ...S.btnSecondary, padding: "6px 14px", fontSize: 12 }} onClick={() => setConfirmDel(null)}>Cancel</button>
+            </div>
+          )}
+        </div>
+      ))}
+      <div style={{ height: 80 }} />
+    </div>
+  );
+}
+
+function UserForm({ user, onSave, onCancel }) {
+  const [f, setF] = useState({ username: user?.username || "", displayName: user?.displayName || "", email: user?.email || "", role: user?.role || "crew", password: "" });
+  const [emailTouched, setEmailTouched] = useState(false);
+  const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
+
+  const autoUsername = (name) => {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length < 2) return parts[0]?.toLowerCase() || "";
+    return (parts[0][0] + parts[parts.length - 1]).toLowerCase();
+  };
+
+  const autoEmail = (name) => {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length < 2) return parts[0] ? parts[0].toLowerCase() + "@versantmedia.com" : "";
+    return (parts[0] + "." + parts[parts.length - 1]).toLowerCase() + "@versantmedia.com";
+  };
+
+  const handleNameChange = (val) => {
+    set("displayName", val);
+    if (!user) {
+      set("username", autoUsername(val));
+      if (!emailTouched) set("email", autoEmail(val));
+    }
+  };
+
+  const handleEmailChange = (val) => {
+    setEmailTouched(true);
+    set("email", val);
+  };
+
+  const genPassword = () => {
+    const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    let pw = "";
+    for (let i = 0; i < 8; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+    set("password", pw);
+  };
+
+  const handleSave = () => {
+    if (!f.displayName.trim() || !f.username.trim()) return;
+    if (!user && f.password.length < 4) return;
+    onSave(f);
+  };
+
+  return (
+    <div style={{ ...S.card, border: "1.5px solid #e2e8f0", marginBottom: 12 }}>
+      <h3 style={{ fontFamily: F.heading, fontSize: 15, color: "#1e293b", margin: "0 0 12px" }}>{user ? "Edit User" : "New User"}</h3>
+      <label style={S.label}>Full Name *</label>
+      <input style={S.input} value={f.displayName} onChange={e => handleNameChange(e.target.value)} placeholder="e.g. John Smith" />
+      <label style={S.label}>Username {!user && <span style={{ color: "#64748b", fontWeight: 400 }}>(auto-generated)</span>}</label>
+      <input style={{ ...S.input, background: !user ? "#141c2e" : "#1e293b" }} value={f.username} onChange={e => set("username", e.target.value)} placeholder="login username" autoCapitalize="off" disabled={!!user} />
+      <label style={S.label}>Email {!user && <span style={{ color: "#64748b", fontWeight: 400 }}>(auto-generated)</span>}</label>
+      <input style={S.input} type="email" value={f.email} onChange={e => handleEmailChange(e.target.value)} placeholder="firstname.lastname@versantmedia.com" autoCapitalize="off" />
+      {!user && (
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <label style={S.label}>Temporary Password *</label>
+            <input style={S.input} type="text" value={f.password} onChange={e => set("password", e.target.value)} placeholder="Min 4 characters" />
+          </div>
+          <button style={{ ...S.btnSecondary, marginBottom: 0, padding: "10px 12px", whiteSpace: "nowrap" }} onClick={genPassword} title="Generate random password">🎲 Gen</button>
+        </div>
+      )}
+      <label style={S.label}>Role</label>
+      <select style={S.select} value={f.role} onChange={e => set("role", e.target.value)}><option value="crew">Crew</option><option value="admin">Admin</option></select>
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <button style={S.btnPrimary} onClick={handleSave}>Save</button>
+        <button style={S.btnSecondary} onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function ProfileView({ user, onChangePw, mustReset }) {
+  const [pw1, setPw1] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [err, setErr] = useState("");
+  const submit = () => {
+    if (pw1.length < 4) return setErr("Minimum 4 characters.");
+    if (pw1 !== pw2) return setErr("Passwords don't match.");
+    setErr("");
+    onChangePw(pw1);
+  };
+  return (
+    <div style={S.page}>
+      <h2 style={S.pageTitle}>{mustReset ? "Set New Password" : "My Profile"}</h2>
+      <div style={S.card}>
+        <p style={{ fontFamily: F.body, fontSize: 13, color: "#64748b", margin: "0 0 4px" }}>Signed in as</p>
+        <p style={{ fontFamily: F.heading, fontSize: 16, color: "#0f172a", margin: "0 0 2px" }}>{user.displayName}</p>
+        <p style={{ fontFamily: F.body, fontSize: 12, color: "#64748b", margin: "0 0 16px" }}>@{user.username} · {user.role}</p>
+        {mustReset && <p style={{ fontFamily: F.body, fontSize: 13, color: "#f59e0b", margin: "0 0 14px" }}>⚠ You must set a new password to continue.</p>}
+        <label style={S.label}>New Password</label>
+        <input style={S.input} type="password" value={pw1} onChange={e => setPw1(e.target.value)} placeholder="Min 4 characters" />
+        <label style={S.label}>Confirm Password</label>
+        <input style={S.input} type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Repeat password" onKeyDown={e => e.key === "Enter" && submit()} />
+        {err && <p style={{ fontFamily: F.body, fontSize: 12, color: "#ef4444", margin: "6px 0 0" }}>{err}</p>}
+        <button style={{ ...S.btnPrimary, marginTop: 10 }} onClick={submit}>Change Password</button>
+      </div>
+    </div>
+  );
+}
+
+function LogsView({ logs }) {
+  const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
+  const [dateRange, setDateRange] = useState("all"); // all | today | week | month
+
+  const actionTypes = ["All", "Login", "Logout", "Qty Changed", "Item Added", "Item Updated", "Item Deleted", "User Created", "User Updated", "User Deleted", "Password Reset", "Password Changed"];
+
+  const now = new Date();
+  const filtered = logs.filter(l => {
+    if (filter !== "All" && l.action !== filter) return false;
+    if (search && !l.detail.toLowerCase().includes(search.toLowerCase()) && !l.user.toLowerCase().includes(search.toLowerCase())) return false;
+    if (dateRange !== "all") {
+      const d = new Date(l.ts);
+      if (dateRange === "today") {
+        if (d.toDateString() !== now.toDateString()) return false;
+      } else if (dateRange === "week") {
+        const week = 7 * 24 * 60 * 60 * 1000;
+        if (now - d > week) return false;
+      } else if (dateRange === "month") {
+        const month = 30 * 24 * 60 * 60 * 1000;
+        if (now - d > month) return false;
+      }
+    }
+    return true;
+  });
+
+  const actionColor = (a) => {
+    if (a === "Login" || a === "Logout") return "#38bdf8";
+    if (a.includes("Deleted")) return "#ef4444";
+    if (a.includes("Created") || a.includes("Added")) return "#4ade80";
+    if (a.includes("Changed") || a.includes("Updated") || a.includes("Reset")) return "#f59e0b";
+    return "#94a3b8";
+  };
+
+  const formatTime = (ts) => {
+    const d = new Date(ts);
+    const today = new Date();
+    const isToday = d.toDateString() === today.toDateString();
+    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    const isYesterday = d.toDateString() === yesterday.toDateString();
+    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    if (isToday) return `Today ${time}`;
+    if (isYesterday) return `Yesterday ${time}`;
+    return d.toLocaleDateString([], { month: "short", day: "numeric" }) + ` ${time}`;
+  };
+
+  return (
+    <div style={S.page}>
+      <h2 style={S.pageTitle}>Activity Log</h2>
+
+      <input style={{ ...S.input, marginBottom: 8 }} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search logs…" />
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        <select style={S.select} value={filter} onChange={e => setFilter(e.target.value)}>
+          {actionTypes.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <select style={S.select} value={dateRange} onChange={e => setDateRange(e.target.value)}>
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">Last 7 Days</option>
+          <option value="month">Last 30 Days</option>
+        </select>
+      </div>
+
+      <p style={{ fontFamily: F.body, fontSize: 12, color: "#64748b", marginBottom: 8 }}>{filtered.length} entries</p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {filtered.map(l => (
+          <div key={l.id} style={{ background: "#ffffff", borderRadius: 10, padding: "11px 14px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)", border: "1px solid #f1f5f9" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                  <span style={{ fontFamily: F.body, fontSize: 11, fontWeight: 600, color: actionColor(l.action), background: actionColor(l.action) + "18", padding: "2px 8px", borderRadius: 10 }}>{l.action}</span>
+                  <span style={{ fontFamily: F.body, fontSize: 11, color: "#64748b" }}>{l.user}</span>
+                </div>
+                <p style={{ fontFamily: F.body, fontSize: 13, color: "#334155", margin: 0 }}>{l.detail}</p>
+              </div>
+              <span style={{ fontFamily: F.mono, fontSize: 10, color: "#64748b", whiteSpace: "nowrap", marginTop: 2 }}>{formatTime(l.ts)}</span>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && <p style={{ fontFamily: F.body, fontSize: 13, color: "#64748b", textAlign: "center", padding: 32 }}>No log entries{filter !== "All" || search ? " match your filters" : " yet"}.</p>}
+      </div>
+      <div style={{ height: 80 }} />
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+//  STYLES
+// ══════════════════════════════════════════
+const F = {
+  heading: "'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif",
+  body: "'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif",
+  mono: "'JetBrains Mono', 'Courier New', monospace",
+};
+
+const globalCSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f1f5f9; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #0d9488 !important; box-shadow: 0 0 0 3px rgba(13,148,136,.12) !important; }
+  ::placeholder { color: #94a3b8; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+`;
+
+const S = {
+  shell: { minHeight: "100vh", background: "#f1f5f9", color: "#1e293b", paddingBottom: 74 },
+  loadWrap: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", background: "#f1f5f9" },
+  spinner: { width: 36, height: 36, border: "3px solid #e2e8f0", borderTopColor: "#0d9488", borderRadius: "50%", animation: "spin 0.8s linear infinite" },
+
+  // Auth
+  authWrap: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 16, background: "linear-gradient(160deg, #0f172a 0%, #1e293b 100%)" },
+  authCard: { width: "100%", maxWidth: 380, background: "#ffffff", borderRadius: 16, padding: 32, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" },
+
+  // Header
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", background: "#ffffff", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", position: "sticky", top: 0, zIndex: 50 },
+  hamburger: { background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: 4 },
+  badge: { background: "#f59e0b", color: "#fff", fontFamily: F.mono, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10 },
+  menuOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 98 },
+  drawer: { position: "fixed", top: 0, right: 0, bottom: 0, width: 260, background: "#ffffff", boxShadow: "-4px 0 20px rgba(0,0,0,0.1)", zIndex: 99, transition: "transform .25s ease", overflowY: "auto" },
+  drawerItem: { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "13px 18px", background: "none", border: "none", color: "#334155", fontFamily: F.body, fontSize: 14, cursor: "pointer", textAlign: "left", fontWeight: 500 },
+
+  // Bottom nav
+  bottomNav: { position: "fixed", bottom: 0, left: 0, right: 0, display: "flex", justifyContent: "space-around", background: "#ffffff", boxShadow: "0 -1px 6px rgba(0,0,0,0.06)", padding: "6px 0 env(safe-area-inset-bottom, 8px)", zIndex: 50 },
+  bottomNavBtn: { display: "flex", flexDirection: "column", alignItems: "center", background: "none", border: "none", cursor: "pointer", fontFamily: F.body, padding: "4px 12px" },
+
+  // Page
+  page: { padding: "20px 16px 0", maxWidth: 600, margin: "0 auto", animation: "slideUp .3s ease" },
+  pageTitle: { fontFamily: F.heading, fontSize: 22, color: "#0f172a", margin: "0 0 16px", fontWeight: 800 },
+
+  // Cards
+  card: { background: "#ffffff", borderRadius: 12, padding: 18, marginBottom: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)" },
+  itemCard: { background: "#ffffff", borderRadius: 10, padding: "12px 14px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)", border: "1px solid #e2e8f0" },
+
+  // Stats
+  statRow: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 },
+  statCard: { background: "#ffffff", borderRadius: 12, padding: "16px 14px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" },
+  statNum: { fontFamily: F.mono, fontSize: 26, fontWeight: 700, color: "#0f172a" },
+  statLabel: { fontFamily: F.body, fontSize: 11, color: "#64748b", marginTop: 2, fontWeight: 500 },
+
+  // Form elements
+  label: { display: "block", fontFamily: F.body, fontSize: 12, color: "#64748b", marginBottom: 5, marginTop: 12, fontWeight: 600, letterSpacing: 0.2 },
+  input: { width: "100%", padding: "11px 14px", background: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: 10, color: "#1e293b", fontFamily: F.body, fontSize: 14, transition: "border-color .2s, box-shadow .2s" },
+  select: { padding: "11px 14px", background: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: 10, color: "#1e293b", fontFamily: F.body, fontSize: 13, flex: 1 },
+
+  // Buttons
+  btnPrimary: { padding: "11px 22px", background: "#0d9488", border: "none", borderRadius: 10, color: "#fff", fontFamily: F.body, fontSize: 14, fontWeight: 700, cursor: "pointer", width: "100%", transition: "background .2s" },
+  btnSecondary: { padding: "9px 16px", background: "#f1f5f9", border: "1.5px solid #e2e8f0", borderRadius: 10, color: "#64748b", fontFamily: F.body, fontSize: 13, cursor: "pointer", fontWeight: 600 },
+  btnLink: { display: "block", background: "none", border: "none", color: "#0d9488", fontFamily: F.body, fontSize: 13, cursor: "pointer", marginTop: 16, textAlign: "center", fontWeight: 600 },
+  qtyBtn: { width: 34, height: 34, borderRadius: 10, background: "#f1f5f9", border: "1.5px solid #e2e8f0", color: "#334155", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 },
+
+  // Detail
+  detailLine: { fontFamily: F.body, fontSize: 13, color: "#64748b", margin: "5px 0" },
+
+  // Toast
+  toast: { position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", padding: "11px 22px", borderRadius: 12, color: "#fff", fontFamily: F.body, fontSize: 13, fontWeight: 600, zIndex: 200, animation: "slideUp .3s ease", boxShadow: "0 8px 30px rgba(0,0,0,0.15)" },
+};
+
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
