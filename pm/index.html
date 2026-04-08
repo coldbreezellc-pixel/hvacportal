@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PM Work Order — Versant Media</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{--navy:#1B3A5C;--navy-light:#2A5280;--accent:#2979FF;--bg:#F3F6FA;--card:#FFFFFF;--border:#D4DCE8;--text:#1E2A3A;--text-mid:#5A6A7E;--text-light:#8A96A8;--success:#2E7D32;--warn:#E65100;--danger:#C62828;--photo-border:#90CAF9;--photo-bg:#E3F2FD;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(27,58,92,0.08);--liebert:#1565C0;--liebert-bg:#E3F2FD;--safety:#FF6F00;--safety-bg:#FFF8E1;--na-color:#78909C;--na-bg:#ECEFF1}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+  .header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);color:#fff;padding:20px 20px 24px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(27,58,92,.25)}
+  .header h1{font-size:18px;font-weight:700;letter-spacing:.5px;margin-bottom:2px}
+  .header .subtitle{font-size:12px;opacity:.7}
+  .header .badge{display:inline-block;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:6px}
+  .container{padding:16px;max-width:600px;margin:0 auto;padding-bottom:100px}
+  .section{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;border:1px solid var(--border)}
+  .section-header{background:var(--navy);color:#fff;padding:12px 16px;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+  .section-header .icon{font-size:16px}
+  .section-header.safety-hdr{background:var(--safety)}
+  .section-body{padding:16px}
+  .field-group{margin-bottom:14px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  label{display:block;font-size:11px;font-weight:600;color:var(--text-mid);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+  input[type="text"],input[type="date"],select,textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);background:#FAFBFD;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(41,121,255,.12);background:#fff}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235A6A7E' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+  textarea{resize:vertical;min-height:70px}
+  .tech-input-wrap{border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#FAFBFD;padding:6px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:44px;cursor:text;transition:border-color .2s,box-shadow .2s}
+  .tech-input-wrap.focused{border-color:var(--accent);box-shadow:0 0 0 3px rgba(41,121,255,.12);background:#fff}
+  .tech-tag{display:inline-flex;align-items:center;gap:4px;background:#E8F0FE;border:1px solid #C5D8F8;border-radius:6px;padding:4px 8px;font-size:14px;font-weight:500;color:var(--navy);animation:tagIn .2s ease}
+  @keyframes tagIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+  .tech-tag .remove-tag{width:18px;height:18px;border-radius:50%;border:none;background:rgba(27,58,92,.15);color:var(--navy);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+  .tech-text-input{border:none;outline:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);flex:1;min-width:100px;padding:4px 0}
+  .tech-hint{font-size:11px;color:var(--text-light);margin-top:4px}
+  .ppe-banner{background:#FDE8E8;border:2.5px solid var(--danger);border-radius:var(--radius);padding:20px 16px;text-align:center;margin-bottom:14px;animation:ppePulse 2s ease-in-out infinite}
+  @keyframes ppePulse{0%,100%{box-shadow:0 0 0 0 rgba(198,40,40,.2)}50%{box-shadow:0 0 0 8px rgba(198,40,40,0)}}
+  .ppe-banner .ppe-icon{font-size:36px;display:block;margin-bottom:8px}
+  .ppe-banner .ppe-text{font-size:18px;font-weight:700;color:var(--danger);line-height:1.3;text-transform:uppercase;letter-spacing:.5px}
+  .ppe-ack-btn{width:100%;padding:14px 16px;border:2.5px solid var(--danger);border-radius:var(--radius-sm);background:#fff;color:var(--danger);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:12px;line-height:1.3}
+  .ppe-ack-btn:active{transform:scale(.97)}
+  .ppe-ack-btn.acknowledged{background:var(--success);border-color:var(--success);color:#fff;pointer-events:none;animation:none}
+  .ppe-ack-btn.acknowledged::before{content:'✓ '}
+  .ppe-banner.acknowledged{border-color:var(--success);background:#E8F5E9;animation:none}
+  .ppe-banner.acknowledged .ppe-text{color:var(--success)}
+  .ppe-timestamp{font-size:11px;color:var(--success);margin-top:8px;font-weight:500;display:none}
+  .ppe-banner.acknowledged .ppe-timestamp{display:block}
+  .gated-content{display:none}.gated-content.unlocked{display:block}
+  .safety-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+  .safety-table th{background:var(--safety-bg);text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:var(--safety);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #FFE082}
+  .safety-table th.th-done,.safety-table th.th-na{text-align:center;width:46px}
+  .safety-table td{padding:8px 10px;border-bottom:1px solid #EEF1F6;font-size:14px;vertical-align:middle}
+  .safety-table td.td-action{text-align:center;width:46px;padding:8px 4px}
+  .safety-table .condition-select{font-size:13px;padding:6px 8px;width:100%}
+  .safety-table .notes-input{font-size:13px;padding:6px 8px;width:100%}
+  .safety-check{width:28px;height:28px;border-radius:6px;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto;transition:all .15s;background:#FAFBFD;font-size:11px;font-weight:700;color:var(--text-light);flex-shrink:0;user-select:none}
+  .safety-check:active{transform:scale(.9)}
+  .safety-check.done-check.active{background:var(--success);border-color:var(--success);color:#fff}
+  .safety-check.na-check.active{background:var(--na-color);border-color:var(--na-color);color:#fff}
+  .safety-sub-header{font-size:12px;font-weight:700;color:var(--safety);text-transform:uppercase;letter-spacing:.8px;padding:10px 0 4px;margin-top:8px;border-bottom:1.5px solid #FFE082;margin-bottom:2px}
+  .emergency-box{background:#FFF3E0;border:1.5px solid #FFE082;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.5;color:var(--text)}
+  .emergency-box strong{color:var(--danger);font-size:12px;text-transform:uppercase}
+  .emergency-box ul{margin:6px 0 0 16px;padding:0}
+  .emergency-box li{margin-bottom:6px}
+  .safety-continue-btn{width:100%;padding:14px 16px;border:2px solid var(--success);border-radius:var(--radius-sm);background:var(--success);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px}
+  .safety-continue-btn:active{transform:scale(.97)}
+  .safety-continue-btn:disabled{opacity:.4;pointer-events:none}
+  .equip-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .equip-chip{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#FAFBFD;cursor:pointer;transition:all .15s;user-select:none;font-size:14px;font-weight:500}
+  .equip-chip:active{transform:scale(.97)}
+  .equip-chip.selected{border-color:var(--accent);background:#E8F0FE;box-shadow:0 0 0 2px rgba(41,121,255,.15)}
+  .equip-chip .chip-check{width:20px;height:20px;border-radius:4px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;transition:all .15s}
+  .equip-chip.selected .chip-check{background:var(--accent);border-color:var(--accent)}
+  .equip-group-label{grid-column:1/-1;font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:1px;margin-top:6px;padding-bottom:2px;border-bottom:1px solid var(--border)}
+  .liebert-units-area{display:none;margin-top:10px}
+  .liebert-units-area.show{display:block}
+  .liebert-unit-entry{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--liebert-bg);border:1.5px solid #90CAF9;border-radius:var(--radius-sm);margin-bottom:8px;animation:tagIn .2s ease}
+  .liebert-unit-entry .lu-label{font-size:12px;font-weight:700;color:var(--liebert);white-space:nowrap;min-width:60px}
+  .liebert-unit-entry input{flex:1;font-size:14px;padding:8px 10px;border:1.5px solid #90CAF9;border-radius:6px}
+  .liebert-unit-entry .lu-remove{width:26px;height:26px;border-radius:50%;border:none;background:rgba(198,40,40,.15);color:var(--danger);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .add-liebert-btn{width:100%;padding:10px;border:1.5px dashed #90CAF9;border-radius:var(--radius-sm);background:transparent;color:var(--liebert);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+  .add-liebert-btn:active{transform:scale(.97)}
+  .pm-checklist{margin-top:16px;padding-top:4px;border-top:2px solid var(--border)}.pm-checklist:first-child{border-top:none;margin-top:0}
+  .pm-checklist-header{border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .pm-checklist-header.ct-header{background:#FFF3E0;border:1px solid #FFE0B2}
+  .pm-checklist-header.pump-header{background:#E8F5E9;border:1px solid #C8E6C9}
+  .pm-checklist-header.liebert-header{background:var(--liebert-bg);border:1px solid #90CAF9}
+  .pm-checklist-header .equip-tag{font-size:13px;font-weight:700}
+  .pm-checklist-header.ct-header .equip-tag{color:var(--warn)}
+  .pm-checklist-header.pump-header .equip-tag{color:var(--success)}
+  .pm-checklist-header.liebert-header .equip-tag{color:var(--liebert)}
+  .pm-freq-label{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.8px;padding:8px 0 4px;border-bottom:1px solid var(--border);margin-bottom:6px;margin-top:10px}
+  .pm-sub-label{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;padding:4px 0 2px;margin-top:6px}
+  .pm-task-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #EEF1F6}.pm-task-row:last-child{border-bottom:none}
+  .pm-task-check{width:22px;height:22px;border-radius:4px;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .15s;background:#FAFBFD;font-size:14px;color:#fff}
+  .pm-task-check.checked{background:var(--success);border-color:var(--success)}
+  .pm-task-text{font-size:14px;color:var(--text);line-height:1.4;flex:1}
+  .pm-task-text.checked-text{color:var(--text-light);text-decoration:line-through}
+  .pm-warn{background:#FFF8E1;border:1px solid #FFE082;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:600;color:#E65100;margin-bottom:10px}
+  .pm-note{background:#F3E5F5;border:1px solid #CE93D8;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:500;color:#6A1B9A;margin-top:4px;margin-bottom:6px;font-style:italic}
+  .pm-alert{background:#FFEBEE;border:1px solid #EF9A9A;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:600;color:var(--danger);margin-top:4px;margin-bottom:6px}
+  .reading-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:6px 0 10px}
+  .reading-row label{font-size:10px;margin-bottom:2px}
+  .reading-row input{font-size:13px;padding:6px 8px;text-align:center}
+  .freq-chips{display:flex;gap:8px;flex-wrap:wrap}
+  .freq-chip{padding:8px 14px;border:1.5px solid var(--border);border-radius:20px;background:#FAFBFD;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;user-select:none}
+  .freq-chip:active{transform:scale(.97)}
+  .freq-chip.selected{border-color:var(--accent);background:#E8F0FE;color:var(--accent)}
+  .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .photo-slot{border:2px dashed var(--photo-border);border-radius:var(--radius);background:var(--photo-bg);position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .1s;min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .photo-slot:active{transform:scale(.97)}
+  .photo-slot.has-photo{border-style:solid;border-color:var(--success);background:#fff}
+  .photo-slot .placeholder{text-align:center;padding:16px}
+  .photo-slot .placeholder .cam-icon{font-size:36px;display:block;margin-bottom:6px}
+  .photo-slot .placeholder .tap-text{font-size:12px;color:var(--accent);font-weight:600}
+  .photo-slot .placeholder .sub-text{font-size:10px;color:var(--text-light);margin-top:2px}
+  .photo-slot .slot-badge{position:absolute;top:8px;left:8px;width:22px;height:22px;background:var(--navy);color:#fff;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2}
+  .photo-slot img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+  .photo-slot .remove-btn{position:absolute;top:6px;right:6px;width:26px;height:26px;background:var(--danger);color:#fff;border:none;border-radius:50%;font-size:14px;font-weight:700;cursor:pointer;z-index:3;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+  .photo-slot.has-photo .remove-btn{display:flex}
+  .photo-slot input[type="file"]{display:none}
+  .photo-caption{margin-top:8px;width:100%}
+  .photo-caption input{font-size:12px;padding:6px 8px}
+
+  /* Signature area */
+  .sig-block{margin-bottom:16px}
+  .sig-canvas-wrap{width:100%;height:100px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#FAFBFD;position:relative;overflow:hidden}
+  .sig-canvas-wrap canvas{width:100%;height:100%}
+  .sig-canvas-wrap .sig-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-light);font-size:13px;pointer-events:none}
+  .sig-auto-label{font-size:11px;color:var(--success);margin-top:6px;font-weight:500;display:none}
+  .sig-auto-label.show{display:block}
+
+  .check-row{display:flex;align-items:center;gap:16px;margin:8px 0}
+  .check-row label{display:flex;align-items:center;gap:6px;text-transform:none;font-size:14px;font-weight:500;color:var(--text);cursor:pointer;margin-bottom:0}
+  .check-row input[type="radio"]{width:18px;height:18px;accent-color:var(--accent)}
+  .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:100;box-shadow:0 -4px 16px rgba(27,58,92,.08)}
+  .btn{flex:1;padding:14px;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:transform .1s;letter-spacing:.3px}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:linear-gradient(135deg,var(--accent) 0%,var(--navy-light) 100%);color:#fff;box-shadow:0 4px 16px rgba(41,121,255,.3)}
+  .btn-secondary{background:var(--bg);color:var(--text);border:1.5px solid var(--border)}
+  .loading-overlay{display:none;position:fixed;inset:0;background:rgba(27,58,92,.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+  .loading-overlay.show{display:flex}
+  .loading-overlay .spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+  .loading-overlay p{color:#fff;font-size:15px;font-weight:600}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media print{body{background:#fff}.header{position:static;box-shadow:none}.bottom-bar,.loading-overlay{display:none !important}.container{padding:0;max-width:100%}.section{box-shadow:none;break-inside:avoid;page-break-inside:avoid}.photo-slot{min-height:140px;border:1px solid #ccc}.photo-slot .placeholder{display:none}.photo-slot .remove-btn{display:none !important}input,select,textarea{border:1px solid #ccc}.equip-chip:not(.selected){opacity:.3}.tech-hint{display:none}.ppe-ack-btn{display:none}.ppe-banner{animation:none;border:2px solid var(--success);background:#E8F5E9}.ppe-banner .ppe-text{color:var(--success)}.gated-content{display:block !important}.liebert-units-area{display:block !important}.safety-continue-btn{display:none}.sig-placeholder{display:none !important}}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><p id="loadingText">Generating PDF…</p></div>
+<div id="formContent">
+<div class="header"><h1>PREVENTIVE MAINTENANCE WORK ORDER</h1><div class="subtitle">Versant Media</div><div class="badge">PM-001 • Mobile Form</div></div>
+<div class="container">
+  <div class="section">
+    <div class="section-header"><span class="icon">📋</span> Work Order Information</div>
+    <div class="section-body">
+      <div class="field-group"><label>Date</label><input type="date" id="wo_date"></div>
+      <div class="field-group"><label>Facility / Location</label><select id="facility"><option value="" disabled selected>Select facility…</option><option>900 Sylvan Ave, Englewood Cliffs</option><option>904 Sylvan Ave, Englewood Cliffs</option></select></div>
+      <div class="field-group">
+        <label>PM Technician(s)</label>
+        <div class="tech-input-wrap" id="techWrap" onclick="document.getElementById('techInput').focus()"><input type="text" class="tech-text-input" id="techInput" placeholder="Type name, press Enter to add…" onkeydown="handleTechKey(event)" onfocus="document.getElementById('techWrap').classList.add('focused')" onblur="handleTechBlur()"></div>
+        <div class="tech-hint">Press Enter or comma after each name. Tap ✕ to remove.</div>
+      </div>
+      <div class="ppe-banner" id="ppeBanner"><span class="ppe-icon">🛑</span><div class="ppe-text">MAKE SURE TO USE PROPER PPE AT ALL TIMES</div><button class="ppe-ack-btn" id="ppeAckBtn" onclick="acknowledgePPE()">I acknowledge that without PROPER PPE I cannot perform this PM</button><div class="ppe-timestamp" id="ppeTimestamp"></div></div>
+    </div>
+  </div>
+  <div class="gated-content" id="safetyGate">
+  <div class="section" id="safetySection">
+    <div class="section-header safety-hdr"><span class="icon">🦺</span> HVAC Safety Checklist</div>
+    <div class="section-body">
+      <div class="safety-sub-header">Personal Protective Equipment (PPE)</div>
+      <table class="safety-table" id="ppeTable"><tr><th>PPE Item</th><th>Condition</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      <div class="safety-sub-header">Pre-Job Safety Checklist</div>
+      <table class="safety-table" id="preJobTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      <div class="safety-sub-header">Electrical Safety</div>
+      <table class="safety-table" id="electricalTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      <div class="safety-sub-header">Gas & Chemical Safety</div>
+      <table class="safety-table" id="gasTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      <div class="safety-sub-header">Equipment Safety Inspection</div>
+      <table class="safety-table" id="equipInspTable"><tr><th>Equipment Item</th><th>Condition</th><th>Notes</th></tr></table>
+      <div class="safety-sub-header">Emergency Procedures</div>
+      <div class="emergency-box"><ul><li><strong>Electrical Shock:</strong> Do not touch the person. Disconnect power source if possible and call the Chief and emergency services.</li><li><strong>Gas Leak:</strong> Evacuate the area immediately. Do not use electrical switches or open flames. Call the gas company from a safe distance.</li><li><strong>Fire:</strong> Use a fire extinguisher if safe to do so. Evacuate the area and call emergency services and Notify Chief and GRIC.</li><li><strong>Chemical Spill:</strong> Use appropriate PPE and clean-up materials. Refer to the Safety Data Sheet (SDS) for specific handling instructions.</li></ul></div>
+      <div class="safety-sub-header">Post-Job</div>
+      <table class="safety-table" id="postJobTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      <button class="safety-continue-btn" id="safetyContinueBtn" onclick="completeSafety()">✓ Safety Checklist Reviewed — Continue to PM</button>
+    </div>
+  </div>
+  </div>
+  <div class="gated-content" id="gatedContent">
+    <div class="section"><div class="section-header"><span class="icon">📋</span> PM Details</div><div class="section-body">
+      <div class="field-group"><label>Service Interval</label><div class="freq-chips"><div class="freq-chip" data-freq="Monthly" onclick="selectFreq(this)">Monthly</div><div class="freq-chip selected" data-freq="Quarterly" onclick="selectFreq(this)">Quarterly</div><div class="freq-chip" data-freq="Semi-Annual" onclick="selectFreq(this)">Semi-Annual</div><div class="freq-chip" data-freq="Annual" onclick="selectFreq(this)">Annual</div></div></div>
+      <div class="field-group"><label>Equipment (tap to select multiple)</label><div class="equip-grid" id="equipGrid"></div></div>
+      <div class="liebert-units-area" id="liebertArea"><label style="color:var(--liebert);font-weight:700;font-size:12px;margin-bottom:8px;">LIEBERT UNIT NUMBERS</label><div id="liebertUnitsList"></div><button class="add-liebert-btn" onclick="addLiebertUnit()">+ Add Another Liebert Unit</button></div>
+    </div></div>
+  </div>
+  <div class="gated-content" id="gatedSections">
+  <div class="section" id="pmChecklistSection" style="display:none;"><div class="section-header"><span class="icon">🔧</span> PM Checklist</div><div class="section-body" id="pmChecklistBody"></div></div>
+  <div class="section"><div class="section-header"><span class="icon">💬</span> General Comments / Findings</div><div class="section-body"><textarea id="general_comments" placeholder="Enter observations, findings, or follow-up items…" rows="4"></textarea></div></div>
+  <div class="section"><div class="section-header"><span class="icon">📸</span> Photo Documentation</div><div class="section-body"><p style="font-size:12px;color:var(--text-light);margin-bottom:12px;">Tap a slot to take a photo or choose from your gallery.</p><div class="photo-grid" id="photoGrid"></div><button class="btn btn-secondary" style="margin-top:12px;flex:none;width:100%;" onclick="addPhotoSlot()">+ Add More Photo Slots</button></div></div>
+  <div class="section"><div class="section-header"><span class="icon">📊</span> Completion Summary</div><div class="section-body"><div class="field-group"><label>Tasks Completed</label><input type="text" id="tasks_completed" placeholder="e.g. 8/8"></div><div class="field-group"><label>Follow-up Required?</label><div class="check-row"><label><input type="radio" name="followup" value="yes"> Yes</label><label><input type="radio" name="followup" value="no" checked> No</label></div></div><div class="field-group"><label>Summary Notes</label><textarea id="summary_notes" placeholder="Final summary or follow-up details…" rows="3"></textarea></div></div></div>
+
+  <!-- Signature section with auto-generated signature -->
+  <div class="section">
+    <div class="section-header"><span class="icon">✍️</span> Technician Signature</div>
+    <div class="section-body">
+      <div class="sig-block">
+        <label>Signature (auto-generated from technician name)</label>
+        <div class="sig-canvas-wrap">
+          <canvas id="sigTech"></canvas>
+          <div class="sig-placeholder" id="sigPlaceholder">Add technician name(s) above to generate signature</div>
+        </div>
+        <div class="sig-auto-label" id="sigAutoLabel">✓ Signature auto-generated</div>
+        <div class="field-group field-row" style="margin-top:10px;">
+          <div><label>Print Name</label><input type="text" id="tech_print_name" readonly></div>
+          <div><label>Date</label><input type="date" id="tech_sig_date"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+</div>
+<div class="bottom-bar"><button class="btn btn-secondary" onclick="window.print()">🖨 Print</button><button class="btn btn-primary" onclick="saveAndEmail()">📧 Save & Email Report</button></div>
+
+<script>
+// ═══ SAFETY CHECKLIST ═══
+function scToggle(dId,nId){const d=document.getElementById(dId),n=document.getElementById(nId);d.classList.toggle('active');if(d.classList.contains('active'))n.classList.remove('active')}
+function scToggleNA(dId,nId){const d=document.getElementById(dId),n=document.getElementById(nId);n.classList.toggle('active');if(n.classList.contains('active'))d.classList.remove('active')}
+let scUid=0;
+const PPE_ITEMS=['Safety Glasses','Gloves','Ear Protection','Dust Mask/Respirator','Safety Shoes','Hard Hat'];
+const PREJOB_TASKS=['Review job order for specific hazards','Inspect work area for tripping hazards','Ensure adequate lighting','Verify that all tools are in good condition','Check the accessibility of fire extinguisher'];
+const ELECTRICAL_TASKS=['Ensure power is disconnected before starting work','Use appropriate lockout/tagout procedures','Inspect electrical cords and tools for damage','Test for live wires using a non-contact voltage tester'];
+const GAS_TASKS=['Check for gas leaks using a gas detector','Ensure proper ventilation in the work area','Use refrigerant handling equipment according to EPA guidelines','Store chemicals and gases according to manufacturer\'s instructions'];
+const EQUIP_INSPECT=['HVAC Unit','Thermostat','Air Filters','Ductwork','Condensate Drain','Refrigerant Lines'];
+const POSTJOB_TASKS=['Clean work area and remove all debris','Inspect installation or repair area','Test HVAC system operation','Send Email Regarding Findings and completion'];
+function buildPPETable(){const tb=document.getElementById('ppeTable');PPE_ITEMS.forEach(item=>{scUid++;const dId='sd_'+scUid,nId='sn_'+scUid;const tr=document.createElement('tr');tr.innerHTML='<td>'+item+'</td><td><select class="condition-select"><option value="" disabled selected>Select…</option><option>Good</option><option>Fair</option><option>Replace</option><option>N/A</option></select></td><td class="td-action"><div class="safety-check done-check" id="'+dId+'" onclick="scToggle(\''+dId+'\',\''+nId+'\')">✓</div></td><td class="td-action"><div class="safety-check na-check" id="'+nId+'" onclick="scToggleNA(\''+dId+'\',\''+nId+'\')">N/A</div></td>';tb.appendChild(tr)})}
+function buildCheckTable(tableId,tasks){const tb=document.getElementById(tableId);tasks.forEach(task=>{scUid++;const dId='sd_'+scUid,nId='sn_'+scUid;const tr=document.createElement('tr');tr.innerHTML='<td>'+task+'</td><td class="td-action"><div class="safety-check done-check" id="'+dId+'" onclick="scToggle(\''+dId+'\',\''+nId+'\')">✓</div></td><td class="td-action"><div class="safety-check na-check" id="'+nId+'" onclick="scToggleNA(\''+dId+'\',\''+nId+'\')">N/A</div></td>';tb.appendChild(tr)})}
+function buildEquipInspTable(){const tb=document.getElementById('equipInspTable');EQUIP_INSPECT.forEach(item=>{const tr=document.createElement('tr');tr.innerHTML='<td>'+item+'</td><td><select class="condition-select"><option value="" disabled selected>Select…</option><option>Good</option><option>Fair</option><option>Poor</option><option>N/A</option></select></td><td><input type="text" class="notes-input" placeholder="Notes…"></td>';tb.appendChild(tr)})}
+buildPPETable();buildCheckTable('preJobTable',PREJOB_TASKS);buildCheckTable('electricalTable',ELECTRICAL_TASKS);buildCheckTable('gasTable',GAS_TASKS);buildEquipInspTable();buildCheckTable('postJobTable',POSTJOB_TASKS);
+
+let ppeAcknowledged=false,safetyCompleted=false;
+function acknowledgePPE(){ppeAcknowledged=true;document.getElementById('ppeBanner').classList.add('acknowledged');const btn=document.getElementById('ppeAckBtn');btn.classList.add('acknowledged');btn.textContent='PPE Acknowledged';const now=new Date();document.getElementById('ppeTimestamp').textContent='Acknowledged at '+now.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true})+(techNames.length?' by '+techNames.join(', '):'');document.getElementById('safetyGate').classList.add('unlocked');setTimeout(()=>document.getElementById('safetySection').scrollIntoView({behavior:'smooth',block:'start'}),300)}
+function completeSafety(){safetyCompleted=true;document.getElementById('gatedContent').classList.add('unlocked');document.getElementById('gatedSections').classList.add('unlocked');const btn=document.getElementById('safetyContinueBtn');btn.textContent='✓ Safety Checklist Complete';btn.disabled=true;btn.style.opacity='.6';setTimeout(()=>document.getElementById('gatedContent').scrollIntoView({behavior:'smooth',block:'start'}),300)}
+
+// ═══ TECH NAMES + AUTO SIGNATURE ═══
+const techNames=[];
+function addTechName(n){const c=n.trim();if(!c||techNames.includes(c))return;techNames.push(c);renderTechTags();updateAutoSignature()}
+function removeTechName(i){techNames.splice(i,1);renderTechTags();updateAutoSignature()}
+function renderTechTags(){const w=document.getElementById('techWrap');w.querySelectorAll('.tech-tag').forEach(t=>t.remove());const inp=document.getElementById('techInput');techNames.forEach((n,i)=>{const t=document.createElement('span');t.className='tech-tag';t.innerHTML=n+' <button class="remove-tag" onclick="removeTechName('+i+')">✕</button>';w.insertBefore(t,inp)});inp.placeholder=techNames.length?'Add another…':'Type name, press Enter to add…'}
+function handleTechKey(e){const inp=e.target;if(e.key==='Enter'||e.key===','){e.preventDefault();const v=inp.value.replace(/,/g,'').trim();if(v){addTechName(v);inp.value=''}}if(e.key==='Backspace'&&!inp.value&&techNames.length>0)removeTechName(techNames.length-1)}
+function handleTechBlur(){const inp=document.getElementById('techInput');const v=inp.value.trim();if(v){addTechName(v);inp.value=''}document.getElementById('techWrap').classList.remove('focused')}
+function getTechString(){return techNames.join(', ')}
+
+// ═══ AUTO-GENERATE SIGNATURE ═══
+function updateAutoSignature(){
+  const canvas=document.getElementById('sigTech');
+  const ctx=canvas.getContext('2d');
+  const wrap=canvas.parentElement;
+  const rect=wrap.getBoundingClientRect();
+  canvas.width=rect.width*2;canvas.height=rect.height*2;
+  ctx.scale(2,2);
+  ctx.clearRect(0,0,rect.width,rect.height);
+
+  const placeholder=document.getElementById('sigPlaceholder');
+  const autoLabel=document.getElementById('sigAutoLabel');
+  const printName=document.getElementById('tech_print_name');
+
+  if(techNames.length===0){
+    placeholder.style.display='flex';
+    autoLabel.classList.remove('show');
+    printName.value='';
+    return;
+  }
+
+  placeholder.style.display='none';
+  autoLabel.classList.add('show');
+
+  const sigText=techNames.join(', ');
+  printName.value=sigText;
+
+  // Draw signature line
+  ctx.strokeStyle='#D4DCE8';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(16,rect.height-20);
+  ctx.lineTo(rect.width-16,rect.height-20);
+  ctx.stroke();
+
+  // Draw cursive signature
+  const maxWidth=rect.width-40;
+  // Start with a large font, scale down if needed
+  let fontSize=36;
+  ctx.font='700 '+fontSize+'px "Dancing Script", cursive';
+  while(ctx.measureText(sigText).width>maxWidth&&fontSize>16){
+    fontSize-=2;
+    ctx.font='700 '+fontSize+'px "Dancing Script", cursive';
+  }
+
+  ctx.fillStyle='#1B3A5C';
+  ctx.textAlign='left';
+  ctx.textBaseline='bottom';
+
+  // Slight slant for realism
+  ctx.save();
+  ctx.translate(20,rect.height-24);
+  ctx.rotate(-0.03);
+  ctx.fillText(sigText,0,0);
+  ctx.restore();
+}
+
+// ═══ EQUIPMENT ═══
+const EQUIPMENT={'Cooling Towers':['Cooling Tower 1','Cooling Tower 2','Cooling Tower 3','Cooling Tower 4'],'PCWP':['PCWP 1','PCWP 2','PCWP 3','PCWP 4'],'SCWP':['SCWP 1','SCWP 2','SCWP 3','SCWP 4'],'CHWP':['CHWP 1','CHWP 2','CHWP 3','CHWP 4'],'Liebert Units':['Liebert Unit']};
+let liebertUnits=[],liebertIdCounter=0;
+function addLiebertUnit(){liebertIdCounter++;liebertUnits.push({id:liebertIdCounter,num:''});renderLiebertEntries()}
+function removeLiebertUnit(id){liebertUnits=liebertUnits.filter(u=>u.id!==id);renderLiebertEntries();renderPMChecklists()}
+function updateLiebertNum(id,val){const u=liebertUnits.find(u=>u.id===id);if(u)u.num=val;renderPMChecklists()}
+function renderLiebertEntries(){const list=document.getElementById('liebertUnitsList');list.innerHTML='';liebertUnits.forEach((u,idx)=>{const d=document.createElement('div');d.className='liebert-unit-entry';d.innerHTML='<span class="lu-label">Unit #'+(idx+1)+'</span><input type="text" placeholder="Enter unit number…" value="'+u.num+'" oninput="updateLiebertNum('+u.id+',this.value)"><button class="lu-remove" onclick="removeLiebertUnit('+u.id+')">✕</button>';list.appendChild(d)})}
+function toggleLiebertArea(){const show=[...selectedEquip].some(n=>n.startsWith('Liebert'));document.getElementById('liebertArea').classList.toggle('show',show);if(show&&liebertUnits.length===0)addLiebertUnit()}
+function getLiebertNames(){return liebertUnits.map((u,i)=>'Liebert Unit #'+(u.num||('('+(i+1)+')')))}
+
+const CT_PM={'Quarterly':['Inspect general condition of Tower','Inspect, clean cold water basin and basin filtration piping','Ensure all basin filtration nozzles are in place and clear of debris','Inspect domestic water make up system and adjust if necessary','Inspect conduit distribution system and sprayers for proper operation','Inspect fan blade bolts for tightness and stress cracks','Inspect belts — adjust or replace if necessary','Lubricate fan shaft bearings','Lubricate fan motor adjusting rods','Inspect all piping insulation and actuators'],'Quarterly — VFD':['Replace all VFD Filters — perform inventory after change','Confirm proper operation of cooling fans','Check all MCC indicator lights — replace if necessary'],'Semi-Annual':['Full tower cleaning','Clean the outside of the fan motor to prevent overheating','Inspect heat trace system and basin heaters (record amperes)','Inspect all surfaces for corrosion and report findings','Inspect galvanized components, wire brush and apply cold galvanize as necessary'],'Annual':['Open Balance Clean, remove strainer and clean it','Megger the fan motor windings']};
+const PUMP_PM={'Daily':{tasks:['Check if there are no leaks or seeping of condenser water at mechanical seals'],note:'This should be performed during building rounds every shift'},'Quarterly':{tasks:['Check for unusual noise or vibration','Ensure motor and pump mounting bolts are snug','Inspect pump and seals for water leaks','Inspect drive coupling for wear (LOTO)','Ensure drive coupling set screws are tight (LOTO)','Check pump shaft for free rotation (LOTO)','Inspect and test pressure gauges and cyclone separators','Exercise all isolation valves — NOTE START POSITION BEFORE PROCEEDING']},'Semi-Annual':{tasks:['Measure and record motor amperage at 60 Hz','Grease pump and motor — use Polyurea Grease','Check bearings temperature before and after applying grease','Inspect vibration eliminators and ensure base is floating','Inspect drive coupling alignment (LOTO)'],note:'Refer to both O+M manuals (pump and motor) for lubrication quantities'}};
+const LIEBERT_PM={'Monthly':{sections:[{sub:'Blower Section',tasks:['Clean and inspect blower wheel(s) for loose or cracked blades','Bearings inspect for free movement, and check set screw for tightness','Inspect belt condition and tension (replace if necessary) — USE LOTO']},{sub:'Heaters',tasks:['Inspect heating elements for deterioration','Engage heaters through the controller and confirm proper operation']},{sub:'Air Filters',tasks:['Check air filter switch','Wipe section clean including intake grills — report any damage to unit']},{sub:'Condensate Pump',tasks:['Inspect mechanical pump operation','Inspect all electrical connections']},{sub:'CHW Piping',tasks:['Inspect all piping actuators for leaks and unrestricted movement (stroke via Test Outputs Menu)','Inspect all CHW insulation — repair if necessary','Inspect and test supply, return gauges and iso valves — replace if necessary','Inspect and test all Belimo Actuators — report any issues to Chief immediately']}]},'Semi-Annual':{sections:[{sub:'Blower Section',tasks:['Lubricate drive motor if serviceable (2 oz. every 3 years from initial PM date)','Inspect and tighten electrical connections']},{sub:'Strainers',tasks:['Blow down supply strainers','Ensure there are no leaks, reinstall cap and make sure there are no leaks','Top off chilled water via Penthouse']},{sub:'Heaters',tasks:['Engage heaters through the controller and confirm proper operation','Record amperes on each element and write down findings'],hasHeaterReadings:true},{sub:'Air Filters',tasks:['Replace Air Filters']},{sub:'CHW Piping + A Coil',tasks:['Inspect coil for any signs of leaks and rust/corrosion','Clean condensate pan','Repair and/or add insulation where necessary'],alert:'REPORT ANY AND ALL SIGNS OF CORROSION ON THE ENTIRE MACHINE'},{sub:'Electrical',tasks:['Check Fuses','Inspect and tighten all electrical connections','Check operating sequence','Check contactor operation and inspect contacts for pitting','Check condition of drive motor and record amperes'],hasMotorReadings:true}]}};
+
+let selectedFreq='Quarterly';
+function selectFreq(el){document.querySelectorAll('.freq-chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');selectedFreq=el.dataset.freq;renderPMChecklists()}
+const selectedEquip=new Set();const grid=document.getElementById('equipGrid');
+Object.entries(EQUIPMENT).forEach(([group,items])=>{const lbl=document.createElement('div');lbl.className='equip-group-label';lbl.textContent=group;grid.appendChild(lbl);items.forEach(name=>{const chip=document.createElement('div');chip.className='equip-chip';chip.innerHTML='<span class="chip-check">✓</span><span>'+name+'</span>';chip.addEventListener('click',()=>{if(selectedEquip.has(name)){selectedEquip.delete(name);chip.classList.remove('selected')}else{selectedEquip.add(name);chip.classList.add('selected')}toggleLiebertArea();renderPMChecklists()});grid.appendChild(chip)})});
+function isCT(n){return n.startsWith('Cooling Tower')}function isPump(n){return n.startsWith('PCWP')||n.startsWith('SCWP')||n.startsWith('CHWP')}function isLiebert(n){return n.startsWith('Liebert')}
+function getCTTasks(f){const t={};if(f!=='Monthly'){if(f==='Quarterly'||f==='Semi-Annual'||f==='Annual'){t['Quarterly']=CT_PM['Quarterly'];t['Quarterly — VFD']=CT_PM['Quarterly — VFD']}if(f==='Semi-Annual'||f==='Annual')t['Semi-Annual']=CT_PM['Semi-Annual'];if(f==='Annual')t['Annual']=CT_PM['Annual']}return t}
+function getPumpTasks(f){const t={};t['Daily']=PUMP_PM['Daily'];if(f==='Quarterly'||f==='Semi-Annual'||f==='Annual')t['Quarterly']=PUMP_PM['Quarterly'];if(f==='Semi-Annual'||f==='Annual')t['Semi-Annual']=PUMP_PM['Semi-Annual'];return t}
+function getLiebertTasks(f){const t={};if(f==='Monthly'||f==='Quarterly'||f==='Semi-Annual'||f==='Annual')t['Monthly']=LIEBERT_PM['Monthly'];if(f==='Semi-Annual'||f==='Annual')t['Semi-Annual']=LIEBERT_PM['Semi-Annual'];return t}
+
+let uid=0;
+function renderPMChecklists(){uid=0;const sec=document.getElementById('pmChecklistSection'),body=document.getElementById('pmChecklistBody');body.innerHTML='';const cts=[...selectedEquip].filter(isCT),pumps=[...selectedEquip].filter(isPump),hasLiebert=[...selectedEquip].some(isLiebert);if(!cts.length&&!pumps.length&&!hasLiebert){sec.style.display='none';return}sec.style.display='';body.appendChild(mkWarn());if(cts.length){const tasks=getCTTasks(selectedFreq);if(Object.keys(tasks).length)cts.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🏗 '+name+' — '+selectedFreq+' PM'));Object.entries(tasks).forEach(([f,ts])=>{b.appendChild(mkFreqLabel(f));ts.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});appendFindings(b,name);body.appendChild(b)})}if(pumps.length){const tasks=getPumpTasks(selectedFreq);pumps.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('pump-header','⚙️ '+name+' — '+selectedFreq+' Paco Pump PM'));Object.entries(tasks).forEach(([f,data])=>{b.appendChild(mkFreqLabel(f));if(data.note)b.appendChild(mkNote(data.note));data.tasks.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});appendFindings(b,name);body.appendChild(b)})}if(hasLiebert&&liebertUnits.length){const tasks=getLiebertTasks(selectedFreq);liebertUnits.forEach((unit,ui)=>{const ul=unit.num?'Liebert Unit #'+unit.num:'Liebert Unit '+(ui+1);const b=mkBlock();b.appendChild(mkHeader('liebert-header','❄️ '+ul+' — '+selectedFreq+' CAC PM'));Object.entries(tasks).forEach(([freq,data])=>{b.appendChild(mkFreqLabel(freq));data.sections.forEach(sec=>{b.appendChild(mkSubLabel(sec.sub));sec.tasks.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)));if(sec.alert)b.appendChild(mkAlert(sec.alert));if(sec.hasHeaterReadings){const r=document.createElement('div');r.className='reading-row';r.innerHTML='<div><label>HTR #1 Amps</label><input type="text" placeholder="—"></div><div><label>HTR #2 Amps</label><input type="text" placeholder="—"></div><div><label>HTR #3 Amps</label><input type="text" placeholder="—"></div>';b.appendChild(r)}if(sec.hasMotorReadings){const r=document.createElement('div');r.className='reading-row';r.innerHTML='<div><label>L#1 Amps</label><input type="text" placeholder="—"></div><div><label>L#2 Amps</label><input type="text" placeholder="—"></div><div><label>L#3 Amps</label><input type="text" placeholder="—"></div>';b.appendChild(r)}})});appendFindings(b,ul);body.appendChild(b)})}}
+function mkBlock(){const d=document.createElement('div');d.className='pm-checklist';return d}function mkHeader(c,t){const d=document.createElement('div');d.className='pm-checklist-header '+c;d.innerHTML='<span class="equip-tag">'+t+'</span>';return d}function mkFreqLabel(t){const d=document.createElement('div');d.className='pm-freq-label';d.textContent=t;return d}function mkSubLabel(t){const d=document.createElement('div');d.className='pm-sub-label';d.textContent=t;return d}function mkTaskRow(t,i){uid++;const id='tk_'+uid;const d=document.createElement('div');d.className='pm-task-row';d.innerHTML='<div class="pm-task-check" id="'+id+'" onclick="toggleCheck(\''+id+'\')">✓</div><div class="pm-task-text" id="'+id+'_t">'+(i+1)+'. '+t+'</div>';return d}function mkNote(t){const d=document.createElement('div');d.className='pm-note';d.textContent=t;return d}function mkAlert(t){const d=document.createElement('div');d.className='pm-alert';d.textContent=t;return d}function mkWarn(){const d=document.createElement('div');d.className='pm-warn';d.textContent='⚠️ MAKE SURE TO USE PROPER PPE AT ALL TIMES';return d}function appendFindings(b,n){b.appendChild(mkFreqLabel('Findings'));const ta=document.createElement('textarea');ta.placeholder='Findings for '+n+'…';ta.rows=3;ta.style.cssText='width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:DM Sans,sans-serif;font-size:14px;color:var(--text);background:#FAFBFD;resize:vertical;margin-top:4px;';b.appendChild(ta)}function toggleCheck(id){document.getElementById(id).classList.toggle('checked');document.getElementById(id+'_t').classList.toggle('checked-text')}
+
+document.getElementById('wo_date').valueAsDate=new Date();document.getElementById('tech_sig_date').valueAsDate=new Date();
+let photoCount=0;function addPhotoSlot(){photoCount++;const n=photoCount;const w=document.createElement('div');w.innerHTML='<div class="photo-slot" id="ps'+n+'" onclick="document.getElementById(\'pi'+n+'\').click()"><div class="slot-badge">'+n+'</div><div class="placeholder"><span class="cam-icon">📷</span><div class="tap-text">Tap to Add Photo</div><div class="sub-text">Camera or Gallery</div></div><input type="file" id="pi'+n+'" accept="image/*" capture="environment" onchange="handlePhoto(this,'+n+')"><button class="remove-btn" onclick="removePhoto(event,'+n+')">✕</button></div><div class="photo-caption"><input type="text" placeholder="Caption…"></div>';document.getElementById('photoGrid').appendChild(w)}for(let i=0;i<4;i++)addPhotoSlot();
+function handlePhoto(inp,n){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){const s=document.getElementById('ps'+n);const o=s.querySelector('img');if(o)o.remove();const img=document.createElement('img');img.src=e.target.result;s.appendChild(img);s.classList.add('has-photo')};r.readAsDataURL(f)}function removePhoto(e,n){e.stopPropagation();const s=document.getElementById('ps'+n);const img=s.querySelector('img');if(img)img.remove();s.classList.remove('has-photo');document.getElementById('pi'+n).value=''}
+
+function formatDate(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return(d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear()}
+async function saveAndEmail(){const facility=document.getElementById('facility').value,tech=getTechString(),dateVal=document.getElementById('wo_date').value;if(!facility){alert('Please select a facility.');return}if(!techNames.length){alert('Please add at least one technician name.');return}if(!ppeAcknowledged){alert('You must acknowledge the PPE requirement.');return}if(!safetyCompleted){alert('Please complete the Safety Checklist.');return}if(!selectedEquip.size){alert('Please select at least one piece of equipment.');return}const hasLiebert=[...selectedEquip].some(isLiebert);if(hasLiebert){if(!liebertUnits.length){alert('Please add at least one Liebert Unit #.');return}if(liebertUnits.some(u=>!u.num.trim())){alert('Please fill in all Liebert Unit numbers.');return}}let equipParts=[...selectedEquip].filter(n=>!isLiebert(n));if(hasLiebert)equipParts=equipParts.concat(getLiebertNames());const equipList=equipParts.join(', '),dateFormatted=formatDate(dateVal),subject=equipList+' - '+selectedFreq+' PM - '+tech+' - '+dateFormatted;const overlay=document.getElementById('loadingOverlay'),lt=document.getElementById('loadingText');overlay.classList.add('show');lt.textContent='Generating PDF…';try{document.querySelector('.bottom-bar').style.display='none';overlay.style.display='none';const content=document.getElementById('formContent');lt.textContent='Capturing form…';overlay.style.display='flex';const canvas=await html2canvas(content,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#F3F6FA',scrollY:-window.scrollY,windowHeight:content.scrollHeight,height:content.scrollHeight});lt.textContent='Building PDF…';const imgData=canvas.toDataURL('image/jpeg',0.92),pW=210,pH=297,iW=pW,iH=(canvas.height*pW)/canvas.width;const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');let hL=iH,pos=0,pg=0;while(hL>0){if(pg>0)pdf.addPage();pdf.addImage(imgData,'JPEG',0,pos,iW,iH);hL-=pH;pos-=pH;pg++}const safeFirst=equipParts[0].replace(/[^a-zA-Z0-9]/g,'_'),filename='PM_'+safeFirst+'_'+selectedFreq+'_'+(dateVal||'no-date')+'.pdf';pdf.save(filename);lt.textContent='Opening email…';const emailBody=encodeURIComponent('Please find attached the PM Work Order report.\n\nFacility: '+facility+'\nEquipment: '+equipList+'\nService Interval: '+selectedFreq+'\nTechnician(s): '+tech+'\nDate: '+dateFormatted+'\n\nNote: Please attach the downloaded PDF ('+filename+') to this email.');await new Promise(r=>setTimeout(r,800));window.location.href='mailto:ecnj.hvaceng@versantmedia.com?subject='+encodeURIComponent(subject)+'&body='+emailBody}catch(err){console.error(err);alert('Error generating PDF. Please try Print instead.')}finally{document.querySelector('.bottom-bar').style.display='flex';overlay.classList.remove('show')}}
+
+// Init signature on load (will show placeholder since no names yet)
+window.addEventListener('load',()=>setTimeout(updateAutoSignature,500));
+window.addEventListener('resize',updateAutoSignature);
+</script>
+</body>
+</html>
