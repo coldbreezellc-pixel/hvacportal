@@ -1158,6 +1158,24 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                 </div>
               );
             })}
+            {/* ── TOTALS ROW ── */}
+            {(() => {
+              const sumTotal = items.reduce((s, i) => s + (i.totalNeeded || 0), 0);
+              const sumStock = items.reduce((s, i) => s + (i.qty || 0), 0);
+              const sumOrder = items.reduce((s, i) => {
+                const t = i.totalNeeded || 0;
+                return s + (t > 0 ? Math.max(0, (t * 2) - (i.qty || 0)) : 0);
+              }, 0);
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(100px,1.5fr) 40px minmax(100px,1.5fr) 55px 45px 50px 50px 50px", padding: "10px 8px", background: "#0f172a", gap: 4, minWidth: 540, borderTop: "2px solid #334155" }}>
+                  <div style={{ fontFamily: F.heading, fontSize: 13, color: "#fff", fontWeight: 800, gridColumn: "1 / 5" }}>TOTALS</div>
+                  <div style={{ fontFamily: F.mono, fontSize: 14, color: "#fff", textAlign: "center", fontWeight: 800 }}>{sumTotal}</div>
+                  <div style={{ fontFamily: F.mono, fontSize: 14, color: "#22c55e", textAlign: "center", fontWeight: 800 }}>{sumStock}</div>
+                  <div style={{ fontFamily: F.mono, fontSize: 14, color: sumOrder > 0 ? "#f87171" : "#22c55e", textAlign: "center", fontWeight: 800, background: sumOrder > 0 ? "rgba(239,68,68,0.15)" : "transparent", borderRadius: 4 }}>{sumOrder}</div>
+                  <div></div>
+                </div>
+              );
+            })()}
           </div>
           <div style={{ height: 80 }} />
         </div>
