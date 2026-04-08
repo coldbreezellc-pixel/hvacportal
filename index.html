@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HVAC Engineering — Versant Media</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1B3A5C;--navy-light:#2A5280;--accent:#2979FF;--accent-glow:rgba(41,121,255,.15);--bg:#0E1B2A;--card:rgba(255,255,255,.06);--card-hover:rgba(255,255,255,.1);--border:rgba(255,255,255,.1);--text:#FFFFFF;--text-mid:#94A3B8;--radius:20px}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  .bg-gradient{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse at 20% 0%,rgba(41,121,255,.12) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(27,58,92,.3) 0%,transparent 60%),var(--bg)}
+  .bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:48px 48px}
+  .wrapper{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 20px}
+  .logo-area{text-align:center;margin-bottom:48px}
+  .logo-icon{width:72px;height:72px;background:linear-gradient(135deg,var(--accent) 0%,var(--navy-light) 100%);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 20px;box-shadow:0 8px 32px rgba(41,121,255,.25)}
+  .logo-title{font-size:28px;font-weight:800;letter-spacing:1px;margin-bottom:4px}
+  .logo-subtitle{font-size:14px;color:var(--text-mid);font-weight:500;letter-spacing:2px;text-transform:uppercase}
+  .logo-location{font-size:12px;color:var(--text-mid);margin-top:8px;opacity:.6}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:480px}
+  @media(max-width:400px){.cards{grid-template-columns:1fr;max-width:320px}}
+  .card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:all .25s ease;text-decoration:none;color:var(--text);position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;inset:0;border-radius:var(--radius);background:linear-gradient(135deg,transparent 0%,rgba(41,121,255,.05) 100%);opacity:0;transition:opacity .25s}
+  .card:hover,.card:active{background:var(--card-hover);border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-glow),0 12px 40px rgba(0,0,0,.3);transform:translateY(-2px)}
+  .card:hover::before{opacity:1}
+  .card:active{transform:translateY(0) scale(.98)}
+  .card-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;position:relative;z-index:1}
+  .card-pm .card-icon{background:rgba(41,121,255,.15);box-shadow:0 4px 16px rgba(41,121,255,.1)}
+  .card-inv .card-icon{background:rgba(255,111,0,.15);box-shadow:0 4px 16px rgba(255,111,0,.1)}
+  .card-title{font-size:17px;font-weight:700;margin-bottom:6px;position:relative;z-index:1}
+  .card-desc{font-size:12px;color:var(--text-mid);line-height:1.5;position:relative;z-index:1}
+  .card-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:12px;position:relative;z-index:1}
+  .badge-live{background:rgba(46,125,50,.2);color:#66BB6A}
+  .footer{text-align:center;margin-top:48px;font-size:11px;color:var(--text-mid);opacity:.4;letter-spacing:.5px}
+</style>
+</head>
+<body>
+<div class="bg-gradient"></div>
+<div class="bg-grid"></div>
+<div class="wrapper">
+  <div class="logo-area">
+    <div class="logo-icon">🔧</div>
+    <div class="logo-title">HVAC Engineering</div>
+    <div class="logo-subtitle">Versant Media</div>
+    <div class="logo-location">Englewood Cliffs, NJ</div>
+  </div>
+  <div class="cards">
+    <a href="pm/" class="card card-pm">
+      <div class="card-icon">📋</div>
+      <div class="card-title">PM Sheet</div>
+      <div class="card-desc">Preventive Maintenance Work Orders</div>
+      <div class="card-badge badge-live">● Live</div>
+    </a>
+    <a href="inventories/penguin-inventory.html" class="card card-inv">
+      <div class="card-icon">📦</div>
+      <div class="card-title">Inventories</div>
+      <div class="card-desc">Equipment & Parts Tracking</div>
+      <div class="card-badge badge-live">● Live</div>
+    </a>
+  </div>
+  <div class="footer" id="footer"></div>
+</div>
+<script>document.getElementById('footer').textContent='© '+new Date().getFullYear()+' Versant Media — HVAC Engineering Department';</script>
+</body>
+</html>
