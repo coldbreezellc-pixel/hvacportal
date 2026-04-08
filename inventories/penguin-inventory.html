@@ -1136,9 +1136,13 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                       rowIdx++;
                       return (
                         <div key={i.id}>
-                          <div style={{ display: "grid", gridTemplateColumns: "minmax(100px,1.5fr) 55px minmax(100px,1.5fr) 55px 45px 50px 50px 50px", padding: "8px 8px", borderBottom: "1px solid #f1f5f9", alignItems: "center", background: expanded === i.id ? "#f0fdfa" : rowBg, cursor: "pointer", gap: 4, minWidth: 560 }}
+                          <div style={{ display: "grid", gridTemplateColumns: "minmax(100px,1.5fr) 55px minmax(100px,1.5fr) 55px 45px 50px 50px 50px", padding: "8px 8px", borderBottom: "1px solid #f1f5f9", alignItems: "start", background: expanded === i.id ? "#f0fdfa" : rowBg, cursor: "pointer", gap: 4, minWidth: 560 }}
                             onClick={() => setExpanded(expanded === i.id ? null : i.id)}>
-                            <div style={{ fontFamily: F.body, fontSize: 12, color: "#334155", fontWeight: 600, lineHeight: 1.3, wordBreak: "break-word" }}>{i.unitId || "—"}</div>
+                            <div style={{ fontFamily: F.body, fontSize: 12, color: "#334155", fontWeight: 600, lineHeight: 1.4, wordBreak: "break-word" }}>
+                              {(i.unitId || "—").split(/,\s*/).map((unit, ui) => (
+                                <div key={ui} style={{ padding: "1px 0" }}>{unit.trim()}</div>
+                              ))}
+                            </div>
                             <div style={{ fontFamily: F.mono, fontSize: 12, color: "#64748b", textAlign: "center" }}>{i.qtyUnits || "—"}</div>
                             <div style={{ fontFamily: F.heading, fontSize: 12, color: "#0f172a", fontWeight: 600 }}>{i.name}</div>
                             <div style={{ fontFamily: F.mono, fontSize: typeof i.qtyPerUnit === "string" && i.qtyPerUnit.includes("/") ? 10 : 12, color: "#64748b", textAlign: "center", lineHeight: 1.2 }}>{i.qtyPerUnit || "—"}</div>
