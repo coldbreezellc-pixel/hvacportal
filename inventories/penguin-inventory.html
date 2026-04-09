@@ -114,28 +114,27 @@ const fetchPartImage = async (partNumber, itemName) => {
   try {
     const q = encodeURIComponent(partNumber.trim() + " " + (itemName || "").trim());
     const url = "https://tse1.mm.bing.net/th?q=" + q + "&w=120&h=120&c=7&rs=1&p=0";
-    // Verify image loads
     const res = await fetch(url);
     if (res.ok) {
       const blob = await res.blob();
-      if (blob.size > 1000) return url; // real image (not blank)
+      if (blob.size > 1000) return url;
     }
   } catch (e) { console.error("Image fetch error:", e); }
   return null;
 };
 
-const processImageQueue = async (items, onUpdate) => {
+const processImageQueue = async (items, onBatchUpdate) => {
   if (_imgFetching) return;
   _imgFetching = true;
+  const updates = {};
   for (const item of items) {
     if (item.photo || item.photoFailed || !item.partNumber) continue;
     await new Promise(r => setTimeout(r, 300));
     const imgUrl = await fetchPartImage(item.partNumber, item.name);
-    if (imgUrl) {
-      await onUpdate(item.id, { photo: imgUrl });
-    } else {
-      await onUpdate(item.id, { photoFailed: true });
-    }
+    updates[item.id] = imgUrl ? { photo: imgUrl } : { photoFailed: true };
+  }
+  if (Object.keys(updates).length > 0) {
+    await onBatchUpdate(updates);
   }
   _imgFetching = false;
 };
@@ -913,6 +912,11 @@ function App() {
                     await saveItems(updated);
                     addLog("Stock Reset", `Reset ${ids.size} items to 0 in ${activeGroup}`, currentUser.displayName);
                   }}
+                  onBatchUpdatePhotos={async (updates) => {
+                    const updated = items.map(i => updates[i.id] ? { ...i, ...updates[i.id] } : i);
+                    setItems(updated);
+                    await saveItems(updated);
+                  }}
                   isAdmin={currentUser.role === "admin"}
                 />
               )}
@@ -1110,7 +1114,7 @@ function Dashboard({ items, lowStock, setView, setActiveGroup }) {
   );
 }
 
-function InventoryView({ items, allItems, search, setSearch, activeGroup, setActiveGroup, sortBy, setSortBy, onAdd, onUpdate, onDelete, onAdjust, onResetStock, isAdmin }) {
+function InventoryView({ items, allItems, search, setSearch, activeGroup, setActiveGroup, sortBy, setSortBy, onAdd, onUpdate, onDelete, onAdjust, onResetStock, onBatchUpdatePhotos, isAdmin }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [expanded, setExpanded] = useState(null);
@@ -1130,15 +1134,20 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
   };
   const handleEngBlur = () => { if (engInput.trim()) { addEngineer(engInput); setEngInput(""); } };
 
-  // Auto-fetch Google images for Plumbing & Faucet Parts items missing photos
+  // Auto-fetch Bing images for Plumbing & Faucet Parts items missing photos
+  const photoFetchRef = useRef(null);
   useEffect(() => {
     if ((selectedGroup === "Plumbing" || selectedGroup === "Faucet Parts") && items.length > 0) {
       const needPhotos = items.filter(i => !i.photo && !i.photoFailed && i.partNumber);
-      if (needPhotos.length > 0) {
-        processImageQueue(needPhotos, onUpdate);
+      if (needPhotos.length > 0 && !_imgFetching) {
+        if (photoFetchRef.current) clearTimeout(photoFetchRef.current);
+        photoFetchRef.current = setTimeout(() => {
+          processImageQueue(needPhotos, onBatchUpdatePhotos);
+        }, 500);
       }
     }
-  }, [selectedGroup, items.length]);
+    return () => { if (photoFetchRef.current) clearTimeout(photoFetchRef.current); };
+  }, [selectedGroup]);
 
   // Export to Excel and open email
   const exportAndEmail = () => {
