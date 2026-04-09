@@ -892,6 +892,12 @@ function App() {
                   activeGroup={activeGroup} setActiveGroup={setActiveGroup}
                   sortBy={sortBy} setSortBy={setSortBy}
                   onAdd={addItem} onUpdate={updateItem} onDelete={deleteItem} onAdjust={adjustQty}
+                  onResetStock={async (ids) => {
+                    const updated = items.map(i => ids.has(i.id) ? { ...i, qty: 0, lastUpdated: new Date().toISOString(), updatedBy: currentUser.displayName } : i);
+                    setItems(updated);
+                    await saveItems(updated);
+                    addLog("Stock Reset", `Reset ${ids.size} items to 0 in ${activeGroup}`, currentUser.displayName);
+                  }}
                   isAdmin={currentUser.role === "admin"}
                 />
               )}
@@ -1089,7 +1095,7 @@ function Dashboard({ items, lowStock, setView, setActiveGroup }) {
   );
 }
 
-function InventoryView({ items, allItems, search, setSearch, activeGroup, setActiveGroup, sortBy, setSortBy, onAdd, onUpdate, onDelete, onAdjust, isAdmin }) {
+function InventoryView({ items, allItems, search, setSearch, activeGroup, setActiveGroup, sortBy, setSortBy, onAdd, onUpdate, onDelete, onAdjust, onResetStock, isAdmin }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [expanded, setExpanded] = useState(null);
@@ -1375,7 +1381,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
             <button style={{ width: "100%", padding: "14px", marginTop: 12, background: "#dc2626", border: "none", borderRadius: 10, color: "#fff", fontFamily: F.heading, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: ".5px", transition: "opacity .2s" }}
               onClick={() => {
                 if (confirm("⚠️ Reset ALL stock quantities to 0 for " + selectedGroup + "?\n\nThis cannot be undone.")) {
-                  items.forEach(i => onAdjust(i.id, -(i.qty || 0)));
+                  onResetStock(new Set(items.map(i => i.id)));
                 }
               }}>🗑 Reset All Stock to Zero</button>
           )}
