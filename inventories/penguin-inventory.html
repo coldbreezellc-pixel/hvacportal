@@ -1222,6 +1222,51 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
     }, 800);
   };
 
+  // Export for non-filter groups (Plumbing, Faucet Parts, etc.)
+  const exportInventory = () => {
+    if (engineers.length === 0) { alert("Please add at least one engineer name."); return; }
+    const now = new Date();
+    const dateStr = (now.getMonth()+1) + "/" + now.getDate() + "/" + now.getFullYear();
+
+    let csv = "INVENTORY REPORT\n";
+    csv += "Category:," + (selectedGroup || "") + "\n";
+    csv += "Date:," + dateStr + "\n";
+    csv += "Engineer(s):," + engineers.join("; ") + "\n\n";
+    csv += "Item,Part #,Description,Stock\n";
+
+    items.forEach(i => {
+      const name = (i.name || "").replace(/,/g, ";");
+      const notes = (i.notes || "").replace(/,/g, ";");
+      csv += '"' + name + '",' + (i.partNumber || "") + ',"' + notes + '",' + (i.qty || 0) + "\n";
+    });
+
+    // Total
+    const totalStock = items.reduce((s, i) => s + (i.qty || 0), 0);
+    csv += "\n,,TOTAL ITEMS:," + items.length + "\n";
+    csv += ",,TOTAL STOCK:," + totalStock + "\n";
+
+    const grpName = (selectedGroup || "Inventory").replace(/\s/g, "_");
+    const filename = grpName + "_Inventory_" + now.toISOString().slice(0,10) + ".xls";
+    const blob = new Blob(["\uFEFF" + csv], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+
+    const subject = encodeURIComponent(selectedGroup + " — Inventory Report — " + engineers.join(", ") + " — " + dateStr);
+    const body = encodeURIComponent(
+      "Please find attached the inventory report.\n\n" +
+      "Category: " + (selectedGroup || "") + "\n" +
+      "Engineer(s): " + engineers.join(", ") + "\n" +
+      "Date: " + dateStr + "\n" +
+      "Total Items: " + items.length + "\n" +
+      "Total Stock: " + totalStock + "\n\n" +
+      "Note: Please attach the downloaded file (" + filename + ") to this email."
+    );
+    setTimeout(() => {
+      window.location.href = "mailto:mateusz.targosz@versantmedia.com,sean.fanning@versantmedia.com?subject=" + subject + "&body=" + body;
+    }, 800);
+  };
+
   // Get groups that have items
   const groupsWithItems = INVENTORY_GROUPS.filter(g => allItems.some(i => (i.group || "Misc") === g));
   const extraGroups = [...new Set(allItems.map(i => i.group || "Misc"))].filter(g => !INVENTORY_GROUPS.includes(g));
@@ -1607,6 +1652,27 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
             })}
           </div>
           {items.length === 0 && <p style={{ fontFamily: F.body, fontSize: 13, color: "#64748b", textAlign: "center", padding: 32 }}>No items in this group{search ? " matching your search" : ""}.</p>}
+
+          {/* Engineer name input + Export */}
+          <div style={{ marginTop: 16, padding: "12px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+            <label style={S.label}>Engineer(s) performing inventory</label>
+            <div style={{ border: "1.5px solid #e2e8f0", borderRadius: 8, background: "#fff", padding: "6px 8px", display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", minHeight: 40, cursor: "text" }}
+              onClick={() => engInputRef.current?.focus()}>
+              {engineers.map((eng, ei) => (
+                <span key={ei} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 6, padding: "3px 8px", fontSize: 13, fontWeight: 500, color: "#0c4a6e" }}>
+                  {eng}
+                  <button onClick={e => { e.stopPropagation(); removeEngineer(ei); }} style={{ width: 16, height: 16, borderRadius: "50%", border: "none", background: "rgba(12,74,110,0.15)", color: "#0c4a6e", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>✕</button>
+                </span>
+              ))}
+              <input ref={engInputRef} type="text" value={engInput} onChange={e => setEngInput(e.target.value)}
+                onKeyDown={handleEngKey} onBlur={handleEngBlur}
+                placeholder={engineers.length ? "Add another…" : "Type name, press Enter…"}
+                style={{ border: "none", outline: "none", background: "transparent", fontFamily: F.body, fontSize: 14, flex: 1, minWidth: 100, padding: "4px 0" }} />
+            </div>
+          </div>
+          <button style={{ width: "100%", padding: "14px", marginTop: 12, background: "linear-gradient(135deg, #0d9488, #0f766e)", border: "none", borderRadius: 10, color: "#fff", fontFamily: F.heading, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: ".5px", boxShadow: "0 4px 16px rgba(13,148,136,0.3)" }}
+            onClick={exportInventory}>📧 Export & Email Report</button>
+
           {isAdmin && (
             <button style={{ width: "100%", padding: "14px", marginTop: 12, background: "#dc2626", border: "none", borderRadius: 10, color: "#fff", fontFamily: F.heading, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: ".5px", transition: "opacity .2s" }}
               onClick={() => {
