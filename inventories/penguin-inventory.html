@@ -1236,11 +1236,13 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
       )}
 
       {showForm && (
+        <div ref={el => { if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}>
         <ItemForm item={editing} activeGroup={activeGroup} onSave={async (data) => {
           if (editing) await onUpdate(editing.id, data);
           else await onAdd(data);
           setShowForm(false); setEditing(null);
         }} onCancel={() => { setShowForm(false); setEditing(null); }} />
+        </div>
       )}
 
       {/* ── SPREADSHEET VIEW FOR AIR FILTERS ── */}
