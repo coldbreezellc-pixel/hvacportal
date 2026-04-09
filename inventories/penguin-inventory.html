@@ -1341,7 +1341,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                                   <p style={S.detailLine}><b>Last updated:</b> {new Date(i.lastUpdated).toLocaleDateString()} {i.updatedBy ? `by ${i.updatedBy}` : ""}</p>
                                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                                     <button style={S.btnSecondary} onClick={() => setInlineEdit({ id: i.id, name: i.name, notes: i.notes || "" })}>✏️ Edit</button>
-                                    {isAdmin && <button style={S.btnSecondary} onClick={() => { setEditing(i); setShowForm(true); setExpanded(null); }}>Full Edit</button>}
+                                    {isAdmin && <button style={S.btnSecondary} onClick={() => { setEditing(i); setShowForm(true); }}>Full Edit</button>}
                                     {isAdmin && confirmDelItem !== i.id && <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }} onClick={() => setConfirmDelItem(i.id)}>Delete</button>}
                                     {isAdmin && confirmDelItem === i.id && (
                                       <>
@@ -1521,7 +1521,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                           <p style={S.detailLine}><b>Last updated:</b> {new Date(i.lastUpdated).toLocaleDateString()} {i.updatedBy ? `by ${i.updatedBy}` : ""}</p>
                           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                             <button style={S.btnSecondary} onClick={() => setInlineEdit({ id: i.id, name: i.name, notes: i.notes || "" })}>✏️ Edit</button>
-                            {isAdmin && <button style={S.btnSecondary} onClick={() => { setEditing(i); setShowForm(true); setExpanded(null); }}>Full Edit</button>}
+                            {isAdmin && <button style={S.btnSecondary} onClick={() => { setEditing(i); setShowForm(true); }}>Full Edit</button>}
                             {isAdmin && confirmDelItem !== i.id && <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }} onClick={() => setConfirmDelItem(i.id)}>Delete</button>}
                             {isAdmin && confirmDelItem === i.id && (
                               <>
