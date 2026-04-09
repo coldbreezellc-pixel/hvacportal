@@ -453,73 +453,61 @@ const SEED_DATA = {
     ["Quadtro wash machine outlet box","38529",1,"Common Parts 900 and 904"],
   ],
   "Air Filters 900": [
-    // Format: [Unit ID, # Units, Filter Size, Qty/Unit, Total, In Stock]
-    // Order = (Total × 2) − In Stock (auto-calculated in UI)
-    ["AHU #1–#4",4,"Merv 13 24x24x4",15,60,227],
-    ["AHU #1–#4",4,"Merv 13 12x24x4",5,20,20],
-    ["AHU #1–#4",4,"Merv 13 12x24x4 Gasket",0,0,0],
-    ["AHU #5",1,"Merv 11 24x24x4",8,8,0],
-    ["AHU #6",1,"Merv 11 24x24x4",8,8,0],
-    ["AHU #7",1,"Merv 11 24x24x4",12,12,0],
-    ["AHU G1 Mammoth",1,"Merv 11 24x24x4",6,6,0],
-    ["AHU #7",1,"Merv 11 12x24x4",4,4,59],
-    ["FCU B-1",1,"Plt 16x20x2",1,1,12],
-    ["FCU B-2",1,"Plt 16x20x2",2,2,0],
-    ["FCU G-5",1,"Plt 16x20x2",1,1,0],
-    ["FCU B-1",1,"Plt 16x25x2",1,1,13],
-    ["FCU G-1",1,"RP 14x54x1",1,1,18],
-    ["FCU G-2, G-3, G-4, 1-1, 1-2, 1-3, 2-4, 2-5",8,"RP 12x36x1",1,8,7],
-    ["FCU 1-1A",1,"RP 20½x44",1,1,11],
-    ["FCU 2-1, 2-2",2,"Plt 29x29x2",2,4,12],
-    ["FCU Penthouse, AC-B1 Trane",2,"Plt 20x20x1",1,2,0],
-    ["HV #1 + #3 Ring Panel",2,"RP 24x48",2,4,26],
-    ["HV #2 + #2A Ring Panel",2,"RP 24x48",1,2,0],
-    ["HV #1, #3, #2, #2A Ring Panel",4,"RP 12x48",1,4,18],
-    ["HV #1 + #3 Main",2,"Plastic 24x24x4",4,8,24],
-    ["HV #2 + #2A Main",2,"Plastic 24x24x4",2,4,0],
-    ["HV #1 + #3 Main",2,"Plastic 12x24x4",2,4,15],
-    ["HV #2 + #2A Main",2,"Plastic 12x24x4",2,4,0],
-    ["Diecut Frame Stock",0,"Merv 13 24x24x4 Diecut",0,0,249],
-    ["Diecut Frame Stock",0,"Merv 13 12x24x4 Diecut",0,0,89],
-    ["Diecut Frame Stock",0,"Merv 11 24x24x4 Diecut",0,0,0],
-    ["Make-Up Carbon",3,"20x20x1 (Carbon)",2,6,23],
-    ["Make-Up Carbon",3,"20x20x2 (Carbon)",0,0,0],
-    ["Make-Up Media",3,"20x20x1 (Media)",4,12,28],
-    ["Make-Up Box",3,"20x20x4 (Mini Pleat)",2,6,29],
-    ["CAC CER RM + 3A–5A",17,"Merv 11 24x24x4",3,51,0],
-    ["CAC 6A, 7A, 8A, 9A",4,"Merv 11 24x24x4",4,16,0],
-    ["CAC-1A",1,"Merv 11 24x24x4",4,4,0],
-    ["CAC-2A",1,"Merv 11 24x24x4",4,4,0],
-    ["CAC NOC #1, #2, #2A",3,"Merv 11 24x24x4",3,9,0],
-    ["CAC NOC #3 + North, Challengers #15–18",6,"28x29x4",1,6,32],
-    ["CAC Challengers #15–18",4,"Merv 11 20x25x4",0,0,6],
-    ["CAC Challengers #15–18",4,"Merv 11 20x24x4",0,0,0],
-    ["CAC B-1 thru B-4",4,"18x24x4",6,24,138],
-    ["CAC B-5 thru B-8",4,"18x24x4",4,16,0],
-    ["CAC B-9 thru B-12",4,"18x24x4",6,24,0],
-    ["AHU Buffalo (Pre)",18,"Merv 13 Pre 24x24x2",12,216,223],
-    ["AHU Buffalo (Pre)",18,"Merv 13 Pre 12x24x2",4,72,36],
-    ["AHU Buffalo (HEPA)",18,"HEPA 24x24x4",12,216,249],
-    ["AHU Buffalo (HEPA)",18,"HEPA 12x24x4",4,72,81],
-    ["Fan Powered Box",0,"RP 19x19x1",0,24,16],
-    ["Fan Powered Box 1224",0,"RP 19x30x1",0,3,9],
-    ["Fan Powered Box",0,"RP 11x14x1",0,13,76],
-    ["Fan Powered Box 1430",0,"RP 13x14x1",0,25,39],
-    ["Fan Powered Box",0,"RP 15x17x1",0,39,39],
-    ["Fan Powered Box 2-7A/2-7B",0,"RP 17x18x1",0,2,8],
-    ["Fan Powered Box",0,"RP 20x30",0,0,0],
-    ["Fan Powered Box",0,"RP 30x44",0,0,0],
-    ["Fan Powered Box",0,"PLT 27.5x33.5x2",0,0,25],
-    ["Fan Powered Box",0,"Merv 11 20x25x2",0,0,72],
-    ["Cab Htrs Stair 1-5",4,"RP 8½x21",1,4,12],
-    ["West Lobby Cab Htrs",4,"Cleanable",2,8,0],
-    ["West Lobby Cab Htrs",4,"9x31x1",2,8,16],
-    ["West Lobby Cab Htrs",4,"9x22.25x1",2,8,0],
-    ["RP 25x40",0,"RP 25x40",0,0,8],
-    ["BARD Units",7,"Ply 20x30",1,11,22],
-    ["CHW System",0,"Charcoal CHW Filter",3,3,12],
-    ["CHW System",0,"CHW Filter",4,4,41],
-    ["SCW System",0,"SCW Filter (3P790)",4,4,4],
+    // Standard format: [Name, Part#, Qty, Notes]
+    ["Merv 13 24x24x4","",227,"AHU #1–#4 · 15/unit · Total: 60"],
+    ["Merv 13 12x24x4","",20,"AHU #1–#4 · 5/unit · Total: 20"],
+    ["Merv 13 12x24x4 Gasket","",0,"AHU #1–#4"],
+    ["Merv 11 24x24x4","",0,"AHU #5 (×8), #6 (×8), #7 (×12), G1 Mammoth (×6) · Total: 34"],
+    ["Merv 11 12x24x4","",59,"AHU #7 · 4/unit · Total: 4"],
+    ["Plt 16x20x2","",12,"FCU B-1 (×1), B-2 (×2), G-5 (×1) · Total: 4"],
+    ["Plt 16x25x2","",13,"FCU B-1 · 1/unit · Total: 1"],
+    ["RP 14x54x1","",18,"FCU G-1 · 1/unit · Total: 1"],
+    ["RP 12x36x1","",7,"FCU G-2, G-3, G-4, 1-1, 1-2, 1-3, 2-4, 2-5 · 1/unit · Total: 8"],
+    ["RP 20½x44","",11,"FCU 1-1A · 1/unit · Total: 1"],
+    ["Plt 29x29x2","",12,"FCU 2-1, 2-2 · 2/unit · Total: 4"],
+    ["Plt 20x20x1","",0,"FCU Penthouse, AC-B1 Trane · 1/unit · Total: 2"],
+    ["RP 24x48","",26,"HV #1, #3 (×2 ea), #2, #2A (×1 ea) · Total: 6"],
+    ["RP 12x48","",18,"HV #1, #3, #2, #2A Ring Panel · 1/unit · Total: 4"],
+    ["Plastic 24x24x4","",24,"HV #1, #3 (×4 ea), #2, #2A (×2 ea) · Total: 12"],
+    ["Plastic 12x24x4","",15,"HV #1, #3 (×2 ea), #2, #2A (×2 ea) · Total: 8"],
+    ["Merv 13 24x24x4 Diecut","",249,"Diecut Frame Stock"],
+    ["Merv 13 12x24x4 Diecut","",89,"Diecut Frame Stock"],
+    ["Merv 11 24x24x4 Diecut","",0,"Diecut Frame Stock"],
+    ["20x20x1 (Carbon)","",23,"Make-Up Carbon · 2/unit, 3 units · Total: 6"],
+    ["20x20x2 (Carbon)","",0,"Make-Up Carbon"],
+    ["20x20x1 (Media)","",28,"Make-Up Media · 4/unit, 3 units · Total: 12"],
+    ["20x20x4 (Mini Pleat)","",29,"Make-Up Box · 2/unit, 3 units · Total: 6"],
+    ["Merv 11 24x24x4","",0,"CAC CER RM + 3A–5A (×3 ea, 17 units) · Total: 51"],
+    ["Merv 11 24x24x4","",0,"CAC 6A, 7A, 8A, 9A (×4 ea) · Total: 16"],
+    ["Merv 11 24x24x4","",0,"CAC-1A (×4), CAC-2A (×4) · Total: 8"],
+    ["Merv 11 24x24x4","",0,"CAC NOC #1, #2, #2A (×3 ea) · Total: 9"],
+    ["28x29x4","",32,"CAC NOC #3 + North, Challengers #15–18 · 1/unit · Total: 6"],
+    ["Merv 11 20x25x4","",6,"CAC Challengers #15–18"],
+    ["Merv 11 20x24x4","",0,"CAC Challengers #15–18"],
+    ["18x24x4","",138,"CAC B-1–4 (×6), B-5–8 (×4), B-9–12 (×6) · Total: 64"],
+    ["Merv 13 Pre 24x24x2","",223,"AHU Buffalo Pre · 12/unit, 18 units · Total: 216"],
+    ["Merv 13 Pre 12x24x2","",36,"AHU Buffalo Pre · 4/unit, 18 units · Total: 72"],
+    ["HEPA 24x24x4","",249,"AHU Buffalo HEPA · 12/unit, 18 units · Total: 216"],
+    ["HEPA 12x24x4","",81,"AHU Buffalo HEPA · 4/unit, 18 units · Total: 72"],
+    ["RP 19x19x1","",16,"Fan Powered Box · Total: 24"],
+    ["RP 19x30x1","",9,"Fan Powered Box 1224 · Total: 3"],
+    ["RP 11x14x1","",76,"Fan Powered Box · Total: 13"],
+    ["RP 13x14x1","",39,"Fan Powered Box 1430 · Total: 25"],
+    ["RP 15x17x1","",39,"Fan Powered Box · Total: 39"],
+    ["RP 17x18x1","",8,"Fan Powered Box 2-7A/2-7B · Total: 2"],
+    ["RP 20x30","",0,"Fan Powered Box"],
+    ["RP 30x44","",0,"Fan Powered Box"],
+    ["PLT 27.5x33.5x2","",25,"Fan Powered Box"],
+    ["Merv 11 20x25x2","",72,"Fan Powered Box"],
+    ["RP 8½x21","",12,"Cab Htrs Stair 1-5 · 1/unit · Total: 4"],
+    ["Cleanable","",0,"West Lobby Cab Htrs · 2/unit, 4 units · Total: 8"],
+    ["9x31x1","",16,"West Lobby Cab Htrs · 2/unit · Total: 8"],
+    ["9x22.25x1","",0,"West Lobby Cab Htrs · 2/unit · Total: 8"],
+    ["RP 25x40","",8,"HV Units"],
+    ["Ply 20x30","",22,"BARD Units · 1/unit, 7 units · Total: 11"],
+    ["Charcoal CHW Filter","",12,"CHW System · 3 filters"],
+    ["CHW Filter","",41,"CHW System · 4 filters"],
+    ["SCW Filter (3P790)","",4,"SCW System · 4 filters"],
   ],
   "Air Filters 904": [
     // Format: [Unit ID, # Units, Filter Size, Qty/Unit, Total, In Stock]
@@ -539,7 +527,7 @@ const SEED_DATA = {
 
 // Convert seed data to inventory items
 const buildSeedItems = (group, arr) => arr.map((r, i) => {
-  const isFilter = group.startsWith("Air Filters") && r.length === 6;
+  const isFilter = group === "Air Filters 904" && r.length === 6;
   if (isFilter) {
     // [unitId, qtyUnits, filterSize, qtyPerUnit, total, inStock]
     return {
@@ -680,9 +668,10 @@ function App() {
       } else {
         // Remove old "Air Filters" group if split into 900/904
         inv = inv.filter(i => i.group !== "Air Filters");
-        // Migrate: if filter items lack the new structured fields, replace them
-        const hasNewFormat = inv.some(i => i.group?.startsWith("Air Filters") && i.unitId);
-        if (!hasNewFormat) {
+        // Migrate: if 904 items lack unitId, or 900 items have unitId, re-seed them
+        const has904New = inv.some(i => i.group === "Air Filters 904" && i.unitId);
+        const has900Old = inv.some(i => i.group === "Air Filters 900" && i.unitId);
+        if (!has904New || has900Old) {
           inv = inv.filter(i => !i.group?.startsWith("Air Filters"));
         }
         // Add any new seed groups not yet in storage
@@ -1211,7 +1200,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
   }
 
   // ── ITEM LIST FOR SELECTED GROUP ──
-  const isFilterGroup = selectedGroup?.startsWith("Air Filters");
+  const isFilterGroup = selectedGroup === "Air Filters 904";
 
   return (
     <div style={S.page}>
