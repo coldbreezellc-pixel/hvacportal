@@ -106,24 +106,19 @@ const hash = async (pw) => {
 
 const INVENTORY_GROUPS = ["Plumbing", "Faucet Parts", "Air Filters 900", "Air Filters 904", "Electrical", "HVAC", "Lighting", "Hardware", "Safety", "Tools", "AV/Tech", "Misc"];
 
-// ── Google Image Search for part photos ──
-const GCS_KEY = "AIzaSyAyqF9WiUGUAXTV5Fr_y0CYemvy17Zx14I";
-const GCS_CX = "348cccde9be65414f";
-const _imgFetchQueue = [];
+// ── Bing Image Thumbnails for part photos (free, no API key needed) ──
 let _imgFetching = false;
 
 const fetchPartImage = async (partNumber, itemName) => {
   if (!partNumber) return null;
   try {
-    const q = encodeURIComponent(partNumber + " " + (itemName || ""));
-    const url = "https://www.googleapis.com/customsearch/v1?key=" + GCS_KEY + "&cx=" + GCS_CX + "&searchType=image&num=1&q=" + q;
+    const q = encodeURIComponent(partNumber.trim() + " " + (itemName || "").trim());
+    const url = "https://tse1.mm.bing.net/th?q=" + q + "&w=120&h=120&c=7&rs=1&p=0";
+    // Verify image loads
     const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.items && data.items.length > 0) {
-      const imgUrl = data.items[0].link;
-      // Convert to small thumbnail via wsrv.nl proxy (resizes and caches)
-      return "https://wsrv.nl/?url=" + encodeURIComponent(imgUrl) + "&w=120&h=120&fit=cover&default=1";
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 1000) return url; // real image (not blank)
     }
   } catch (e) { console.error("Image fetch error:", e); }
   return null;
@@ -133,12 +128,13 @@ const processImageQueue = async (items, onUpdate) => {
   if (_imgFetching) return;
   _imgFetching = true;
   for (const item of items) {
-    if (item.photo || !item.partNumber) continue;
-    // Small delay between requests to stay under rate limit
-    await new Promise(r => setTimeout(r, 500));
+    if (item.photo || item.photoFailed || !item.partNumber) continue;
+    await new Promise(r => setTimeout(r, 300));
     const imgUrl = await fetchPartImage(item.partNumber, item.name);
     if (imgUrl) {
       await onUpdate(item.id, { photo: imgUrl });
+    } else {
+      await onUpdate(item.id, { photoFailed: true });
     }
   }
   _imgFetching = false;
@@ -1137,7 +1133,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
   // Auto-fetch Google images for Plumbing & Faucet Parts items missing photos
   useEffect(() => {
     if ((selectedGroup === "Plumbing" || selectedGroup === "Faucet Parts") && items.length > 0) {
-      const needPhotos = items.filter(i => !i.photo && i.partNumber);
+      const needPhotos = items.filter(i => !i.photo && !i.photoFailed && i.partNumber);
       if (needPhotos.length > 0) {
         processImageQueue(needPhotos, onUpdate);
       }
@@ -1477,7 +1473,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                             onError={e => { e.target.onerror = null; e.target.style.display = "none"; e.target.parentElement.innerHTML = '<span style="font-size:18px">📷</span>'; }}
                             alt="" />
                         ) : (
-                          <span style={{ fontSize: 16, color: "#94a3b8" }}>{i.partNumber ? "⏳" : "—"}</span>
+                          <span style={{ fontSize: 16, color: "#94a3b8" }}>{i.partNumber ? (i.photoFailed ? "📷" : "⏳") : "—"}</span>
                         )}
                       </div>
                     )}
