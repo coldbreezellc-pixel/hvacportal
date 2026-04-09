@@ -1413,15 +1413,20 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                   <div style={{ display: "grid", gridTemplateColumns: gridCols, padding: "6px 8px", borderBottom: "1px solid #f1f5f9", alignItems: "center", background: expanded === i.id ? "#f0fdfa" : rowBg, cursor: "pointer", gap: 4, minWidth: minW }}
                     onClick={() => setExpanded(expanded === i.id ? null : i.id)}>
                     {hasPhotos && (
-                      <div style={{ width: 40, height: 40, borderRadius: 6, overflow: "hidden", background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                        onClick={e => { if (i.partNumber) { e.stopPropagation(); window.open(imgUrl, "_blank"); } }}>
-                        {i.partNumber ? (
-                          <img src={"https://wsrv.nl/?url=https://www.google.com/shopping/product/1/image%3Fq=" + encodeURIComponent(i.partNumber) + "&w=80&h=80&fit=cover&default=https://placehold.co/40x40/f1f5f9/94a3b8?text=%3F"}
-                            style={{ width: 40, height: 40, objectFit: "cover" }}
-                            onError={e => { e.target.onerror = null; e.target.style.display = "none"; e.target.parentElement.innerHTML = "<span style='font-size:16px'>🔍</span>"; }}
-                            alt="" />
+                      <div style={{ width: 44, height: 44, borderRadius: 6, overflow: "hidden", background: "#f1f5f9", border: "1.5px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative", cursor: "pointer" }}
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (i.photo) {
+                            // Show full image
+                            setExpanded(expanded === i.id ? null : i.id);
+                          } else if (i.partNumber) {
+                            window.open("https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(i.partNumber + " " + (i.name || "")), "_blank");
+                          }
+                        }}>
+                        {i.photo ? (
+                          <img src={i.photo} style={{ width: 44, height: 44, objectFit: "cover" }} alt="" />
                         ) : (
-                          <span style={{ fontSize: 14, color: "#94a3b8" }}>—</span>
+                          <span style={{ fontSize: 18 }}>📷</span>
                         )}
                       </div>
                     )}
@@ -1461,9 +1466,50 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                         </>
                       ) : (
                         <>
-                          {hasPhotos && i.partNumber && (
+                          {hasPhotos && (
                             <div style={{ marginBottom: 10 }}>
-                              <a href={imgUrl} target="_blank" rel="noopener" style={{ fontFamily: F.body, fontSize: 12, color: "#0d9488", fontWeight: 600, textDecoration: "none" }}>🔍 Search images for #{i.partNumber}</a>
+                              {i.photo && (
+                                <div style={{ marginBottom: 8 }}>
+                                  <img src={i.photo} style={{ width: "100%", maxWidth: 200, borderRadius: 8, border: "1px solid #e2e8f0" }} alt="" />
+                                </div>
+                              )}
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <label style={{ ...S.btnSecondary, display: "inline-flex", alignItems: "center", gap: 4, margin: 0, cursor: "pointer" }}>
+                                  📷 {i.photo ? "Change" : "Add"} Photo
+                                  <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+                                    onChange={e => {
+                                      const file = e.target.files[0];
+                                      if (!file) return;
+                                      const reader = new FileReader();
+                                      reader.onload = ev => {
+                                        // Resize to max 200px to keep storage small
+                                        const img = new Image();
+                                        img.onload = () => {
+                                          const canvas = document.createElement("canvas");
+                                          const max = 200;
+                                          let w = img.width, h = img.height;
+                                          if (w > h) { h = h * max / w; w = max; } else { w = w * max / h; h = max; }
+                                          canvas.width = w; canvas.height = h;
+                                          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                                          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+                                          onUpdate(i.id, { photo: dataUrl });
+                                        };
+                                        img.src = ev.target.result;
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }} />
+                                </label>
+                                {i.partNumber && (
+                                  <a href={"https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(i.partNumber + " " + (i.name || ""))} target="_blank" rel="noopener"
+                                    style={{ ...S.btnSecondary, display: "inline-flex", alignItems: "center", gap: 4, textDecoration: "none", color: "#0d9488" }}>
+                                    🔍 Google #{i.partNumber}
+                                  </a>
+                                )}
+                                {i.photo && (
+                                  <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }}
+                                    onClick={() => onUpdate(i.id, { photo: null })}>✕ Remove</button>
+                                )}
+                              </div>
                             </div>
                           )}
                           {i.partNumber && <p style={S.detailLine}><b>Part #:</b> {i.partNumber}</p>}
@@ -1508,29 +1554,58 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
 }
 
 function ItemForm({ item, activeGroup, onSave, onCancel }) {
+  const isFilter = activeGroup?.startsWith("Air Filters");
   const [f, setF] = useState({
     name: item?.name || "", group: item?.group || activeGroup, qty: item?.qty ?? 1,
     minQty: item?.minQty ?? 0, partNumber: item?.partNumber || "", location: item?.location || "",
     notes: item?.notes || "",
+    ...(isFilter ? {
+      unitId: item?.unitId || "",
+      qtyUnits: item?.qtyUnits ?? 0,
+      qtyPerUnit: item?.qtyPerUnit ?? 0,
+      totalNeeded: item?.totalNeeded ?? 0,
+    } : {}),
   });
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
   return (
     <div style={{ ...S.card, border: "1.5px solid #e2e8f0", marginBottom: 12 }}>
       <h3 style={{ fontFamily: F.heading, fontSize: 15, color: "#1e293b", margin: "0 0 12px" }}>{item ? "Edit Item" : "New Item"}</h3>
-      <label style={S.label}>Name *</label>
-      <input style={S.input} value={f.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Sloan Faucet Kit" />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <div><label style={S.label}>Group</label><select style={S.select} value={f.group} onChange={e => set("group", e.target.value)}>{INVENTORY_GROUPS.map(c => <option key={c}>{c}</option>)}</select></div>
-        <div><label style={S.label}>Part #</label><input style={S.input} value={f.partNumber} onChange={e => set("partNumber", e.target.value)} placeholder="Optional" /></div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <div><label style={S.label}>Quantity</label><input style={S.input} type="number" min="0" value={f.qty} onChange={e => set("qty", Math.max(0, +e.target.value))} /></div>
-        <div><label style={S.label}>Min Stock Alert</label><input style={S.input} type="number" min="0" value={f.minQty} onChange={e => set("minQty", Math.max(0, +e.target.value))} /></div>
-      </div>
-      <label style={S.label}>Storage Location</label>
-      <input style={S.input} value={f.location} onChange={e => set("location", e.target.value)} placeholder="e.g. Van #2, Shelf B3" />
-      <label style={S.label}>Notes</label>
-      <textarea style={{ ...S.input, minHeight: 60, resize: "vertical" }} value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Optional notes…" />
+      {isFilter ? (
+        <>
+          <label style={S.label}>Unit ID *</label>
+          <input style={S.input} value={f.unitId} onChange={e => set("unitId", e.target.value)} placeholder="e.g. AHU #1–#4" />
+          <label style={S.label}>Filter Size (Name) *</label>
+          <input style={S.input} value={f.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Merv 13 24x24x4" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div><label style={S.label}># Units</label><input style={S.input} type="number" min="0" value={f.qtyUnits} onChange={e => set("qtyUnits", Math.max(0, +e.target.value))} /></div>
+            <div><label style={S.label}>Per Unit</label><input style={S.input} value={f.qtyPerUnit} onChange={e => set("qtyPerUnit", e.target.value)} placeholder="e.g. 15 or 8/8/12" /></div>
+            <div><label style={S.label}>Total Needed</label><input style={S.input} type="number" min="0" value={f.totalNeeded} onChange={e => set("totalNeeded", Math.max(0, +e.target.value))} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div><label style={S.label}>In Stock</label><input style={S.input} type="number" min="0" value={f.qty} onChange={e => set("qty", Math.max(0, +e.target.value))} /></div>
+            <div><label style={S.label}>Group</label><select style={S.select} value={f.group} onChange={e => set("group", e.target.value)}>{INVENTORY_GROUPS.filter(g => g.startsWith("Air Filters")).map(c => <option key={c}>{c}</option>)}</select></div>
+          </div>
+          <label style={S.label}>Notes</label>
+          <textarea style={{ ...S.input, minHeight: 50, resize: "vertical" }} value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Optional notes…" />
+        </>
+      ) : (
+        <>
+          <label style={S.label}>Name *</label>
+          <input style={S.input} value={f.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Sloan Faucet Kit" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div><label style={S.label}>Group</label><select style={S.select} value={f.group} onChange={e => set("group", e.target.value)}>{INVENTORY_GROUPS.map(c => <option key={c}>{c}</option>)}</select></div>
+            <div><label style={S.label}>Part #</label><input style={S.input} value={f.partNumber} onChange={e => set("partNumber", e.target.value)} placeholder="Optional" /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div><label style={S.label}>Quantity</label><input style={S.input} type="number" min="0" value={f.qty} onChange={e => set("qty", Math.max(0, +e.target.value))} /></div>
+            <div><label style={S.label}>Min Stock Alert</label><input style={S.input} type="number" min="0" value={f.minQty} onChange={e => set("minQty", Math.max(0, +e.target.value))} /></div>
+          </div>
+          <label style={S.label}>Storage Location</label>
+          <input style={S.input} value={f.location} onChange={e => set("location", e.target.value)} placeholder="e.g. Van #2, Shelf B3" />
+          <label style={S.label}>Notes</label>
+          <textarea style={{ ...S.input, minHeight: 60, resize: "vertical" }} value={f.notes} onChange={e => set("notes", e.target.value)} placeholder="Optional notes…" />
+        </>
+      )}
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <button style={S.btnPrimary} onClick={() => { if (!f.name.trim()) return; onSave(f); }}>Save</button>
         <button style={S.btnSecondary} onClick={onCancel}>Cancel</button>
