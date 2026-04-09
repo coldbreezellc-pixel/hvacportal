@@ -1136,8 +1136,22 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
 
   // Auto-fetch Bing images for Plumbing & Faucet Parts items missing photos
   const photoFetchRef = useRef(null);
+  const photoResetDone = useRef(false);
   useEffect(() => {
     if ((selectedGroup === "Plumbing" || selectedGroup === "Faucet Parts") && items.length > 0) {
+      // One-time: clear old photoFailed flags so Bing gets a fresh try
+      if (!photoResetDone.current) {
+        const failedItems = items.filter(i => i.photoFailed && !i.photo && i.partNumber);
+        if (failedItems.length > 0) {
+          const resets = {};
+          failedItems.forEach(i => { resets[i.id] = { photoFailed: false }; });
+          onBatchUpdatePhotos(resets);
+          photoResetDone.current = true;
+          return; // will re-trigger after state updates
+        }
+        photoResetDone.current = true;
+      }
+
       const needPhotos = items.filter(i => !i.photo && !i.photoFailed && i.partNumber);
       if (needPhotos.length > 0 && !_imgFetching) {
         if (photoFetchRef.current) clearTimeout(photoFetchRef.current);
@@ -1147,7 +1161,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
       }
     }
     return () => { if (photoFetchRef.current) clearTimeout(photoFetchRef.current); };
-  }, [selectedGroup]);
+  }, [selectedGroup, items]);
 
   // Export to Excel and open email
   const exportAndEmail = () => {
