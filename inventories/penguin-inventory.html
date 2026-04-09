@@ -661,9 +661,9 @@ function App() {
       } else {
         // Remove old "Air Filters" group if split into 900/904
         inv = inv.filter(i => i.group !== "Air Filters");
-        // Migrate: if filter items lack the new structured fields, replace them
-        const hasNewFormat = inv.some(i => i.group?.startsWith("Air Filters") && i.unitId);
-        if (!hasNewFormat) {
+        // Force re-seed filters if they don't have the spreadsheet format (unitId + qtyPerUnit)
+        const hasSpreadsheetFormat = inv.some(i => i.group === "Air Filters 900" && i.unitId && i.qtyPerUnit !== undefined);
+        if (!hasSpreadsheetFormat) {
           inv = inv.filter(i => !i.group?.startsWith("Air Filters"));
         }
         // Add any new seed groups not yet in storage
