@@ -20,29 +20,83 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 
   <script type="text/babel">
-    // ── localStorage shim for window.storage API ──
+    // ── GitHub API storage backend ──
+    const GH_OWNER = "coldbreezellc-pixel";
+    const GH_REPO = "hvacportal";
+    const GH_BRANCH = "main";
+    const GH_TOKEN = "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";
+    const GH_API = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/data/";
+
+    // SHA cache for GitHub file updates
+    const _shaCache = {};
+
     window.storage = {
-      async get(key, shared) {
-        const val = localStorage.getItem(key);
-        if (val === null) throw new Error("Key not found");
-        return { key, value: val, shared: !!shared };
+      async get(key) {
+        const url = GH_API + key + ".json?ref=" + GH_BRANCH + "&t=" + Date.now();
+        const res = await fetch(url, { headers: { Authorization: "Bearer " + GH_TOKEN, Accept: "application/vnd.github.v3+json" } });
+        if (!res.ok) throw new Error("Not found");
+        const data = await res.json();
+        _shaCache[key] = data.sha;
+        const content = atob(data.content.replace(/\n/g, ""));
+        return { key, value: content };
       },
-      async set(key, value, shared) {
-        localStorage.setItem(key, value);
-        return { key, value, shared: !!shared };
-      },
-      async delete(key, shared) {
-        localStorage.removeItem(key);
-        return { key, deleted: true, shared: !!shared };
-      },
-      async list(prefix, shared) {
-        const keys = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (!prefix || k.startsWith(prefix)) keys.push(k);
+      async set(key, value) {
+        const url = GH_API + key + ".json";
+        const body = { message: "Update " + key, content: btoa(unescape(encodeURIComponent(value))), branch: GH_BRANCH };
+        // Get current SHA if we don't have it
+        if (!_shaCache[key]) {
+          try {
+            const check = await fetch(url + "?ref=" + GH_BRANCH, { headers: { Authorization: "Bearer " + GH_TOKEN, Accept: "application/vnd.github.v3+json" } });
+            if (check.ok) { const d = await check.json(); _shaCache[key] = d.sha; }
+          } catch {}
         }
-        return { keys, prefix, shared: !!shared };
+        if (_shaCache[key]) body.sha = _shaCache[key];
+        const res = await fetch(url, { method: "PUT", headers: { Authorization: "Bearer " + GH_TOKEN, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        if (!res.ok) { const err = await res.text(); console.error("GitHub save error:", err); throw new Error("Save failed"); }
+        const result = await res.json();
+        _shaCache[key] = result.content.sha;
+        return { key, value };
+      },
+      async delete(key) {
+        const url = GH_API + key + ".json";
+        if (!_shaCache[key]) {
+          try { const check = await fetch(url + "?ref=" + GH_BRANCH, { headers: { Authorization: "Bearer " + GH_TOKEN } }); if (check.ok) { const d = await check.json(); _shaCache[key] = d.sha; } } catch {}
+        }
+        if (_shaCache[key]) {
+          await fetch(url, { method: "DELETE", headers: { Authorization: "Bearer " + GH_TOKEN, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" }, body: JSON.stringify({ message: "Delete " + key, sha: _shaCache[key], branch: GH_BRANCH }) });
+          delete _shaCache[key];
+        }
+        return { key, deleted: true };
+      },
+      async list(prefix) {
+        return { keys: [], prefix };
       }
+    };
+
+    // Also keep localStorage as a fast cache for instant UI
+    const _localCache = {
+      get(key) { try { return localStorage.getItem("gh_" + key); } catch { return null; } },
+      set(key, val) { try { localStorage.setItem("gh_" + key, val); } catch {} }
+    };
+
+    // Wrap storage to use local cache + GitHub
+    const _origGet = window.storage.get.bind(window.storage);
+    const _origSet = window.storage.set.bind(window.storage);
+    window.storage.get = async function(key) {
+      try {
+        const remote = await _origGet(key);
+        _localCache.set(key, remote.value);
+        return remote;
+      } catch {
+        // Fallback to local cache if offline
+        const cached = _localCache.get(key);
+        if (cached) return { key, value: cached };
+        throw new Error("Not found");
+      }
+    };
+    window.storage.set = async function(key, value) {
+      _localCache.set(key, value);
+      return _origSet(key, value);
     };
 
     const { useState, useEffect, useCallback, useRef } = React;
@@ -506,7 +560,7 @@ const buildSeedItems = (group, arr) => arr.map((r, i) => {
     createdBy: "Import", createdAt: new Date().toISOString(), lastUpdated: new Date().toISOString(),
   };
 });
-const POLL_MS = 4000;
+const POLL_MS = 30000; // 30 seconds — GitHub API rate limit friendly
 
 const Diamond = ({ size = 40 }) => (
   <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -553,38 +607,38 @@ function App() {
   // ── Storage helpers ──
   const loadUsers = useCallback(async () => {
     try {
-      const r = await window.storage.get("pm_users", true);
+      const r = await window.storage.get("pm_users");
       if (r?.value) return JSON.parse(r.value);
     } catch {}
     return null;
   }, []);
 
   const saveUsers = useCallback(async (u) => {
-    await window.storage.set("pm_users", JSON.stringify(u), true);
+    await window.storage.set("pm_users", JSON.stringify(u));
   }, []);
 
   const loadItems = useCallback(async () => {
     try {
-      const r = await window.storage.get("pm_inventory", true);
+      const r = await window.storage.get("pm_inventory");
       if (r?.value) return JSON.parse(r.value);
     } catch {}
     return [];
   }, []);
 
   const saveItems = useCallback(async (list) => {
-    await window.storage.set("pm_inventory", JSON.stringify(list), true);
+    await window.storage.set("pm_inventory", JSON.stringify(list));
   }, []);
 
   const loadLogs = useCallback(async () => {
     try {
-      const r = await window.storage.get("pm_logs", true);
+      const r = await window.storage.get("pm_logs");
       if (r?.value) return JSON.parse(r.value);
     } catch {}
     return [];
   }, []);
 
   const saveLogs = useCallback(async (list) => {
-    await window.storage.set("pm_logs", JSON.stringify(list), true);
+    await window.storage.set("pm_logs", JSON.stringify(list));
   }, []);
 
   const addLog = useCallback(async (action, detail, userName) => {
@@ -647,7 +701,7 @@ function App() {
       setLogs(lg || []);
       // check session
       try {
-        const sess = await window.storage.get("pm_session", false);
+        const sessVal = localStorage.getItem("pm_session"); const sess = sessVal ? { value: sessVal } : null;
         if (sess?.value) {
           const s = JSON.parse(sess.value);
           const u = existingUsers.find(x => x.id === s.userId);
@@ -681,7 +735,7 @@ function App() {
     const u = users.find(x => x.username.toLowerCase() === username.trim().toLowerCase() && x.passwordHash === h);
     if (!u) return flash("Invalid username or password.", "err");
     setCurrentUser(u);
-    await window.storage.set("pm_session", JSON.stringify({ userId: u.id }), false);
+    localStorage.setItem("pm_session", JSON.stringify({ userId: u.id }));
     setView(u.mustResetPw ? "profile" : "dashboard");
     addLog("Login", `${u.displayName} signed in`, u.displayName);
     flash(`Welcome back, ${u.displayName}`);
@@ -691,7 +745,7 @@ function App() {
     addLog("Logout", `${currentUser.displayName} signed out`, currentUser.displayName);
     setCurrentUser(null);
     setView("login");
-    try { await window.storage.delete("pm_session", false); } catch {}
+    try { localStorage.removeItem("pm_session"); } catch {}
   };
 
   // ── User CRUD (admin) ──
@@ -776,6 +830,20 @@ function App() {
     flash("Item removed.");
   };
 
+  // Debounced save — batches rapid changes into one API call
+  const saveTimerRef = useRef(null);
+  const pendingItemsRef = useRef(null);
+  const debouncedSaveItems = useCallback((list) => {
+    pendingItemsRef.current = list;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      if (pendingItemsRef.current) {
+        await saveItems(pendingItemsRef.current);
+        pendingItemsRef.current = null;
+      }
+    }, 1500); // wait 1.5s after last change before saving to GitHub
+  }, [saveItems]);
+
   const adjustQty = async (id, delta) => {
     const old = items.find(i => i.id === id);
     const updated = items.map(i => {
@@ -784,7 +852,7 @@ function App() {
       return { ...i, qty: nq, lastUpdated: new Date().toISOString(), updatedBy: currentUser.displayName };
     });
     setItems(updated);
-    await saveItems(updated);
+    debouncedSaveItems(updated); // debounced — won't hit GitHub on every tap
     const nq = Math.max(0, (old?.qty || 0) + delta);
     addLog("Qty Changed", `"${old?.name}" qty: ${old?.qty} → ${nq}`, currentUser.displayName);
   };
