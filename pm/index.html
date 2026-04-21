@@ -1153,7 +1153,7 @@ function renderHistory() {
         '</div>' +
         '<div style="display:flex;gap:8px;margin-top:10px;">' +
           '<button onclick="resendPM(' + idx + ')" style="flex:1;padding:10px;border:none;border-radius:8px;background:#2979FF;color:#fff;font-family:DM Sans,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">📧 Resend Email</button>' +
-          '<button onclick="deletePMHistory(' + idx + ')" style="padding:10px 14px;border:1.5px solid #FECACA;border-radius:8px;background:#fff;color:#DC2626;font-family:DM Sans,sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Delete</button>' +
+          (_currentUser.role === 'admin' ? '<button onclick="deletePMHistory(' + idx + ')" style="padding:10px 14px;border:1.5px solid #FECACA;border-radius:8px;background:#fff;color:#DC2626;font-family:DM Sans,sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Delete</button>' : '') +
         '</div>' +
       '</div>' +
     '</div>';
