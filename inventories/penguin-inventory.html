@@ -1161,6 +1161,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
   const [editingQty, setEditingQty] = useState(null); // {id, value}
   const [engineers, setEngineers] = useState([]);
   const [engInput, setEngInput] = useState("");
+  const [inventoryDate, setInventoryDate] = useState(new Date().toISOString().slice(0, 10));
   const engInputRef = useRef(null);
 
   const addEngineer = (name) => { const c = name.trim(); if (c && !engineers.includes(c)) setEngineers([...engineers, c]); };
@@ -1204,7 +1205,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
   const exportAndEmail = () => {
     if (engineers.length === 0) { alert("Please add at least one engineer name."); return; }
     const now = new Date();
-    const dateStr = (now.getMonth()+1) + "/" + now.getDate() + "/" + now.getFullYear();
+    const dateStr = inventoryDate ? new Date(inventoryDate + "T00:00:00").toLocaleDateString("en-US") : (now.getMonth()+1) + "/" + now.getDate() + "/" + now.getFullYear();
 
     // Group items by filter size
     const groups = {};
@@ -1264,7 +1265,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
   const exportInventory = () => {
     if (engineers.length === 0) { alert("Please add at least one engineer name."); return; }
     const now = new Date();
-    const dateStr = (now.getMonth()+1) + "/" + now.getDate() + "/" + now.getFullYear();
+    const dateStr = inventoryDate ? new Date(inventoryDate + "T00:00:00").toLocaleDateString("en-US") : (now.getMonth()+1) + "/" + now.getDate() + "/" + now.getFullYear();
 
     let csv = "INVENTORY REPORT\n";
     csv += "Category:," + (selectedGroup || "") + "\n";
@@ -1351,10 +1352,16 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <button onClick={goBack} style={{ background: "none", border: "none", color: "#0d9488", fontSize: 24, cursor: "pointer", fontWeight: 700, padding: "4px 0", lineHeight: 1 }}>←</button>
         <h2 style={{ ...S.pageTitle, margin: 0, flex: 1 }}>{selectedGroup}</h2>
-        {isAdmin && <button style={{ ...S.btnPrimary, width: "auto", padding: "8px 16px" }} onClick={() => { setEditing(null); setShowForm(true); }}>+ Add</button>}
+        <button style={{ ...S.btnPrimary, width: "auto", padding: "8px 16px" }} onClick={() => { setEditing(null); setShowForm(true); }}>+ Add</button>
       </div>
 
       <input style={S.input} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search items, filter size, or unit…" />
+
+      {/* ── DATE FIELD ── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, marginBottom: 4 }}>
+        <label style={{ ...S.label, margin: 0, whiteSpace: "nowrap" }}>Date</label>
+        <input type="date" style={{ ...S.input, flex: 1, marginBottom: 0 }} value={inventoryDate} onChange={e => setInventoryDate(e.target.value)} />
+      </div>
 
       {/* ── ENGINEER NAME INPUT (filter groups only) ── */}
       {isFilterGroup && (
