@@ -67,6 +67,18 @@
   .safety-continue-btn{width:100%;padding:14px 16px;border:2px solid var(--success);border-radius:var(--radius-sm);background:var(--success);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px}
   .safety-continue-btn:active{transform:scale(.97)}
   .safety-continue-btn:disabled{opacity:.4;pointer-events:none}
+  .safety-sig-card{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;background:#FAFBFD;transition:all .3s}
+  .safety-sig-card.signed{border-color:var(--success);background:#E8F5E9}
+  .safety-sig-name{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:8px}
+  .safety-sig-canvas-wrap{width:100%;height:80px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);background:#fff;position:relative;overflow:hidden;touch-action:none;margin-bottom:8px}
+  .safety-sig-canvas-wrap.has-sig{border-style:solid;border-color:var(--success)}
+  .safety-sig-canvas-wrap canvas{width:100%;height:100%;display:block}
+  .safety-sig-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-light);font-size:12px;pointer-events:none}
+  .safety-sig-actions{display:flex;gap:8px;align-items:center}
+  .safety-sig-btn{flex:1;padding:10px;border:2px solid var(--border);border-radius:var(--radius-sm);background:#fff;color:var(--text-mid);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;text-align:center}
+  .safety-sig-btn:active{transform:scale(.97)}
+  .safety-sig-btn.signed-btn{border-color:var(--success);background:var(--success);color:#fff;pointer-events:none}
+  .safety-sig-btn.clear-btn{flex:0 0 auto;padding:10px 14px;color:var(--text-light);font-size:12px}
   .equip-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .equip-chip{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#FAFBFD;cursor:pointer;transition:all .15s;user-select:none;font-size:14px;font-weight:500}
   .equip-chip:active{transform:scale(.97)}
@@ -184,7 +196,15 @@
       <div class="emergency-box"><ul><li><strong>Electrical Shock:</strong> Do not touch the person. Disconnect power source if possible and call the Chief and emergency services.</li><li><strong>Gas Leak:</strong> Evacuate the area immediately. Do not use electrical switches or open flames. Call the gas company from a safe distance.</li><li><strong>Fire:</strong> Use a fire extinguisher if safe to do so. Evacuate the area and call emergency services and Notify Chief and GRIC.</li><li><strong>Chemical Spill:</strong> Use appropriate PPE and clean-up materials. Refer to the Safety Data Sheet (SDS) for specific handling instructions.</li></ul></div>
       <div class="safety-sub-header">Post-Job</div>
       <table class="safety-table" id="postJobTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
-      <button class="safety-continue-btn" id="safetyContinueBtn" onclick="completeSafety()">✓ Safety Checklist Reviewed — Continue to PM</button>
+      
+      <!-- Per-technician safety signatures -->
+      <div id="safetySignaturesArea" style="display:none;margin-top:16px;">
+        <div class="safety-sub-header">Technician Safety Signatures</div>
+        <p style="font-size:12px;color:var(--text-mid);margin:6px 0 12px;">Each technician must sign below to confirm they have reviewed the safety checklist.</p>
+        <div id="safetySignaturesList"></div>
+      </div>
+
+      <button class="safety-continue-btn" id="safetyContinueBtn" onclick="completeSafety()" disabled>✓ Safety Checklist Reviewed — Continue to PM</button>
     </div>
   </div>
   </div>
@@ -241,13 +261,159 @@ function buildEquipInspTable(){const tb=document.getElementById('equipInspTable'
 buildPPETable();buildCheckTable('preJobTable',PREJOB_TASKS);buildCheckTable('electricalTable',ELECTRICAL_TASKS);buildCheckTable('gasTable',GAS_TASKS);buildEquipInspTable();buildCheckTable('postJobTable',POSTJOB_TASKS);
 
 let ppeAcknowledged=false,safetyCompleted=false;
-function acknowledgePPE(){ppeAcknowledged=true;document.getElementById('ppeBanner').classList.add('acknowledged');const btn=document.getElementById('ppeAckBtn');btn.classList.add('acknowledged');btn.textContent='PPE Acknowledged';const now=new Date();document.getElementById('ppeTimestamp').textContent='Acknowledged at '+now.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true})+(techNames.length?' by '+techNames.join(', '):'');document.getElementById('safetyGate').classList.add('unlocked');setTimeout(()=>document.getElementById('safetySection').scrollIntoView({behavior:'smooth',block:'start'}),300)}
+function acknowledgePPE(){ppeAcknowledged=true;document.getElementById('ppeBanner').classList.add('acknowledged');const btn=document.getElementById('ppeAckBtn');btn.classList.add('acknowledged');btn.textContent='PPE Acknowledged';const now=new Date();document.getElementById('ppeTimestamp').textContent='Acknowledged at '+now.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true})+(techNames.length?' by '+techNames.join(', '):'');document.getElementById('safetyGate').classList.add('unlocked');buildSafetySignatures();setTimeout(()=>document.getElementById('safetySection').scrollIntoView({behavior:'smooth',block:'start'}),300)}
 function completeSafety(){safetyCompleted=true;document.getElementById('gatedContent').classList.add('unlocked');document.getElementById('gatedSections').classList.add('unlocked');const btn=document.getElementById('safetyContinueBtn');btn.textContent='✓ Safety Checklist Complete';btn.disabled=true;btn.style.opacity='.6';setTimeout(()=>document.getElementById('gatedContent').scrollIntoView({behavior:'smooth',block:'start'}),300)}
+
+// ═══ SAFETY SIGNATURES ═══
+const safetySigs = {}; // {techName: {signed: bool, canvas, ctx, drawing, points}}
+
+function buildSafetySignatures(){
+  const area = document.getElementById('safetySignaturesArea');
+  const list = document.getElementById('safetySignaturesList');
+  const btn = document.getElementById('safetyContinueBtn');
+  
+  if(techNames.length === 0){
+    area.style.display = 'none';
+    btn.disabled = true;
+    return;
+  }
+  
+  area.style.display = 'block';
+  list.innerHTML = '';
+  
+  // Clear old sigs that no longer have a matching tech
+  Object.keys(safetySigs).forEach(name => {
+    if(!techNames.includes(name)) delete safetySigs[name];
+  });
+  
+  techNames.forEach((name, idx) => {
+    // Preserve existing signature state
+    if(!safetySigs[name]) safetySigs[name] = {signed:false, hasDrawing:false};
+    const sig = safetySigs[name];
+    const canvasId = 'safeSigCanvas_' + idx;
+    
+    const card = document.createElement('div');
+    card.className = 'safety-sig-card' + (sig.signed ? ' signed' : '');
+    card.id = 'safeSigCard_' + idx;
+    card.innerHTML = '<div class="safety-sig-name">✍️ ' + name + '</div>' +
+      '<div class="safety-sig-canvas-wrap' + (sig.hasDrawing ? ' has-sig' : '') + '" id="safeSigWrap_' + idx + '">' +
+      '<canvas id="' + canvasId + '"></canvas>' +
+      '<div class="safety-sig-placeholder" id="safeSigPh_' + idx + '"' + (sig.hasDrawing ? ' style="display:none"' : '') + '>Sign here with your finger</div>' +
+      '</div>' +
+      '<div class="safety-sig-actions">' +
+      '<button class="safety-sig-btn' + (sig.signed ? ' signed-btn' : '') + '" id="safeSigBtn_' + idx + '" onclick="confirmSafetySig(' + idx + ')">' + (sig.signed ? '✓ SIGNED' : 'TAP TO CONFIRM SIGNATURE') + '</button>' +
+      '<button class="safety-sig-btn clear-btn" onclick="clearSafetySig(' + idx + ')">Clear</button>' +
+      '</div>';
+    list.appendChild(card);
+    
+    // Setup canvas
+    setTimeout(() => initSafetySigCanvas(idx, name), 50);
+  });
+  
+  checkAllSafetySigned();
+}
+
+function initSafetySigCanvas(idx, name){
+  const canvas = document.getElementById('safeSigCanvas_' + idx);
+  if(!canvas) return;
+  const wrap = canvas.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  canvas.width = rect.width * 2;
+  canvas.height = rect.height * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.strokeStyle = '#1B3A5C';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+  
+  function getPos(e){
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return {x: t.clientX - r.left, y: t.clientY - r.top};
+  }
+  
+  function startDraw(e){
+    e.preventDefault();
+    drawing = true;
+    const p = getPos(e);
+    lastX = p.x; lastY = p.y;
+    safetySigs[name].hasDrawing = true;
+    document.getElementById('safeSigPh_' + idx).style.display = 'none';
+    document.getElementById('safeSigWrap_' + idx).classList.add('has-sig');
+  }
+  function draw(e){
+    if(!drawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastX = p.x; lastY = p.y;
+  }
+  function endDraw(){drawing = false;}
+  
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+  canvas.addEventListener('touchstart', startDraw, {passive:false});
+  canvas.addEventListener('touchmove', draw, {passive:false});
+  canvas.addEventListener('touchend', endDraw);
+}
+
+function confirmSafetySig(idx){
+  const name = techNames[idx];
+  if(!safetySigs[name] || !safetySigs[name].hasDrawing){
+    alert('Please sign above before confirming.');
+    return;
+  }
+  safetySigs[name].signed = true;
+  document.getElementById('safeSigBtn_' + idx).textContent = '✓ SIGNED';
+  document.getElementById('safeSigBtn_' + idx).classList.add('signed-btn');
+  document.getElementById('safeSigCard_' + idx).classList.add('signed');
+  checkAllSafetySigned();
+}
+
+function clearSafetySig(idx){
+  const name = techNames[idx];
+  safetySigs[name] = {signed:false, hasDrawing:false};
+  const canvas = document.getElementById('safeSigCanvas_' + idx);
+  if(canvas){
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  document.getElementById('safeSigPh_' + idx).style.display = 'flex';
+  document.getElementById('safeSigWrap_' + idx).classList.remove('has-sig');
+  document.getElementById('safeSigBtn_' + idx).textContent = 'TAP TO CONFIRM SIGNATURE';
+  document.getElementById('safeSigBtn_' + idx).classList.remove('signed-btn');
+  document.getElementById('safeSigCard_' + idx).classList.remove('signed');
+  // Re-init canvas listeners
+  setTimeout(() => initSafetySigCanvas(idx, name), 50);
+  checkAllSafetySigned();
+}
+
+function checkAllSafetySigned(){
+  const btn = document.getElementById('safetyContinueBtn');
+  if(techNames.length === 0){btn.disabled = true; return;}
+  const allSigned = techNames.every(name => safetySigs[name] && safetySigs[name].signed);
+  btn.disabled = !allSigned;
+  if(allSigned){
+    btn.textContent = '✓ All Signed — Continue to PM';
+  } else {
+    const signedCount = techNames.filter(name => safetySigs[name] && safetySigs[name].signed).length;
+    btn.textContent = signedCount + '/' + techNames.length + ' Signed — All must sign to continue';
+  }
+}
 
 // ═══ TECH NAMES + AUTO SIGNATURE ═══
 const techNames=[];
-function addTechName(n){const c=n.trim();if(!c||techNames.includes(c))return;techNames.push(c);renderTechTags();updateAutoSignature()}
-function removeTechName(i){techNames.splice(i,1);renderTechTags();updateAutoSignature()}
+function addTechName(n){const c=n.trim();if(!c||techNames.includes(c))return;techNames.push(c);renderTechTags();updateAutoSignature();if(ppeAcknowledged)buildSafetySignatures()}
+function removeTechName(i){techNames.splice(i,1);renderTechTags();updateAutoSignature();if(ppeAcknowledged)buildSafetySignatures()}
 function renderTechTags(){const w=document.getElementById('techWrap');w.querySelectorAll('.tech-tag').forEach(t=>t.remove());const inp=document.getElementById('techInput');techNames.forEach((n,i)=>{const t=document.createElement('span');t.className='tech-tag';t.innerHTML=n+' <button class="remove-tag" onclick="removeTechName('+i+')">✕</button>';w.insertBefore(t,inp)});inp.placeholder=techNames.length?'Add another…':'Type name, press Enter to add…'}
 function handleTechKey(e){const inp=e.target;if(e.key==='Enter'||e.key===','){e.preventDefault();const v=inp.value.replace(/,/g,'').trim();if(v){addTechName(v);inp.value=''}}if(e.key==='Backspace'&&!inp.value&&techNames.length>0)removeTechName(techNames.length-1)}
 function handleTechBlur(){const inp=document.getElementById('techInput');const v=inp.value.trim();if(v){addTechName(v);inp.value=''}document.getElementById('techWrap').classList.remove('focused')}
