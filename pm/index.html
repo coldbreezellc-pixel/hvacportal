@@ -951,143 +951,118 @@ let subject=equipList+' - '+(selectedFreq==='Repair'?'Repair':selectedFreq+' PM'
 if(followupYes) subject='⚠️ FOLLOW-UP REQUIRED — '+subject;
 
 const overlay=document.getElementById('loadingOverlay'),lt=document.getElementById('loadingText');
-overlay.classList.add('show');lt.textContent='Generating PDF…';
+overlay.classList.add('show');lt.textContent='Preparing report…';
 try{
 document.querySelector('.bottom-bar').style.display='none';
-// Hide draft banner and history panel for clean capture
-const draftBanner = document.getElementById('draftBanner'); if(draftBanner) draftBanner.style.display='none';
-const histPanel = document.getElementById('historyPanel'); if(histPanel) histPanel.style.display='none';
-const histBtn = document.getElementById('historyToggleBtn'); if(histBtn) histBtn.style.display='none';
-const backLink = histBtn?.parentElement?.querySelector('a'); if(backLink) backLink.style.display='none';
 
-// Convert all images to base64 data URLs to avoid cross-origin taint
-lt.textContent='Preparing images…';
-const allImgs = document.querySelectorAll('#formContent img');
-for (const img of allImgs) {
-  if (img.src && !img.src.startsWith('data:')) {
-    try {
-      const c = document.createElement('canvas');
-      c.width = img.naturalWidth || img.width;
-      c.height = img.naturalHeight || img.height;
-      c.getContext('2d').drawImage(img, 0, 0);
-      img.src = c.toDataURL('image/jpeg', 0.85);
-    } catch(e) { /* skip if tainted */ }
-  }
-}
+// Gather all checklist data
+const checklistData = [];
+document.querySelectorAll('.pm-checklist').forEach(block => {
+  const header = block.querySelector('.pm-checklist-header')?.textContent || '';
+  const tasks = [];
+  block.querySelectorAll('.pm-task-row').forEach(row => {
+    const check = row.querySelector('.pm-task-check');
+    const text = row.querySelector('.pm-task-text');
+    tasks.push({ text: text?.textContent || '', done: check?.classList.contains('checked') || false });
+  });
+  const findings = block.querySelector('textarea')?.value || '';
+  checklistData.push({ header, tasks, findings });
+});
 
-// Convert all signature canvases to images for capture
-const sigCanvases = document.querySelectorAll('#formContent canvas');
-for (const sc of sigCanvases) {
-  try {
-    const dataUrl = sc.toDataURL('image/png');
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    img.style.width = sc.style.width || '100%';
-    img.style.height = sc.style.height || '100%';
-    img.style.display = 'block';
-    sc.parentElement.insertBefore(img, sc);
-    sc._hidden = true;
-    sc.style.display = 'none';
-  } catch(e) { /* skip */ }
-}
+// Gather safety checklist status
+const safetyData = [];
+document.querySelectorAll('.safety-table').forEach(table => {
+  const rows = [];
+  table.querySelectorAll('tr').forEach((tr, i) => {
+    if(i === 0) return;
+    const cells = tr.querySelectorAll('td');
+    const task = cells[0]?.textContent || '';
+    const doneEl = tr.querySelector('.done-check');
+    const naEl = tr.querySelector('.na-check');
+    const done = doneEl?.classList.contains('active') || false;
+    const na = naEl?.classList.contains('active') || false;
+    const condSelect = tr.querySelector('.condition-select');
+    const condition = condSelect?.value || '';
+    rows.push({ task, done, na, condition });
+  });
+  if(rows.length) safetyData.push(rows);
+});
 
-overlay.style.display='none';
-const content=document.getElementById('formContent');
-lt.textContent='Capturing form…';overlay.style.display='flex';
+// Gather LOTO photos
+const lotoAttachments = [];
+lotoPhotos.filter(p => p.dataUrl).forEach((p, i) => {
+  const b64 = p.dataUrl.split(',')[1];
+  if(b64) lotoAttachments.push({ filename: 'LOTO_' + (i+1) + '_' + (p.caption||'photo').replace(/[^a-zA-Z0-9]/g,'_') + '.jpg', content: b64, contentType: 'image/jpeg' });
+});
 
-// Use scale 1.5 instead of 2 to avoid canvas size limits on mobile
-const scale = Math.min(1.5, 16000 / content.scrollHeight);
-const canvas=await html2canvas(content,{scale:scale,useCORS:false,allowTaint:false,backgroundColor:'#F3F6FA',scrollY:-window.scrollY,windowHeight:content.scrollHeight,height:content.scrollHeight,logging:false});
-
-// Restore hidden canvases
-sigCanvases.forEach(sc => {
-  if (sc._hidden) {
-    sc.style.display = '';
-    const prevImg = sc.previousElementSibling;
-    if (prevImg && prevImg.tagName === 'IMG') prevImg.remove();
-    delete sc._hidden;
+// Gather regular photos
+document.querySelectorAll('.photo-slot.has-photo img').forEach((img, i) => {
+  if(img.src && img.src.startsWith('data:')) {
+    const b64 = img.src.split(',')[1];
+    const caption = img.closest('.photo-slot')?.parentElement?.querySelector('.photo-caption input')?.value || '';
+    if(b64) lotoAttachments.push({ filename: 'Photo_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg' });
   }
 });
 
-lt.textContent='Building PDF…';
-const imgData=canvas.toDataURL('image/jpeg',0.85),pW=210,pH=297,iW=pW,iH=(canvas.height*pW)/canvas.width;
-const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');
-let hL=iH,pos=0,pg=0;while(hL>0){if(pg>0)pdf.addPage();pdf.addImage(imgData,'JPEG',0,pos,iW,iH);hL-=pH;pos-=pH;pg++}
-const safeFirst=equipParts[0].replace(/[^a-zA-Z0-9]/g,'_'),filename='PM_'+safeFirst+'_'+selectedFreq+'_'+(dateVal||'no-date')+'.pdf';
-
-// Get PDF as base64 for email attachment
-const pdfBase64 = pdf.output('datauristring').split(',')[1];
 lt.textContent='Sending email…';
 
-// Restore hidden elements
-if(histBtn) histBtn.style.display='';
-if(backLink) backLink.style.display='';
-
-// Build email body HTML
+// Build email
 let followUpBanner = '';
 if(followupYes){
-  followUpBanner = '<div style="background:#FEF2F2;border:2px solid #DC2626;border-radius:10px;padding:16px;margin:16px 0;text-align:center;">' +
-    '<div style="font-size:16px;font-weight:800;color:#DC2626;">⚠️ FOLLOW-UP REQUIRED</div>' +
-    '<div style="color:#7F1D1D;font-size:14px;margin-top:8px;">' + (summaryNotes||'').replace(/\n/g,'<br>') + '</div></div>';
+  followUpBanner = '<div style="background:#FEF2F2;border:2px solid #DC2626;border-radius:10px;padding:16px;margin:16px 0;text-align:center;"><div style="font-size:16px;font-weight:800;color:#DC2626;">⚠️ FOLLOW-UP REQUIRED</div><div style="color:#7F1D1D;font-size:14px;margin-top:8px;">' + (summaryNotes||'').replace(/\n/g,'<br>') + '</div></div>';
 }
 
-const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
-  '<div style="background:#1B3A5C;color:#fff;padding:16px 20px;border-radius:10px 10px 0 0;">' +
-  '<h2 style="margin:0;font-size:18px;">📋 PM Work Order Report</h2>' +
-  '<p style="margin:4px 0 0;font-size:12px;opacity:0.7;">HVAC Engineering — Local 68</p></div>' +
-  '<div style="border:1px solid #e2e8f0;border-top:none;padding:20px;border-radius:0 0 10px 10px;">' +
-  followUpBanner +
-  '<table style="width:100%;border-collapse:collapse;font-size:14px;">' +
-  '<tr><td style="padding:6px 0;color:#64748b;width:140px;">Facility:</td><td style="padding:6px 0;font-weight:600;">' + facility + '</td></tr>' +
-  '<tr><td style="padding:6px 0;color:#64748b;">Equipment:</td><td style="padding:6px 0;font-weight:600;">' + equipList + '</td></tr>' +
-  '<tr><td style="padding:6px 0;color:#64748b;">Service:</td><td style="padding:6px 0;font-weight:600;">' + selectedFreq + '</td></tr>' +
-  '<tr><td style="padding:6px 0;color:#64748b;">Technician(s):</td><td style="padding:6px 0;font-weight:600;">' + tech + '</td></tr>' +
-  '<tr><td style="padding:6px 0;color:#64748b;">Date:</td><td style="padding:6px 0;font-weight:600;">' + dateFormatted + '</td></tr>' +
-  (tasksCompleted ? '<tr><td style="padding:6px 0;color:#64748b;">Tasks Completed:</td><td style="padding:6px 0;font-weight:600;">' + tasksCompleted + '</td></tr>' : '') +
-  '<tr><td style="padding:6px 0;color:#64748b;">Follow-up:</td><td style="padding:6px 0;font-weight:700;color:' + (followupYes ? '#DC2626' : '#16a34a') + ';">' + (followupYes ? 'YES' : 'No') + '</td></tr>' +
-  '</table>' +
-  (generalComments ? '<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Comments / Findings</div><div style="font-size:14px;color:#1e293b;">' + generalComments.replace(/\n/g,'<br>') + '</div></div>' : '') +
-  '<p style="color:#94a3b8;font-size:11px;margin-top:20px;">PDF report attached. Sent from HVAC Portal at ' + new Date().toLocaleString('en-US',{timeZone:'America/New_York'}) + '</p>' +
-  '</div></div>';
+let checklistHtml = '';
+checklistData.forEach(cl => {
+  checklistHtml += '<div style="margin:16px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;"><div style="background:#1B3A5C;color:#fff;padding:8px 12px;font-size:13px;font-weight:700;">' + cl.header + '</div><div style="padding:8px 12px;">';
+  cl.tasks.forEach(t => { checklistHtml += '<div style="padding:3px 0;font-size:13px;color:#334155;">' + (t.done?'✅':'⬜') + ' ' + t.text + '</div>'; });
+  if(cl.findings) checklistHtml += '<div style="margin-top:8px;padding:8px;background:#FFF8E1;border-radius:6px;border:1px solid #FFE082;font-size:13px;color:#92400E;"><b>Findings:</b> ' + cl.findings.replace(/\n/g,'<br>') + '</div>';
+  checklistHtml += '</div></div>';
+});
 
-// Send email via server with PDF attached
+let safetyHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">Safety Checklist</div>';
+const safetyLabels = ['PPE Condition','Pre-Job Safety','Electrical Safety','Gas & Chemical Safety','Post-Job'];
+safetyData.forEach((section, si) => {
+  safetyHtml += '<div style="font-size:12px;font-weight:700;color:#64748b;margin:8px 0 4px;text-transform:uppercase;">' + (safetyLabels[si]||'Section') + '</div>';
+  section.forEach(row => {
+    const icon = row.done ? '✅' : (row.na ? '➖' : '⬜');
+    const extra = row.condition ? ' <span style="color:#64748b;">(' + row.condition + ')</span>' : '';
+    safetyHtml += '<div style="padding:2px 0;font-size:12px;">' + icon + ' ' + row.task + extra + '</div>';
+  });
+});
+safetyHtml += '</div>';
+
+let sigHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">Technician Signatures</div>';
+techNames.forEach(name => { sigHtml += '<span style="display:inline-block;margin:4px 8px 4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;">✓ ' + name + '</span>'; });
+sigHtml += '</div>';
+
+const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;"><div style="background:#1B3A5C;color:#fff;padding:16px 20px;border-radius:10px 10px 0 0;"><h2 style="margin:0;font-size:18px;">📋 PM Work Order Report</h2><p style="margin:4px 0 0;font-size:12px;opacity:0.7;">HVAC Engineering — Local 68</p></div><div style="border:1px solid #e2e8f0;border-top:none;padding:20px;border-radius:0 0 10px 10px;">' +
+  followUpBanner +
+  '<table style="width:100%;border-collapse:collapse;font-size:14px;"><tr><td style="padding:6px 0;color:#64748b;width:140px;">Facility:</td><td style="padding:6px 0;font-weight:600;">' + facility + '</td></tr><tr><td style="padding:6px 0;color:#64748b;">Equipment:</td><td style="padding:6px 0;font-weight:600;">' + equipList + '</td></tr><tr><td style="padding:6px 0;color:#64748b;">Service:</td><td style="padding:6px 0;font-weight:600;">' + selectedFreq + '</td></tr><tr><td style="padding:6px 0;color:#64748b;">Technician(s):</td><td style="padding:6px 0;font-weight:600;">' + tech + '</td></tr><tr><td style="padding:6px 0;color:#64748b;">Date:</td><td style="padding:6px 0;font-weight:600;">' + dateFormatted + '</td></tr>' +
+  (tasksCompleted ? '<tr><td style="padding:6px 0;color:#64748b;">Tasks Completed:</td><td style="padding:6px 0;font-weight:600;">' + tasksCompleted + '</td></tr>' : '') +
+  '<tr><td style="padding:6px 0;color:#64748b;">Follow-up:</td><td style="padding:6px 0;font-weight:700;color:' + (followupYes?'#DC2626':'#16a34a') + ';">' + (followupYes?'YES':'No') + '</td></tr></table>' +
+  safetyHtml + checklistHtml +
+  (generalComments ? '<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Comments / Findings</div><div style="font-size:14px;color:#1e293b;">' + generalComments.replace(/\n/g,'<br>') + '</div></div>' : '') +
+  sigHtml +
+  '<p style="color:#94a3b8;font-size:11px;margin-top:20px;">Sent from HVAC Portal at ' + new Date().toLocaleString('en-US',{timeZone:'America/New_York'}) + '</p></div></div>';
+
 try {
   const emailRes = await fetch('/api/send-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      to: ['mateusz.targosz@versantmedia.com', 'sean.fanning@versantmedia.com'],
-      subject: subject,
-      html: emailHtml,
-      attachments: [{ filename: filename, content: pdfBase64, contentType: 'application/pdf' }]
-    })
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to: ['mateusz.targosz@versantmedia.com','sean.fanning@versantmedia.com'], subject: subject, html: emailHtml, attachments: lotoAttachments })
   });
   const emailResult = await emailRes.json();
-  if (emailResult.success) {
-    lt.textContent = '✓ Email sent!';
-  } else {
-    lt.textContent = 'Email failed — PDF saved locally';
-    console.error('Email error:', emailResult.error);
-  }
-} catch(e) {
-  lt.textContent = 'Email failed — PDF saved locally';
-  console.error('Email send error:', e);
-}
+  if (!emailResult.success) { alert('Email failed: ' + (emailResult.error||'Unknown error')); }
+} catch(e) { console.error('Email error:', e); alert('Could not send email. Check your connection.'); }
 
-// Save to PM history
-savePMToHistory({
-  technician: tech, facility: facility, equipment: equipList, frequency: selectedFreq,
-  date: dateVal, followUp: followupYes, followUpNotes: summaryNotes,
-  tasksCompleted: tasksCompleted, generalComments: generalComments,
-  completedAt: new Date().toISOString(), completedBy: _currentUser.displayName || tech
-});
+savePMToHistory({ technician: tech, facility: facility, equipment: equipList, frequency: selectedFreq, date: dateVal, followUp: followupYes, followUpNotes: summaryNotes, tasksCompleted: tasksCompleted, generalComments: generalComments, completedAt: new Date().toISOString(), completedBy: _currentUser.displayName || tech });
 clearDraft();
-// Backup to server
-try{lt.textContent='Saving backup…';await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes})})}catch(e){console.log('Backup skipped:',e)}
-await new Promise(r=>setTimeout(r,1500));
+try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes})})}catch(e){}
+await new Promise(r=>setTimeout(r,1000));
+document.querySelector('.bottom-bar').style.display='flex';
 overlay.classList.remove('show');
 alert('✓ PM Report emailed successfully!');
-}catch(err){console.error('PDF Error:',err);alert('Error generating PDF: '+err.message+'\n\nTry using Print instead.');document.querySelector('.bottom-bar').style.display='flex';overlay.classList.remove('show')}
+}catch(err){console.error('Error:',err);alert('Error: '+err.message);document.querySelector('.bottom-bar').style.display='flex';overlay.classList.remove('show')}
 }
 
 // ═══ DRAFT + HISTORY UI ═══
