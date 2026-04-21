@@ -1351,7 +1351,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <button onClick={goBack} style={{ background: "none", border: "none", color: "#0d9488", fontSize: 24, cursor: "pointer", fontWeight: 700, padding: "4px 0", lineHeight: 1 }}>←</button>
         <h2 style={{ ...S.pageTitle, margin: 0, flex: 1 }}>{selectedGroup}</h2>
-        <button style={{ ...S.btnPrimary, width: "auto", padding: "8px 16px" }} onClick={() => { setEditing(null); setShowForm(true); }}>+ Add</button>
+        {isAdmin && <button style={{ ...S.btnPrimary, width: "auto", padding: "8px 16px" }} onClick={() => { setEditing(null); setShowForm(true); }}>+ Add</button>}
       </div>
 
       <input style={S.input} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search items, filter size, or unit…" />
@@ -1491,7 +1491,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                                   {i.notes && <p style={S.detailLine}><b>Notes:</b> {i.notes}</p>}
                                   <p style={S.detailLine}><b>Last updated:</b> {new Date(i.lastUpdated).toLocaleDateString()} {i.updatedBy ? `by ${i.updatedBy}` : ""}</p>
                                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                                    <button style={S.btnSecondary} onClick={() => setInlineEdit({ id: i.id, name: i.name, notes: i.notes || "" })}>✏️ Edit</button>
+                                    {isAdmin && <button style={S.btnSecondary} onClick={() => setInlineEdit({ id: i.id, name: i.name, notes: i.notes || "" })}>✏️ Edit</button>}
                                     {isAdmin && <button style={S.btnSecondary} onClick={() => { setEditing(i); setShowForm(true); }}>Full Edit</button>}
                                     {isAdmin && confirmDelItem !== i.id && <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }} onClick={() => setConfirmDelItem(i.id)}>Delete</button>}
                                     {isAdmin && confirmDelItem === i.id && (
@@ -1628,6 +1628,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                                 </div>
                               )}
                               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                {isAdmin && (
                                 <label style={{ ...S.btnSecondary, display: "inline-flex", alignItems: "center", gap: 4, margin: 0, cursor: "pointer" }}>
                                   📷 {i.photo ? "Change" : "Add"} Photo
                                   <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
@@ -1636,7 +1637,6 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                                       if (!file) return;
                                       const reader = new FileReader();
                                       reader.onload = ev => {
-                                        // Resize to max 200px to keep storage small
                                         const img = new Image();
                                         img.onload = () => {
                                           const canvas = document.createElement("canvas");
@@ -1653,13 +1653,14 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                                       reader.readAsDataURL(file);
                                     }} />
                                 </label>
+                                )}
                                 {i.partNumber && (
                                   <a href={"https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(i.partNumber + " " + (i.name || ""))} target="_blank" rel="noopener"
                                     style={{ ...S.btnSecondary, display: "inline-flex", alignItems: "center", gap: 4, textDecoration: "none", color: "#0d9488" }}>
                                     🔍 Google #{i.partNumber}
                                   </a>
                                 )}
-                                {i.photo && (
+                                {isAdmin && i.photo && (
                                   <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }}
                                     onClick={() => onUpdate(i.id, { photo: null })}>✕ Remove</button>
                                 )}
@@ -1672,7 +1673,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
                           {i.notes && <p style={S.detailLine}><b>Notes:</b> {i.notes}</p>}
                           <p style={S.detailLine}><b>Last updated:</b> {new Date(i.lastUpdated).toLocaleDateString()} {i.updatedBy ? `by ${i.updatedBy}` : ""}</p>
                           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                            <button style={S.btnSecondary} onClick={() => setInlineEdit({ id: i.id, name: i.name, notes: i.notes || "" })}>✏️ Edit</button>
+                            {isAdmin && <button style={S.btnSecondary} onClick={() => setInlineEdit({ id: i.id, name: i.name, notes: i.notes || "" })}>✏️ Edit</button>}
                             {isAdmin && <button style={S.btnSecondary} onClick={() => { setEditing(i); setShowForm(true); }}>Full Edit</button>}
                             {isAdmin && confirmDelItem !== i.id && <button style={{ ...S.btnSecondary, color: "#ef4444", borderColor: "#fca5a5" }} onClick={() => setConfirmDelItem(i.id)}>Delete</button>}
                             {isAdmin && confirmDelItem === i.id && (
