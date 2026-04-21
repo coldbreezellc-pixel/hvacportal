@@ -586,7 +586,7 @@ addLotoPhoto();
 
 let ppeAcknowledged=false,safetyCompleted=false;
 function acknowledgePPE(){ppeAcknowledged=true;document.getElementById('ppeBanner').classList.add('acknowledged');const btn=document.getElementById('ppeAckBtn');btn.classList.add('acknowledged');btn.textContent='PPE Acknowledged';const now=new Date();document.getElementById('ppeTimestamp').textContent='Acknowledged at '+now.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true})+(techNames.length?' by '+techNames.join(', '):'');document.getElementById('safetyGate').classList.add('unlocked');buildSafetySignatures();setTimeout(()=>document.getElementById('safetySection').scrollIntoView({behavior:'smooth',block:'start'}),300)}
-function completeSafety(){safetyCompleted=true;document.getElementById('gatedContent').classList.add('unlocked');document.getElementById('gatedSections').classList.add('unlocked');const btn=document.getElementById('safetyContinueBtn');btn.textContent='✓ Safety Checklist Complete';btn.disabled=true;btn.style.opacity='.6';setTimeout(()=>document.getElementById('gatedContent').scrollIntoView({behavior:'smooth',block:'start'}),300)}
+function completeSafety(){safetyCompleted=true;document.getElementById('gatedContent').classList.add('unlocked');document.getElementById('gatedSections').classList.add('unlocked');const btn=document.getElementById('safetyContinueBtn');btn.textContent='✓ Safety Checklist Complete';btn.disabled=true;btn.style.opacity='.6';setTimeout(()=>{document.getElementById('gatedContent').scrollIntoView({behavior:'smooth',block:'start'});buildCompletionSignatures()},300)}
 
 // ═══ SAFETY SIGNATURES ═══
 const safetySigs = {}; // {techName: {signed: bool, canvas, ctx, drawing, points}}
@@ -642,12 +642,16 @@ function initSafetySigCanvas(idx, name){
   if(!canvas) return;
   const wrap = canvas.parentElement;
   const rect = wrap.getBoundingClientRect();
+  if(rect.width < 10 || rect.height < 10) {
+    setTimeout(() => initSafetySigCanvas(idx, name), 500);
+    return;
+  }
   canvas.width = rect.width * 2;
   canvas.height = rect.height * 2;
   const ctx = canvas.getContext('2d');
   ctx.scale(2, 2);
   ctx.strokeStyle = '#1B3A5C';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   
@@ -787,7 +791,7 @@ function buildCompletionSignatures(){
         '<button class="comp-sig-clear" onclick="clearCompSig(' + idx + ')">Clear</button>' +
       '</div>';
     list.appendChild(card);
-    setTimeout(() => initCompSigCanvas(idx, name), 50);
+    setTimeout(() => initCompSigCanvas(idx, name), 300);
   });
 }
 
@@ -796,12 +800,17 @@ function initCompSigCanvas(idx, name){
   if(!canvas) return;
   const wrap = canvas.parentElement;
   const rect = wrap.getBoundingClientRect();
+  // If section is hidden, rect will be 0 — retry later
+  if(rect.width < 10 || rect.height < 10) {
+    setTimeout(() => initCompSigCanvas(idx, name), 500);
+    return;
+  }
   canvas.width = rect.width * 2;
   canvas.height = rect.height * 2;
   const ctx = canvas.getContext('2d');
   ctx.scale(2, 2);
   ctx.strokeStyle = '#1B3A5C';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   
