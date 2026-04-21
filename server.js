@@ -19,11 +19,15 @@ async function sendEmail({ to, subject, html, attachments }) {
     html
   };
   if (attachments && attachments.length) {
-    body.attachments = attachments.map(a => ({
-      filename: a.filename,
-      content: a.content, // base64 string
-      content_type: a.contentType || 'application/octet-stream'
-    }));
+    body.attachments = attachments.map(a => {
+      const att = {
+        filename: a.filename,
+        content: a.content,
+        content_type: a.contentType || 'application/octet-stream'
+      };
+      if (a.cid) att.content_id = a.cid;
+      return att;
+    });
   }
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
