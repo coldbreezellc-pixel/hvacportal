@@ -136,13 +136,23 @@
   .photo-caption{margin-top:8px;width:100%}
   .photo-caption input{font-size:12px;padding:6px 8px}
 
-  /* Signature area */
-  .sig-block{margin-bottom:16px}
-  .sig-canvas-wrap{width:100%;height:100px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#FAFBFD;position:relative;overflow:hidden}
-  .sig-canvas-wrap canvas{width:100%;height:100%}
-  .sig-canvas-wrap .sig-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-light);font-size:13px;pointer-events:none}
-  .sig-auto-label{font-size:11px;color:var(--success);margin-top:6px;font-weight:500;display:none}
-  .sig-auto-label.show{display:block}
+  /* Completion Signature area */
+  .comp-sig-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;background:#FAFBFD;transition:all .3s}
+  .comp-sig-card.signed{border-color:var(--success);background:#E8F5E9}
+  .comp-sig-card .comp-sig-name{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .comp-sig-card .comp-sig-name .sig-status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.5px}
+  .comp-sig-card .sig-status.pending{background:#FEF3C7;color:#D97706}
+  .comp-sig-card .sig-status.done{background:#D1FAE5;color:var(--success)}
+  .comp-sig-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .comp-sig-canvas-wrap{width:100%;height:90px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);background:#fff;position:relative;overflow:hidden;touch-action:none;margin-bottom:10px}
+  .comp-sig-canvas-wrap.has-sig{border-style:solid;border-color:var(--success)}
+  .comp-sig-canvas-wrap canvas{width:100%;height:100%;display:block}
+  .comp-sig-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-light);font-size:13px;pointer-events:none}
+  .comp-sig-actions{display:flex;gap:8px}
+  .comp-sig-confirm{flex:1;padding:11px;border:2px solid var(--accent);border-radius:var(--radius-sm);background:#fff;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+  .comp-sig-confirm:active{transform:scale(.97)}
+  .comp-sig-confirm.confirmed{background:var(--success);border-color:var(--success);color:#fff;pointer-events:none}
+  .comp-sig-clear{padding:11px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#fff;color:var(--text-light);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
 
   .check-row{display:flex;align-items:center;gap:16px;margin:8px 0}
   .check-row label{display:flex;align-items:center;gap:6px;text-transform:none;font-size:14px;font-weight:500;color:var(--text);cursor:pointer;margin-bottom:0}
@@ -221,22 +231,13 @@
   <div class="section"><div class="section-header"><span class="icon">📸</span> Photo Documentation</div><div class="section-body"><p style="font-size:12px;color:var(--text-light);margin-bottom:12px;">Tap a slot to take a photo or choose from your gallery.</p><div class="photo-grid" id="photoGrid"></div><button class="btn btn-secondary" style="margin-top:12px;flex:none;width:100%;" onclick="addPhotoSlot()">+ Add More Photo Slots</button></div></div>
   <div class="section"><div class="section-header"><span class="icon">📊</span> Completion Summary</div><div class="section-body"><div class="field-group"><label>Tasks Completed</label><input type="text" id="tasks_completed" placeholder="e.g. 8/8"></div><div class="field-group"><label>Follow-up Required?</label><div class="check-row"><label><input type="radio" name="followup" value="yes"> Yes</label><label><input type="radio" name="followup" value="no" checked> No</label></div></div><div class="field-group"><label>Summary Notes</label><textarea id="summary_notes" placeholder="Final summary or follow-up details…" rows="3"></textarea></div></div></div>
 
-  <!-- Signature section with auto-generated signature -->
+  <!-- Per-technician completion signatures -->
   <div class="section">
-    <div class="section-header"><span class="icon">✍️</span> Technician Signature</div>
+    <div class="section-header"><span class="icon">✍️</span> Technician Signatures</div>
     <div class="section-body">
-      <div class="sig-block">
-        <label>Signature (auto-generated from technician name)</label>
-        <div class="sig-canvas-wrap">
-          <canvas id="sigTech"></canvas>
-          <div class="sig-placeholder" id="sigPlaceholder">Add technician name(s) above to generate signature</div>
-        </div>
-        <div class="sig-auto-label" id="sigAutoLabel">✓ Signature auto-generated</div>
-        <div class="field-group field-row" style="margin-top:10px;">
-          <div><label>Print Name</label><input type="text" id="tech_print_name" readonly></div>
-          <div><label>Date</label><input type="date" id="tech_sig_date"></div>
-        </div>
-      </div>
+      <p style="font-size:12px;color:var(--text-mid);margin-bottom:12px;">Each technician must sign below to confirm the work has been completed.</p>
+      <div id="completionSignaturesList"></div>
+      <div id="noTechSigMsg" style="text-align:center;padding:20px;color:var(--text-light);font-size:13px;">Add technician name(s) above to generate signature fields</div>
     </div>
   </div>
   </div>
@@ -412,68 +413,131 @@ function checkAllSafetySigned(){
 
 // ═══ TECH NAMES + AUTO SIGNATURE ═══
 const techNames=[];
-function addTechName(n){const c=n.trim();if(!c||techNames.includes(c))return;techNames.push(c);renderTechTags();updateAutoSignature();if(ppeAcknowledged)buildSafetySignatures()}
-function removeTechName(i){techNames.splice(i,1);renderTechTags();updateAutoSignature();if(ppeAcknowledged)buildSafetySignatures()}
+function addTechName(n){const c=n.trim();if(!c||techNames.includes(c))return;techNames.push(c);renderTechTags();buildCompletionSignatures();if(ppeAcknowledged)buildSafetySignatures()}
+function removeTechName(i){techNames.splice(i,1);renderTechTags();buildCompletionSignatures();if(ppeAcknowledged)buildSafetySignatures()}
 function renderTechTags(){const w=document.getElementById('techWrap');w.querySelectorAll('.tech-tag').forEach(t=>t.remove());const inp=document.getElementById('techInput');techNames.forEach((n,i)=>{const t=document.createElement('span');t.className='tech-tag';t.innerHTML=n+' <button class="remove-tag" onclick="removeTechName('+i+')">✕</button>';w.insertBefore(t,inp)});inp.placeholder=techNames.length?'Add another…':'Type name, press Enter to add…'}
 function handleTechKey(e){const inp=e.target;if(e.key==='Enter'||e.key===','){e.preventDefault();const v=inp.value.replace(/,/g,'').trim();if(v){addTechName(v);inp.value=''}}if(e.key==='Backspace'&&!inp.value&&techNames.length>0)removeTechName(techNames.length-1)}
 function handleTechBlur(){const inp=document.getElementById('techInput');const v=inp.value.trim();if(v){addTechName(v);inp.value=''}document.getElementById('techWrap').classList.remove('focused')}
 function getTechString(){return techNames.join(', ')}
 
-// ═══ AUTO-GENERATE SIGNATURE ═══
-function updateAutoSignature(){
-  const canvas=document.getElementById('sigTech');
-  const ctx=canvas.getContext('2d');
-  const wrap=canvas.parentElement;
-  const rect=wrap.getBoundingClientRect();
-  canvas.width=rect.width*2;canvas.height=rect.height*2;
-  ctx.scale(2,2);
-  ctx.clearRect(0,0,rect.width,rect.height);
+// ═══ COMPLETION SIGNATURES ═══
+const compSigs = {}; // {name: {signed, hasDrawing}}
 
-  const placeholder=document.getElementById('sigPlaceholder');
-  const autoLabel=document.getElementById('sigAutoLabel');
-  const printName=document.getElementById('tech_print_name');
-
-  if(techNames.length===0){
-    placeholder.style.display='flex';
-    autoLabel.classList.remove('show');
-    printName.value='';
+function buildCompletionSignatures(){
+  const list = document.getElementById('completionSignaturesList');
+  const noMsg = document.getElementById('noTechSigMsg');
+  if(!list) return;
+  
+  if(techNames.length === 0){
+    list.innerHTML = '';
+    noMsg.style.display = 'block';
     return;
   }
+  noMsg.style.display = 'none';
+  list.innerHTML = '';
+  
+  // Clean old entries
+  Object.keys(compSigs).forEach(n => { if(!techNames.includes(n)) delete compSigs[n]; });
+  
+  const today = new Date();
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  
+  techNames.forEach((name, idx) => {
+    if(!compSigs[name]) compSigs[name] = {signed:false, hasDrawing:false};
+    const sig = compSigs[name];
+    const card = document.createElement('div');
+    card.className = 'comp-sig-card' + (sig.signed ? ' signed' : '');
+    card.id = 'compSigCard_' + idx;
+    card.innerHTML = 
+      '<div class="comp-sig-name">' + name + ' <span class="sig-status ' + (sig.signed ? 'done' : 'pending') + '" id="compSigStatus_' + idx + '">' + (sig.signed ? '✓ Signed' : 'Pending') + '</span></div>' +
+      '<div class="comp-sig-fields">' +
+        '<div><label>Print Name</label><input type="text" value="' + name + '" readonly style="background:#f0f0f0;"></div>' +
+        '<div><label>Date</label><input type="date" value="' + todayStr + '" readonly style="background:#f0f0f0;"></div>' +
+      '</div>' +
+      '<label>Signature</label>' +
+      '<div class="comp-sig-canvas-wrap' + (sig.hasDrawing ? ' has-sig' : '') + '" id="compSigWrap_' + idx + '">' +
+        '<canvas id="compSigCanvas_' + idx + '"></canvas>' +
+        '<div class="comp-sig-placeholder" id="compSigPh_' + idx + '"' + (sig.hasDrawing ? ' style="display:none"' : '') + '>✍️ Sign here with your finger</div>' +
+      '</div>' +
+      '<div class="comp-sig-actions">' +
+        '<button class="comp-sig-confirm' + (sig.signed ? ' confirmed' : '') + '" id="compSigBtn_' + idx + '" onclick="confirmCompSig(' + idx + ')">' + (sig.signed ? '✓ SIGNED & CONFIRMED' : 'Confirm Signature') + '</button>' +
+        '<button class="comp-sig-clear" onclick="clearCompSig(' + idx + ')">Clear</button>' +
+      '</div>';
+    list.appendChild(card);
+    setTimeout(() => initCompSigCanvas(idx, name), 50);
+  });
+}
 
-  placeholder.style.display='none';
-  autoLabel.classList.add('show');
-
-  const sigText=techNames.join(', ');
-  printName.value=sigText;
-
-  // Draw signature line
-  ctx.strokeStyle='#D4DCE8';
-  ctx.lineWidth=1;
-  ctx.beginPath();
-  ctx.moveTo(16,rect.height-20);
-  ctx.lineTo(rect.width-16,rect.height-20);
-  ctx.stroke();
-
-  // Draw cursive signature
-  const maxWidth=rect.width-40;
-  // Start with a large font, scale down if needed
-  let fontSize=36;
-  ctx.font='700 '+fontSize+'px "Dancing Script", cursive';
-  while(ctx.measureText(sigText).width>maxWidth&&fontSize>16){
-    fontSize-=2;
-    ctx.font='700 '+fontSize+'px "Dancing Script", cursive';
+function initCompSigCanvas(idx, name){
+  const canvas = document.getElementById('compSigCanvas_' + idx);
+  if(!canvas) return;
+  const wrap = canvas.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  canvas.width = rect.width * 2;
+  canvas.height = rect.height * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.strokeStyle = '#1B3A5C';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  let drawing = false, lastX = 0, lastY = 0;
+  function getPos(e){
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return {x: t.clientX - r.left, y: t.clientY - r.top};
   }
+  function startDraw(e){
+    e.preventDefault(); drawing = true;
+    const p = getPos(e); lastX = p.x; lastY = p.y;
+    compSigs[name].hasDrawing = true;
+    document.getElementById('compSigPh_' + idx).style.display = 'none';
+    document.getElementById('compSigWrap_' + idx).classList.add('has-sig');
+  }
+  function draw(e){
+    if(!drawing) return; e.preventDefault();
+    const p = getPos(e);
+    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+    lastX = p.x; lastY = p.y;
+  }
+  function endDraw(){ drawing = false; }
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+  canvas.addEventListener('touchstart', startDraw, {passive:false});
+  canvas.addEventListener('touchmove', draw, {passive:false});
+  canvas.addEventListener('touchend', endDraw);
+}
 
-  ctx.fillStyle='#1B3A5C';
-  ctx.textAlign='left';
-  ctx.textBaseline='bottom';
+function confirmCompSig(idx){
+  const name = techNames[idx];
+  if(!compSigs[name] || !compSigs[name].hasDrawing){
+    alert('Please sign above before confirming.');
+    return;
+  }
+  compSigs[name].signed = true;
+  document.getElementById('compSigBtn_' + idx).textContent = '✓ SIGNED & CONFIRMED';
+  document.getElementById('compSigBtn_' + idx).classList.add('confirmed');
+  document.getElementById('compSigCard_' + idx).classList.add('signed');
+  const st = document.getElementById('compSigStatus_' + idx);
+  st.textContent = '✓ Signed'; st.className = 'sig-status done';
+}
 
-  // Slight slant for realism
-  ctx.save();
-  ctx.translate(20,rect.height-24);
-  ctx.rotate(-0.03);
-  ctx.fillText(sigText,0,0);
-  ctx.restore();
+function clearCompSig(idx){
+  const name = techNames[idx];
+  compSigs[name] = {signed:false, hasDrawing:false};
+  const canvas = document.getElementById('compSigCanvas_' + idx);
+  if(canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+  document.getElementById('compSigPh_' + idx).style.display = 'flex';
+  document.getElementById('compSigWrap_' + idx).classList.remove('has-sig');
+  document.getElementById('compSigBtn_' + idx).textContent = 'Confirm Signature';
+  document.getElementById('compSigBtn_' + idx).classList.remove('confirmed');
+  document.getElementById('compSigCard_' + idx).classList.remove('signed');
+  const st = document.getElementById('compSigStatus_' + idx);
+  st.textContent = 'Pending'; st.className = 'sig-status pending';
+  setTimeout(() => initCompSigCanvas(idx, name), 50);
 }
 
 // ═══ EQUIPMENT ═══
@@ -503,7 +567,7 @@ let uid=0;
 function renderPMChecklists(){uid=0;const sec=document.getElementById('pmChecklistSection'),body=document.getElementById('pmChecklistBody');body.innerHTML='';const cts=[...selectedEquip].filter(isCT),pumps=[...selectedEquip].filter(isPump),hasLiebert=[...selectedEquip].some(isLiebert);if(!cts.length&&!pumps.length&&!hasLiebert){sec.style.display='none';return}sec.style.display='';body.appendChild(mkWarn());if(cts.length){const tasks=getCTTasks(selectedFreq);if(Object.keys(tasks).length)cts.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🏗 '+name+' — '+selectedFreq+' PM'));Object.entries(tasks).forEach(([f,ts])=>{b.appendChild(mkFreqLabel(f));ts.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});appendFindings(b,name);body.appendChild(b)})}if(pumps.length){const tasks=getPumpTasks(selectedFreq);pumps.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('pump-header','⚙️ '+name+' — '+selectedFreq+' Paco Pump PM'));Object.entries(tasks).forEach(([f,data])=>{b.appendChild(mkFreqLabel(f));if(data.note)b.appendChild(mkNote(data.note));data.tasks.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});appendFindings(b,name);body.appendChild(b)})}if(hasLiebert&&liebertUnits.length){const tasks=getLiebertTasks(selectedFreq);liebertUnits.forEach((unit,ui)=>{const ul=unit.num?'Liebert Unit #'+unit.num:'Liebert Unit '+(ui+1);const b=mkBlock();b.appendChild(mkHeader('liebert-header','❄️ '+ul+' — '+selectedFreq+' CAC PM'));Object.entries(tasks).forEach(([freq,data])=>{b.appendChild(mkFreqLabel(freq));data.sections.forEach(sec=>{b.appendChild(mkSubLabel(sec.sub));sec.tasks.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)));if(sec.alert)b.appendChild(mkAlert(sec.alert));if(sec.hasHeaterReadings){const r=document.createElement('div');r.className='reading-row';r.innerHTML='<div><label>HTR #1 Amps</label><input type="text" placeholder="—"></div><div><label>HTR #2 Amps</label><input type="text" placeholder="—"></div><div><label>HTR #3 Amps</label><input type="text" placeholder="—"></div>';b.appendChild(r)}if(sec.hasMotorReadings){const r=document.createElement('div');r.className='reading-row';r.innerHTML='<div><label>L#1 Amps</label><input type="text" placeholder="—"></div><div><label>L#2 Amps</label><input type="text" placeholder="—"></div><div><label>L#3 Amps</label><input type="text" placeholder="—"></div>';b.appendChild(r)}})});appendFindings(b,ul);body.appendChild(b)})}}
 function mkBlock(){const d=document.createElement('div');d.className='pm-checklist';return d}function mkHeader(c,t){const d=document.createElement('div');d.className='pm-checklist-header '+c;d.innerHTML='<span class="equip-tag">'+t+'</span>';return d}function mkFreqLabel(t){const d=document.createElement('div');d.className='pm-freq-label';d.textContent=t;return d}function mkSubLabel(t){const d=document.createElement('div');d.className='pm-sub-label';d.textContent=t;return d}function mkTaskRow(t,i){uid++;const id='tk_'+uid;const d=document.createElement('div');d.className='pm-task-row';d.innerHTML='<div class="pm-task-check" id="'+id+'" onclick="toggleCheck(\''+id+'\')">✓</div><div class="pm-task-text" id="'+id+'_t">'+(i+1)+'. '+t+'</div>';return d}function mkNote(t){const d=document.createElement('div');d.className='pm-note';d.textContent=t;return d}function mkAlert(t){const d=document.createElement('div');d.className='pm-alert';d.textContent=t;return d}function mkWarn(){const d=document.createElement('div');d.className='pm-warn';d.textContent='⚠️ MAKE SURE TO USE PROPER PPE AT ALL TIMES';return d}function appendFindings(b,n){b.appendChild(mkFreqLabel('Findings'));const ta=document.createElement('textarea');ta.placeholder='Findings for '+n+'…';ta.rows=3;ta.style.cssText='width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:DM Sans,sans-serif;font-size:14px;color:var(--text);background:#FAFBFD;resize:vertical;margin-top:4px;';b.appendChild(ta)}function toggleCheck(id){document.getElementById(id).classList.toggle('checked');document.getElementById(id+'_t').classList.toggle('checked-text')}
 
-document.getElementById('wo_date').valueAsDate=new Date();document.getElementById('tech_sig_date').valueAsDate=new Date();
+document.getElementById('wo_date').valueAsDate=new Date();
 let photoCount=0;function addPhotoSlot(){photoCount++;const n=photoCount;const w=document.createElement('div');w.innerHTML='<div class="photo-slot" id="ps'+n+'" onclick="document.getElementById(\'pi'+n+'\').click()"><div class="slot-badge">'+n+'</div><div class="placeholder"><span class="cam-icon">📷</span><div class="tap-text">Tap to Add Photo</div><div class="sub-text">Camera or Gallery</div></div><input type="file" id="pi'+n+'" accept="image/*" capture="environment" onchange="handlePhoto(this,'+n+')"><button class="remove-btn" onclick="removePhoto(event,'+n+')">✕</button></div><div class="photo-caption"><input type="text" placeholder="Caption…"></div>';document.getElementById('photoGrid').appendChild(w)}for(let i=0;i<4;i++)addPhotoSlot();
 function handlePhoto(inp,n){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){const s=document.getElementById('ps'+n);const o=s.querySelector('img');if(o)o.remove();const img=document.createElement('img');img.src=e.target.result;s.appendChild(img);s.classList.add('has-photo')};r.readAsDataURL(f)}function removePhoto(e,n){e.stopPropagation();const s=document.getElementById('ps'+n);const img=s.querySelector('img');if(img)img.remove();s.classList.remove('has-photo');document.getElementById('pi'+n).value=''}
 
@@ -525,6 +589,14 @@ if(followupYes && !summaryNotes){
   alert('⚠️ Follow-up is required. Please describe what needs to be followed up in the Summary Notes field.');
   document.getElementById('summary_notes').focus();
   document.getElementById('summary_notes').scrollIntoView({behavior:'smooth',block:'center'});
+  return;
+}
+
+// Completion signature validation
+const unsignedTechs = techNames.filter(name => !compSigs[name] || !compSigs[name].signed);
+if(unsignedTechs.length > 0){
+  alert('⚠️ All technicians must sign before submitting.\n\nStill need signatures from:\n• ' + unsignedTechs.join('\n• '));
+  document.getElementById('completionSignaturesList').scrollIntoView({behavior:'smooth',block:'start'});
   return;
 }
 
@@ -583,9 +655,8 @@ window.location.href='mailto:mateusz.targosz@versantmedia.com,sean.fanning@versa
 finally{document.querySelector('.bottom-bar').style.display='flex';overlay.classList.remove('show')}
 }
 
-// Init signature on load (will show placeholder since no names yet)
-window.addEventListener('load',()=>setTimeout(updateAutoSignature,500));
-window.addEventListener('resize',updateAutoSignature);
+// Init on load
+window.addEventListener('load',()=>setTimeout(buildCompletionSignatures,500));
 </script>
 </body>
 </html>
