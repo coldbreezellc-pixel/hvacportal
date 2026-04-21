@@ -15,8 +15,8 @@ const GMAIL_APP_PW = process.env.GMAIL_APP_PW;
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
   auth: { user: GMAIL_USER, pass: GMAIL_APP_PW },
   connectionTimeout: 10000,
   greetingTimeout: 10000,
