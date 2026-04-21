@@ -950,13 +950,56 @@ const draftBanner = document.getElementById('draftBanner'); if(draftBanner) draf
 const histPanel = document.getElementById('historyPanel'); if(histPanel) histPanel.style.display='none';
 const histBtn = document.getElementById('historyToggleBtn'); if(histBtn) histBtn.style.display='none';
 const backLink = histBtn?.parentElement?.querySelector('a'); if(backLink) backLink.style.display='none';
+
+// Convert all images to base64 data URLs to avoid cross-origin taint
+lt.textContent='Preparing images…';
+const allImgs = document.querySelectorAll('#formContent img');
+for (const img of allImgs) {
+  if (img.src && !img.src.startsWith('data:')) {
+    try {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth || img.width;
+      c.height = img.naturalHeight || img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      img.src = c.toDataURL('image/jpeg', 0.85);
+    } catch(e) { /* skip if tainted */ }
+  }
+}
+
+// Convert all signature canvases to images for capture
+const sigCanvases = document.querySelectorAll('#formContent canvas');
+for (const sc of sigCanvases) {
+  try {
+    const dataUrl = sc.toDataURL('image/png');
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.style.width = sc.style.width || '100%';
+    img.style.height = sc.style.height || '100%';
+    img.style.display = 'block';
+    sc.parentElement.insertBefore(img, sc);
+    sc._hidden = true;
+    sc.style.display = 'none';
+  } catch(e) { /* skip */ }
+}
+
 overlay.style.display='none';
 const content=document.getElementById('formContent');
 lt.textContent='Capturing form…';overlay.style.display='flex';
 
 // Use scale 1.5 instead of 2 to avoid canvas size limits on mobile
 const scale = Math.min(1.5, 16000 / content.scrollHeight);
-const canvas=await html2canvas(content,{scale:scale,useCORS:true,allowTaint:true,backgroundColor:'#F3F6FA',scrollY:-window.scrollY,windowHeight:content.scrollHeight,height:content.scrollHeight,logging:false});
+const canvas=await html2canvas(content,{scale:scale,useCORS:false,allowTaint:false,backgroundColor:'#F3F6FA',scrollY:-window.scrollY,windowHeight:content.scrollHeight,height:content.scrollHeight,logging:false});
+
+// Restore hidden canvases
+sigCanvases.forEach(sc => {
+  if (sc._hidden) {
+    sc.style.display = '';
+    const prevImg = sc.previousElementSibling;
+    if (prevImg && prevImg.tagName === 'IMG') prevImg.remove();
+    delete sc._hidden;
+  }
+});
+
 lt.textContent='Building PDF…';
 const imgData=canvas.toDataURL('image/jpeg',0.85),pW=210,pH=297,iW=pW,iH=(canvas.height*pW)/canvas.width;
 const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');
