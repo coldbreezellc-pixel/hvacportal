@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const nodemailer = require('nodemailer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -7,6 +8,15 @@ const GH_TOKEN = process.env.GH_TOKEN;
 const GH_OWNER = "coldbreezellc-pixel";
 const GH_REPO = "hvacportal";
 const GH_BRANCH = "main";
+
+// ── Gmail SMTP setup ──
+const GMAIL_USER = process.env.GMAIL_USER || "coldbreezellc@gmail.com";
+const GMAIL_APP_PW = process.env.GMAIL_APP_PW;
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: { user: GMAIL_USER, pass: GMAIL_APP_PW }
+});
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -143,6 +153,73 @@ app.post('/api/backup-pm', async (req, res) => {
     res.json({ success: true, backup: backupName });
   } catch (e) {
     console.error('PM Backup error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── EMAIL ENDPOINTS ──
+
+// Send password reset email
+app.post('/api/send-reset-email', async (req, res) => {
+  try {
+    const { displayName, username, tempPassword, userEmail } = req.body;
+    if (!displayName || !username || !tempPassword) return res.status(400).json({ error: 'Missing fields' });
+
+    const recipients = ['mateusz.targosz@versantmedia.com', 'sean.fanning@versantmedia.com'];
+    if (userEmail) recipients.push(userEmail);
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+        <div style="background: #1B3A5C; color: #fff; padding: 16px 20px; border-radius: 10px 10px 0 0;">
+          <h2 style="margin: 0; font-size: 18px;">🔐 Password Reset</h2>
+          <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.7;">HVAC Portal — Versant Media</p>
+        </div>
+        <div style="border: 1px solid #e2e8f0; border-top: none; padding: 24px 20px; border-radius: 0 0 10px 10px;">
+          <p style="color: #334155; font-size: 14px;">Password has been reset for:</p>
+          <p style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 4px 0 16px;">${displayName} <span style="color: #64748b; font-weight: 400;">(@${username})</span></p>
+          <div style="background: #f0fdf4; border: 2px dashed #86efac; border-radius: 10px; padding: 16px; text-align: center; margin: 16px 0;">
+            <p style="font-size: 11px; color: #64748b; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 1px;">Temporary Password</p>
+            <p style="font-size: 28px; font-weight: 800; color: #0f172a; margin: 0; letter-spacing: 3px; font-family: monospace;">${tempPassword}</p>
+          </div>
+          <div style="background: #FFF8E1; border: 1px solid #FFE082; border-radius: 8px; padding: 12px; margin-top: 16px;">
+            <p style="color: #E65100; font-size: 13px; font-weight: 600; margin: 0;">⚠️ This password must be changed on first login.</p>
+          </div>
+          <p style="color: #94a3b8; font-size: 11px; margin-top: 20px;">Sent from HVAC Portal at ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })}</p>
+        </div>
+      </div>`;
+
+    await transporter.sendMail({
+      from: `"HVAC Portal" <${GMAIL_USER}>`,
+      to: recipients.join(', '),
+      subject: `🔐 Password Reset — ${displayName} (${username})`,
+      html
+    });
+
+    console.log(`Reset email sent for ${username} to ${recipients.join(', ')}`);
+    res.json({ success: true, sentTo: recipients });
+  } catch (e) {
+    console.error('Email error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// General email sending (for PM reports, inventory reports)
+app.post('/api/send-email', async (req, res) => {
+  try {
+    const { to, subject, body, html } = req.body;
+    if (!to || !subject) return res.status(400).json({ error: 'Missing to or subject' });
+
+    await transporter.sendMail({
+      from: `"HVAC Portal" <${GMAIL_USER}>`,
+      to: Array.isArray(to) ? to.join(', ') : to,
+      subject,
+      text: body || '',
+      html: html || ''
+    });
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Email error:', e);
     res.status(500).json({ error: e.message });
   }
 });
