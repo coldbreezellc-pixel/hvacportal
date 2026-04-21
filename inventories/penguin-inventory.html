@@ -699,16 +699,26 @@ function App() {
       setItems(inv);
       const lg = await loadLogs();
       setLogs(lg || []);
-      // check session
+      // check session — first try landing page session, then inventory session
       try {
-        const sessVal = localStorage.getItem("pm_session"); const sess = sessVal ? { value: sessVal } : null;
-        if (sess?.value) {
-          const s = JSON.parse(sess.value);
-          const u = existingUsers.find(x => x.id === s.userId);
-          if (u) {
-            setCurrentUser(u);
-            setView(u.mustResetPw ? "profile" : "dashboard");
+        let foundUser = null;
+        // Check landing page session (hvac_session)
+        const hvacSess = localStorage.getItem("hvac_session");
+        if (hvacSess) {
+          const s = JSON.parse(hvacSess);
+          foundUser = existingUsers.find(x => x.username === s.username || x.id === s.id);
+        }
+        // Fallback: check old inventory session
+        if (!foundUser) {
+          const sessVal = localStorage.getItem("pm_session");
+          if (sessVal) {
+            const s = JSON.parse(sessVal);
+            foundUser = existingUsers.find(x => x.id === s.userId);
           }
+        }
+        if (foundUser) {
+          setCurrentUser(foundUser);
+          setView(foundUser.mustResetPw ? "profile" : "dashboard");
         }
       } catch {}
       setReady(true);
@@ -746,6 +756,9 @@ function App() {
     setCurrentUser(null);
     setView("login");
     try { localStorage.removeItem("pm_session"); } catch {}
+    try { localStorage.removeItem("hvac_session"); } catch {}
+    // Redirect to landing page
+    window.location.href = "/";
   };
 
   // ── User CRUD (admin) ──
