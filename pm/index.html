@@ -135,6 +135,19 @@
   .photo-slot input[type="file"]{display:none}
   .photo-caption{margin-top:8px;width:100%}
   .photo-caption input{font-size:12px;padding:6px 8px}
+  .loto-photo-slot{border:2px dashed #FFE082;border-radius:var(--radius-sm);background:#FFFBEB;position:relative;overflow:hidden;cursor:pointer;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .2s}
+  .loto-photo-slot:active{transform:scale(.97)}
+  .loto-photo-slot.has-photo{border-style:solid;border-color:var(--success);background:#fff}
+  .loto-photo-slot img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+  .loto-photo-slot .loto-remove{position:absolute;top:4px;right:4px;width:24px;height:24px;background:var(--danger);color:#fff;border:none;border-radius:50%;font-size:12px;font-weight:700;cursor:pointer;z-index:3;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+  .loto-photo-slot.has-photo .loto-remove{display:flex}
+  .loto-photo-slot .loto-badge{position:absolute;top:4px;left:4px;background:var(--warn);color:#fff;border-radius:4px;font-size:9px;font-weight:700;padding:2px 6px;z-index:2}
+  .loto-photo-slot input[type="file"]{display:none}
+  .loto-photo-slot .loto-placeholder{text-align:center;padding:12px}
+  .loto-photo-slot .loto-placeholder .loto-cam{font-size:28px;display:block;margin-bottom:4px}
+  .loto-photo-slot .loto-placeholder .loto-text{font-size:11px;color:var(--warn);font-weight:600}
+  .loto-caption{margin-top:6px}
+  .loto-caption input{font-size:11px;padding:5px 8px;width:100%;border:1px solid #FFE082;border-radius:6px;font-family:'DM Sans',sans-serif}
 
   /* Completion Signature area */
   .comp-sig-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;background:#FAFBFD;transition:all .3s}
@@ -222,6 +235,14 @@
       <table class="safety-table" id="preJobTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
       <div class="safety-sub-header">Electrical Safety</div>
       <table class="safety-table" id="electricalTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      
+      <!-- LOTO Photo Documentation -->
+      <div style="margin:12px 0;padding:14px;background:#FFF8E1;border:1.5px solid #FFE082;border-radius:var(--radius-sm);">
+        <div style="font-size:12px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📸 Lockout/Tagout Photo Documentation</div>
+        <p style="font-size:12px;color:var(--text-mid);margin-bottom:10px;">Take photos of LOTO locks, tags, and equipment lockout points.</p>
+        <div id="lotoPhotoGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+        <button onclick="addLotoPhoto()" style="width:100%;padding:10px;margin-top:10px;border:1.5px dashed #FFE082;border-radius:var(--radius-sm);background:transparent;color:var(--warn);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">+ Add LOTO Photo</button>
+      </div>
       <div class="safety-sub-header">Gas & Chemical Safety</div>
       <table class="safety-table" id="gasTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
       <div class="safety-sub-header">Emergency Procedures</div>
@@ -308,6 +329,8 @@ function saveDraft() {
     const followupYes = document.querySelector('input[name="followup"][value="yes"]')?.checked || false;
     // Capture Liebert unit numbers
     const liebertData = liebertUnits.map(u => ({ id: u.id, num: u.num }));
+    // Capture LOTO photos
+    const lotoData = lotoPhotos.map(p => ({ id: p.id, dataUrl: p.dataUrl, caption: p.caption }));
 
     const draft = {
       date: document.getElementById('wo_date').value,
@@ -321,6 +344,7 @@ function saveDraft() {
       ppeConditions: ppeConditions,
       followupYes: followupYes,
       liebertData: liebertData,
+      lotoData: lotoData,
       generalComments: document.getElementById('general_comments')?.value || '',
       tasksCompleted: document.getElementById('tasks_completed')?.value || '',
       summaryNotes: document.getElementById('summary_notes')?.value || '',
@@ -434,6 +458,19 @@ function restoreDraft(d) {
     }, 500);
   }
 
+  // LOTO photos
+  if (d.lotoData && d.lotoData.length) {
+    setTimeout(() => {
+      lotoPhotos = [];
+      lotoIdCounter = 0;
+      d.lotoData.forEach(p => {
+        lotoIdCounter++;
+        lotoPhotos.push({ id: lotoIdCounter, dataUrl: p.dataUrl || null, caption: p.caption || '' });
+      });
+      renderLotoPhotos();
+    }, 300);
+  }
+
   // Text fields (delayed to ensure sections are visible)
   setTimeout(() => {
     if (d.generalComments) { const el = document.getElementById('general_comments'); if (el) el.value = d.generalComments; }
@@ -478,6 +515,74 @@ const POSTJOB_TASKS=['Clean work area and remove all debris','Inspect installati
 function buildPPETable(){const tb=document.getElementById('ppeTable');PPE_ITEMS.forEach(item=>{scUid++;const dId='sd_'+scUid,nId='sn_'+scUid;const tr=document.createElement('tr');tr.innerHTML='<td>'+item+'</td><td><select class="condition-select"><option value="" disabled selected>Select…</option><option>Good</option><option>Fair</option><option>Replace</option><option>N/A</option></select></td><td class="td-action"><div class="safety-check done-check" id="'+dId+'" onclick="scToggle(\''+dId+'\',\''+nId+'\')">✓</div></td><td class="td-action"><div class="safety-check na-check" id="'+nId+'" onclick="scToggleNA(\''+dId+'\',\''+nId+'\')">N/A</div></td>';tb.appendChild(tr)})}
 function buildCheckTable(tableId,tasks){const tb=document.getElementById(tableId);tasks.forEach(task=>{scUid++;const dId='sd_'+scUid,nId='sn_'+scUid;const tr=document.createElement('tr');tr.innerHTML='<td>'+task+'</td><td class="td-action"><div class="safety-check done-check" id="'+dId+'" onclick="scToggle(\''+dId+'\',\''+nId+'\')">✓</div></td><td class="td-action"><div class="safety-check na-check" id="'+nId+'" onclick="scToggleNA(\''+dId+'\',\''+nId+'\')">N/A</div></td>';tb.appendChild(tr)})}
 buildPPETable();buildCheckTable('preJobTable',PREJOB_TASKS);buildCheckTable('electricalTable',ELECTRICAL_TASKS);buildCheckTable('gasTable',GAS_TASKS);buildCheckTable('postJobTable',POSTJOB_TASKS);
+
+// ═══ LOTO PHOTO DOCUMENTATION ═══
+let lotoPhotos = []; // array of {id, dataUrl, caption}
+let lotoIdCounter = 0;
+
+function addLotoPhoto() {
+  lotoIdCounter++;
+  lotoPhotos.push({ id: lotoIdCounter, dataUrl: null, caption: '' });
+  renderLotoPhotos();
+}
+
+function renderLotoPhotos() {
+  const grid = document.getElementById('lotoPhotoGrid');
+  grid.innerHTML = lotoPhotos.map(p => {
+    const hasPhoto = !!p.dataUrl;
+    return '<div style="display:flex;flex-direction:column;">' +
+      '<div class="loto-photo-slot' + (hasPhoto ? ' has-photo' : '') + '" id="lotoSlot_' + p.id + '" onclick="document.getElementById(\'lotoFile_' + p.id + '\').click()">' +
+      (hasPhoto ? '<img src="' + p.dataUrl + '" alt="">' : '') +
+      '<span class="loto-badge">LOTO #' + p.id + '</span>' +
+      (hasPhoto ? '' : '<div class="loto-placeholder"><span class="loto-cam">📷</span><span class="loto-text">Tap to capture</span></div>') +
+      '<button class="loto-remove" onclick="event.stopPropagation();removeLotoPhoto(' + p.id + ')">✕</button>' +
+      '<input type="file" id="lotoFile_' + p.id + '" accept="image/*" capture="environment" onchange="handleLotoPhoto(' + p.id + ',this)">' +
+      '</div>' +
+      '<div class="loto-caption"><input type="text" placeholder="Label (e.g. MCC Panel B)" value="' + (p.caption || '').replace(/"/g, '&quot;') + '" onchange="updateLotoCaption(' + p.id + ',this.value)"></div>' +
+      '</div>';
+  }).join('');
+}
+
+function handleLotoPhoto(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const max = 800;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > max) { h = h * max / w; w = max; } }
+      else { if (h > max) { w = w * max / h; h = max; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const p = lotoPhotos.find(x => x.id === id);
+      if (p) p.dataUrl = dataUrl;
+      renderLotoPhotos();
+      saveDraft();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLotoPhoto(id) {
+  lotoPhotos = lotoPhotos.filter(p => p.id !== id);
+  renderLotoPhotos();
+  saveDraft();
+}
+
+function updateLotoCaption(id, val) {
+  const p = lotoPhotos.find(x => x.id === id);
+  if (p) p.caption = val;
+  saveDraft();
+}
+
+// Init with 2 empty LOTO photo slots
+addLotoPhoto();
+addLotoPhoto();
 
 let ppeAcknowledged=false,safetyCompleted=false;
 function acknowledgePPE(){ppeAcknowledged=true;document.getElementById('ppeBanner').classList.add('acknowledged');const btn=document.getElementById('ppeAckBtn');btn.classList.add('acknowledged');btn.textContent='PPE Acknowledged';const now=new Date();document.getElementById('ppeTimestamp').textContent='Acknowledged at '+now.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true})+(techNames.length?' by '+techNames.join(', '):'');document.getElementById('safetyGate').classList.add('unlocked');buildSafetySignatures();setTimeout(()=>document.getElementById('safetySection').scrollIntoView({behavior:'smooth',block:'start'}),300)}
