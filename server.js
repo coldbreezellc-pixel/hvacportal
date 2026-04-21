@@ -13,7 +13,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 async function sendEmail({ to, subject, html, attachments }) {
   const body = {
-    from: 'HVAC Portal <onboarding@resend.dev>',
+    from: 'HVAC Portal <noreply@coldbreezellc.com>',
     to: Array.isArray(to) ? to : [to],
     subject,
     html
