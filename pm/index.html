@@ -294,6 +294,21 @@ const _currentUser = JSON.parse(localStorage.getItem('hvac_session') || '{}');
 // ═══ AUTO-SAVE DRAFT ═══
 function saveDraft() {
   try {
+    // Capture all safety check states (Done/N/A buttons)
+    const safetyChecks = {};
+    document.querySelectorAll('.safety-check').forEach(el => {
+      if (el.id) safetyChecks[el.id] = el.classList.contains('active');
+    });
+    // Capture PPE condition selects
+    const ppeConditions = {};
+    document.querySelectorAll('#ppeTable .condition-select').forEach((sel, idx) => {
+      ppeConditions['ppe_cond_' + idx] = sel.value;
+    });
+    // Capture follow-up radio
+    const followupYes = document.querySelector('input[name="followup"][value="yes"]')?.checked || false;
+    // Capture Liebert unit numbers
+    const liebertData = liebertUnits.map(u => ({ id: u.id, num: u.num }));
+
     const draft = {
       date: document.getElementById('wo_date').value,
       facility: document.getElementById('facility').value,
@@ -302,9 +317,13 @@ function saveDraft() {
       selectedEquip: [...selectedEquip],
       ppeAcknowledged: ppeAcknowledged,
       safetyCompleted: safetyCompleted,
-      generalComments: document.getElementById('general_comments').value,
-      tasksCompleted: document.getElementById('tasks_completed').value,
-      summaryNotes: document.getElementById('summary_notes').value,
+      safetyChecks: safetyChecks,
+      ppeConditions: ppeConditions,
+      followupYes: followupYes,
+      liebertData: liebertData,
+      generalComments: document.getElementById('general_comments')?.value || '',
+      tasksCompleted: document.getElementById('tasks_completed')?.value || '',
+      summaryNotes: document.getElementById('summary_notes')?.value || '',
       savedAt: new Date().toISOString(),
       savedBy: _currentUser.displayName || 'Unknown'
     };
@@ -330,14 +349,97 @@ function loadDraft() {
 }
 
 function restoreDraft(d) {
+  // Basic fields
   if (d.date) document.getElementById('wo_date').value = d.date;
   if (d.facility) document.getElementById('facility').value = d.facility;
   if (d.techNames && d.techNames.length) {
     d.techNames.forEach(n => addTechName(n));
   }
-  if (d.generalComments) document.getElementById('general_comments').value = d.generalComments;
-  if (d.tasksCompleted) document.getElementById('tasks_completed').value = d.tasksCompleted;
-  if (d.summaryNotes) document.getElementById('summary_notes').value = d.summaryNotes;
+
+  // PPE acknowledgment
+  if (d.ppeAcknowledged) {
+    acknowledgePPE();
+  }
+
+  // Restore safety check states (Done/N/A)
+  if (d.safetyChecks) {
+    setTimeout(() => {
+      Object.entries(d.safetyChecks).forEach(([id, active]) => {
+        const el = document.getElementById(id);
+        if (el && active) el.classList.add('active');
+      });
+    }, 200);
+  }
+
+  // Restore PPE condition selects
+  if (d.ppeConditions) {
+    setTimeout(() => {
+      document.querySelectorAll('#ppeTable .condition-select').forEach((sel, idx) => {
+        const val = d.ppeConditions['ppe_cond_' + idx];
+        if (val) sel.value = val;
+      });
+    }, 200);
+  }
+
+  // Safety completed
+  if (d.safetyCompleted) {
+    setTimeout(() => completeSafety(), 300);
+  }
+
+  // Frequency
+  if (d.selectedFreq) {
+    setTimeout(() => {
+      const chip = document.querySelector('.freq-chip[data-freq="' + d.selectedFreq + '"]');
+      if (chip) selectFreq(chip);
+    }, 400);
+  }
+
+  // Equipment
+  if (d.selectedEquip && d.selectedEquip.length) {
+    setTimeout(() => {
+      document.querySelectorAll('.equip-chip').forEach(chip => {
+        const name = chip.querySelector('span:last-child')?.textContent;
+        if (name && d.selectedEquip.includes(name)) {
+          if (!selectedEquip.has(name)) {
+            selectedEquip.add(name);
+            chip.classList.add('selected');
+          }
+        }
+      });
+      toggleLiebertArea();
+      renderPMChecklists();
+    }, 500);
+  }
+
+  // Liebert units
+  if (d.liebertData && d.liebertData.length) {
+    setTimeout(() => {
+      // Clear existing and rebuild
+      liebertUnits = [];
+      liebertIdCounter = 0;
+      d.liebertData.forEach(lu => {
+        liebertIdCounter++;
+        liebertUnits.push({ id: liebertIdCounter, num: lu.num || '' });
+      });
+      renderLiebertEntries();
+      renderPMChecklists();
+    }, 600);
+  }
+
+  // Follow-up
+  if (d.followupYes) {
+    setTimeout(() => {
+      const radio = document.querySelector('input[name="followup"][value="yes"]');
+      if (radio) radio.checked = true;
+    }, 500);
+  }
+
+  // Text fields (delayed to ensure sections are visible)
+  setTimeout(() => {
+    if (d.generalComments) { const el = document.getElementById('general_comments'); if (el) el.value = d.generalComments; }
+    if (d.tasksCompleted) { const el = document.getElementById('tasks_completed'); if (el) el.value = d.tasksCompleted; }
+    if (d.summaryNotes) { const el = document.getElementById('summary_notes'); if (el) el.value = d.summaryNotes; }
+  }, 700);
 }
 
 function clearDraft() {
