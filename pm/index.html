@@ -962,34 +962,68 @@ const imgData=canvas.toDataURL('image/jpeg',0.85),pW=210,pH=297,iW=pW,iH=(canvas
 const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');
 let hL=iH,pos=0,pg=0;while(hL>0){if(pg>0)pdf.addPage();pdf.addImage(imgData,'JPEG',0,pos,iW,iH);hL-=pH;pos-=pH;pg++}
 const safeFirst=equipParts[0].replace(/[^a-zA-Z0-9]/g,'_'),filename='PM_'+safeFirst+'_'+selectedFreq+'_'+(dateVal||'no-date')+'.pdf';
+
+// Get PDF as base64 for email attachment
+const pdfBase64 = pdf.output('datauristring').split(',')[1];
+
+// Also save a local copy
 pdf.save(filename);
-lt.textContent='Opening email…';
+lt.textContent='Sending email…';
 
 // Restore hidden elements
 if(histBtn) histBtn.style.display='';
 if(backLink) backLink.style.display='';
 
-// Build email body
-let emailParts=['Please find attached the PM Work Order report.',''];
+// Build email body HTML
+let followUpBanner = '';
 if(followupYes){
-  emailParts.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  emailParts.push('⚠️ FOLLOW-UP REQUIRED');
-  emailParts.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  emailParts.push(summaryNotes);
-  emailParts.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  emailParts.push('');
+  followUpBanner = '<div style="background:#FEF2F2;border:2px solid #DC2626;border-radius:10px;padding:16px;margin:16px 0;text-align:center;">' +
+    '<div style="font-size:16px;font-weight:800;color:#DC2626;">⚠️ FOLLOW-UP REQUIRED</div>' +
+    '<div style="color:#7F1D1D;font-size:14px;margin-top:8px;">' + (summaryNotes||'').replace(/\n/g,'<br>') + '</div></div>';
 }
-emailParts.push('Facility: '+facility);
-emailParts.push('Equipment: '+equipList);
-emailParts.push('Service Interval: '+selectedFreq);
-emailParts.push('Technician(s): '+tech);
-emailParts.push('Date: '+dateFormatted);
-if(tasksCompleted) emailParts.push('Tasks Completed: '+tasksCompleted);
-emailParts.push('Follow-up Required: '+(followupYes?'YES':'No'));
-if(generalComments){emailParts.push('');emailParts.push('Comments/Findings:');emailParts.push(generalComments)}
-emailParts.push('');
-emailParts.push('Note: Please attach the downloaded PDF ('+filename+') to this email.');
-const emailBody=encodeURIComponent(emailParts.join('\n'));
+
+const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+  '<div style="background:#1B3A5C;color:#fff;padding:16px 20px;border-radius:10px 10px 0 0;">' +
+  '<h2 style="margin:0;font-size:18px;">📋 PM Work Order Report</h2>' +
+  '<p style="margin:4px 0 0;font-size:12px;opacity:0.7;">HVAC Engineering — Local 68</p></div>' +
+  '<div style="border:1px solid #e2e8f0;border-top:none;padding:20px;border-radius:0 0 10px 10px;">' +
+  followUpBanner +
+  '<table style="width:100%;border-collapse:collapse;font-size:14px;">' +
+  '<tr><td style="padding:6px 0;color:#64748b;width:140px;">Facility:</td><td style="padding:6px 0;font-weight:600;">' + facility + '</td></tr>' +
+  '<tr><td style="padding:6px 0;color:#64748b;">Equipment:</td><td style="padding:6px 0;font-weight:600;">' + equipList + '</td></tr>' +
+  '<tr><td style="padding:6px 0;color:#64748b;">Service:</td><td style="padding:6px 0;font-weight:600;">' + selectedFreq + '</td></tr>' +
+  '<tr><td style="padding:6px 0;color:#64748b;">Technician(s):</td><td style="padding:6px 0;font-weight:600;">' + tech + '</td></tr>' +
+  '<tr><td style="padding:6px 0;color:#64748b;">Date:</td><td style="padding:6px 0;font-weight:600;">' + dateFormatted + '</td></tr>' +
+  (tasksCompleted ? '<tr><td style="padding:6px 0;color:#64748b;">Tasks Completed:</td><td style="padding:6px 0;font-weight:600;">' + tasksCompleted + '</td></tr>' : '') +
+  '<tr><td style="padding:6px 0;color:#64748b;">Follow-up:</td><td style="padding:6px 0;font-weight:700;color:' + (followupYes ? '#DC2626' : '#16a34a') + ';">' + (followupYes ? 'YES' : 'No') + '</td></tr>' +
+  '</table>' +
+  (generalComments ? '<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Comments / Findings</div><div style="font-size:14px;color:#1e293b;">' + generalComments.replace(/\n/g,'<br>') + '</div></div>' : '') +
+  '<p style="color:#94a3b8;font-size:11px;margin-top:20px;">PDF report attached. Sent from HVAC Portal at ' + new Date().toLocaleString('en-US',{timeZone:'America/New_York'}) + '</p>' +
+  '</div></div>';
+
+// Send email via server with PDF attached
+try {
+  const emailRes = await fetch('/api/send-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      to: ['mateusz.targosz@versantmedia.com', 'sean.fanning@versantmedia.com'],
+      subject: subject,
+      html: emailHtml,
+      attachments: [{ filename: filename, content: pdfBase64, contentType: 'application/pdf' }]
+    })
+  });
+  const emailResult = await emailRes.json();
+  if (emailResult.success) {
+    lt.textContent = '✓ Email sent!';
+  } else {
+    lt.textContent = 'Email failed — PDF saved locally';
+    console.error('Email error:', emailResult.error);
+  }
+} catch(e) {
+  lt.textContent = 'Email failed — PDF saved locally';
+  console.error('Email send error:', e);
+}
 
 // Save to PM history
 savePMToHistory({
@@ -1001,10 +1035,10 @@ savePMToHistory({
 clearDraft();
 // Backup to server
 try{lt.textContent='Saving backup…';await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes})})}catch(e){console.log('Backup skipped:',e)}
-await new Promise(r=>setTimeout(r,800));
-window.location.href='mailto:mateusz.targosz@versantmedia.com,sean.fanning@versantmedia.com?subject='+encodeURIComponent(subject)+'&body='+emailBody
-}catch(err){console.error('PDF Error:',err);alert('Error generating PDF: '+err.message+'\n\nTry using Print instead.')}
-finally{document.querySelector('.bottom-bar').style.display='flex';overlay.classList.remove('show')}
+await new Promise(r=>setTimeout(r,1500));
+overlay.classList.remove('show');
+alert('✓ PM Report sent successfully!\n\nPDF saved to your device and emailed to the team.');
+}catch(err){console.error('PDF Error:',err);alert('Error generating PDF: '+err.message+'\n\nTry using Print instead.');document.querySelector('.bottom-bar').style.display='flex';overlay.classList.remove('show')}
 }
 
 // ═══ DRAFT + HISTORY UI ═══
