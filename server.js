@@ -1,6 +1,5 @@
 const express = require('express');
 const path = require('path');
-const nodemailer = require('nodemailer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -9,30 +8,43 @@ const GH_OWNER = "coldbreezellc-pixel";
 const GH_REPO = "hvacportal";
 const GH_BRANCH = "main";
 
-// ── Gmail SMTP setup ──
-const GMAIL_USER = process.env.GMAIL_USER || "coldbreezellc@gmail.com";
-const GMAIL_APP_PW = process.env.GMAIL_APP_PW;
+// ── Resend Email API (HTTPS, no SMTP port issues) ──
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: { user: GMAIL_USER, pass: GMAIL_APP_PW },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000
-});
+async function sendEmail({ to, subject, html, attachments }) {
+  const body = {
+    from: 'HVAC Portal <onboarding@resend.dev>',
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    html
+  };
+  if (attachments && attachments.length) {
+    body.attachments = attachments.map(a => ({
+      filename: a.filename,
+      content: a.content, // base64 string
+      content_type: a.contentType || 'application/octet-stream'
+    }));
+  }
+  const resp = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const result = await resp.json();
+  if (!resp.ok) throw new Error(result.message || JSON.stringify(result));
+  return result;
+}
 
 app.use(express.json({ limit: '25mb' }));
 
-// Test email endpoint for debugging
+// Test email endpoint
 app.get('/api/test-email', async (req, res) => {
   try {
-    if (!GMAIL_APP_PW) return res.json({ error: 'GMAIL_APP_PW not set', user: GMAIL_USER });
-    await transporter.verify();
-    res.json({ success: true, message: 'SMTP connection verified', user: GMAIL_USER });
+    if (!RESEND_API_KEY) return res.json({ error: 'RESEND_API_KEY not set' });
+    const result = await sendEmail({ to: 'coldbreezellc@gmail.com', subject: 'HVAC Portal Test', html: '<p>Email system is working!</p>' });
+    res.json({ success: true, id: result.id });
   } catch (e) {
-    res.json({ error: e.message, code: e.code, user: GMAIL_USER, pwSet: !!GMAIL_APP_PW });
+    res.json({ error: e.message });
   }
 });
 
@@ -188,7 +200,7 @@ app.post('/api/send-reset-email', async (req, res) => {
       <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
         <div style="background: #1B3A5C; color: #fff; padding: 16px 20px; border-radius: 10px 10px 0 0;">
           <h2 style="margin: 0; font-size: 18px;">🔐 Password Reset</h2>
-          <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.7;">HVAC Portal — Versant Media</p>
+          <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.7;">HVAC Portal — Local 68</p>
         </div>
         <div style="border: 1px solid #e2e8f0; border-top: none; padding: 24px 20px; border-radius: 0 0 10px 10px;">
           <p style="color: #334155; font-size: 14px;">Password has been reset for:</p>
@@ -204,15 +216,14 @@ app.post('/api/send-reset-email', async (req, res) => {
         </div>
       </div>`;
 
-    await transporter.sendMail({
-      from: `"HVAC Portal" <${GMAIL_USER}>`,
-      to: recipients.join(', '),
+    const result = await sendEmail({
+      to: recipients,
       subject: `🔐 Password Reset — ${displayName} (${username})`,
       html
     });
 
     console.log(`Reset email sent for ${username} to ${recipients.join(', ')}`);
-    res.json({ success: true, sentTo: recipients });
+    res.json({ success: true, sentTo: recipients, id: result.id });
   } catch (e) {
     console.error('Email error:', e);
     res.status(500).json({ error: e.message });
@@ -222,29 +233,12 @@ app.post('/api/send-reset-email', async (req, res) => {
 // General email sending (for PM reports, inventory reports)
 app.post('/api/send-email', async (req, res) => {
   try {
-    const { to, subject, body, html, attachments } = req.body;
+    const { to, subject, html, attachments } = req.body;
     if (!to || !subject) return res.status(400).json({ error: 'Missing to or subject' });
 
-    const mailOpts = {
-      from: `"HVAC Portal" <${GMAIL_USER}>`,
-      to: Array.isArray(to) ? to.join(', ') : to,
-      subject,
-      text: body || '',
-      html: html || ''
-    };
-
-    // Handle PDF attachment (base64)
-    if (attachments && attachments.length) {
-      mailOpts.attachments = attachments.map(a => ({
-        filename: a.filename || 'report.pdf',
-        content: Buffer.from(a.content, 'base64'),
-        contentType: a.contentType || 'application/pdf'
-      }));
-    }
-
-    await transporter.sendMail(mailOpts);
-    console.log(`Email sent: "${subject}" to ${mailOpts.to}`);
-    res.json({ success: true });
+    const result = await sendEmail({ to, subject, html, attachments });
+    console.log(`Email sent: "${subject}" to ${Array.isArray(to) ? to.join(', ') : to}`);
+    res.json({ success: true, id: result.id });
   } catch (e) {
     console.error('Email error:', e);
     res.status(500).json({ error: e.message });
