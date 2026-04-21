@@ -83,6 +83,37 @@
       <input type="password" id="loginPass" placeholder="Enter password" autocapitalize="off" autocorrect="off" autocomplete="current-password" spellcheck="false">
       <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
       <div id="loginError" class="error-msg hidden"></div>
+      <button onclick="showForgot()" style="display:block;background:none;border:none;color:var(--text-mid);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin:14px auto 0;text-align:center;font-weight:600;">Forgot password?</button>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD SCREEN -->
+  <div id="forgotSection" class="hidden">
+    <div class="login-card">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:32px;margin-bottom:8px;">🔐</div>
+        <div style="font-size:18px;font-weight:800;color:#fff;">Reset Password</div>
+      </div>
+      <div id="forgotForm">
+        <p style="font-size:13px;color:var(--text-mid);margin:0 0 16px;text-align:center;">Enter your username. A temporary password will be generated and emailed to the admins.</p>
+        <label>Username</label>
+        <input type="text" id="forgotUser" placeholder="Your username" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button class="btn-login" id="forgotBtn" onclick="doForgotPassword()" style="margin-top:14px;">Reset My Password</button>
+        <div id="forgotError" class="error-msg hidden"></div>
+        <button onclick="showLoginFromForgot()" style="display:block;background:none;border:none;color:var(--text-mid);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin:14px auto 0;text-align:center;font-weight:600;">Back to Login</button>
+      </div>
+      <div id="forgotSuccess" class="hidden">
+        <div style="background:rgba(22,163,74,.15);border:1.5px solid rgba(22,163,74,.3);border-radius:12px;padding:20px;text-align:center;">
+          <p style="color:#22c55e;font-size:14px;font-weight:700;margin:0 0 8px;">✓ Password has been reset!</p>
+          <p style="color:var(--text-mid);font-size:12px;margin:0 0 14px;" id="forgotUserInfo"></p>
+          <div style="background:rgba(255,255,255,.08);border:2px dashed rgba(255,255,255,.2);border-radius:10px;padding:14px;margin:10px 0;">
+            <p style="font-size:10px;color:var(--text-mid);margin:0 0 4px;text-transform:uppercase;letter-spacing:1px;">Temporary Password</p>
+            <p style="font-family:'JetBrains Mono',monospace;font-size:24px;color:#fff;margin:0;font-weight:700;letter-spacing:3px;" id="forgotTempPw"></p>
+          </div>
+          <p style="color:var(--text-mid);font-size:11px;margin:10px 0 0;">An email has been sent to the admins.<br>You must change this password after first login.</p>
+        </div>
+        <button class="btn-login" onclick="showLoginFromForgot()" style="margin-top:16px;">Back to Login</button>
+      </div>
     </div>
   </div>
 
@@ -139,6 +170,91 @@ resetActivityTimer();
 // Enter key support
 document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPass').focus(); });
 document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('forgotUser').addEventListener('keydown', e => { if (e.key === 'Enter') doForgotPassword(); });
+
+// Forgot password UI
+function showForgot() {
+  document.getElementById('loginSection').classList.add('hidden');
+  document.getElementById('forgotSection').classList.remove('hidden');
+  document.getElementById('forgotForm').classList.remove('hidden');
+  document.getElementById('forgotSuccess').classList.add('hidden');
+  document.getElementById('forgotError').classList.add('hidden');
+  document.getElementById('forgotUser').value = '';
+}
+function showLoginFromForgot() {
+  document.getElementById('forgotSection').classList.add('hidden');
+  document.getElementById('loginSection').classList.remove('hidden');
+}
+
+async function doForgotPassword() {
+  const username = document.getElementById('forgotUser').value.trim();
+  const errEl = document.getElementById('forgotError');
+  const btn = document.getElementById('forgotBtn');
+  if (!username) { errEl.textContent = 'Please enter your username.'; errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+  btn.disabled = true;
+  btn.textContent = 'Resetting…';
+
+  try {
+    // Load users from server
+    const res = await fetch('/api/data/pm_users?t=' + Date.now());
+    if (!res.ok) throw new Error('Cannot connect to server');
+    const data = await res.json();
+    let users = JSON.parse(data.value || '[]');
+    const sha = data.sha;
+
+    const found = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+    if (!found) {
+      errEl.textContent = 'Username not found.';
+      errEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Reset My Password';
+      return;
+    }
+
+    // Generate random password
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let tempPw = '';
+    for (let i = 0; i < 8; i++) tempPw += chars[Math.floor(Math.random() * chars.length)];
+
+    // Hash and save
+    const h = await hashPw(tempPw);
+    users = users.map(u => u.id === found.id ? { ...u, passwordHash: h, mustResetPw: true } : u);
+
+    // Save updated users to server
+    await fetch('/api/data/pm_users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.stringify(users), sha: sha })
+    });
+
+    // Send email via server
+    try {
+      await fetch('/api/send-reset-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: found.displayName,
+          username: found.username,
+          tempPassword: tempPw,
+          userEmail: found.email || null
+        })
+      });
+    } catch (e) { console.log('Email send error:', e); }
+
+    // Show success
+    document.getElementById('forgotForm').classList.add('hidden');
+    document.getElementById('forgotSuccess').classList.remove('hidden');
+    document.getElementById('forgotTempPw').textContent = tempPw;
+    document.getElementById('forgotUserInfo').textContent = 'Password reset for ' + found.displayName + ' (@' + found.username + ')';
+
+  } catch (e) {
+    errEl.textContent = 'Error: ' + e.message;
+    errEl.classList.remove('hidden');
+  }
+  btn.disabled = false;
+  btn.textContent = 'Reset My Password';
+}
 
 // Hash function (same as inventory app)
 async function hashPw(pw) {
