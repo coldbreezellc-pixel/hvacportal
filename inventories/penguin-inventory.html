@@ -877,7 +877,21 @@ function App() {
       {toast && <div style={{ ...S.toast, background: toast.type === "err" ? "#dc2626" : "#16a34a" }}>{toast.msg}</div>}
 
       {!currentUser ? (
-        view === "forgot" ? <ForgotScreen onBack={() => setView("login")} users={users} flash={flash} /> : <LoginScreen onLogin={login} onForgot={() => setView("forgot")} />
+        view === "forgot" ? <ForgotScreen onBack={() => setView("login")} users={users} flash={flash} onResetForgot={async (username) => {
+          const found = users.find(x => x.username.toLowerCase() === username.trim().toLowerCase());
+          if (!found) return null;
+          // Generate random password
+          const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+          let tempPw = "";
+          for (let i = 0; i < 8; i++) tempPw += chars[Math.floor(Math.random() * chars.length)];
+          // Hash and save
+          const h = await hash(tempPw.trim());
+          const updated = users.map(u => u.id === found.id ? { ...u, passwordHash: h, mustResetPw: true } : u);
+          setUsers(updated);
+          await saveUsers(updated);
+          addLog("Password Reset", `Forgot password reset for "${found.displayName}"`, "System");
+          return { user: found, tempPw };
+        }} /> : <LoginScreen onLogin={login} onForgot={() => setView("forgot")} />
       ) : (
         <>
           <Header user={currentUser} view={view} setView={setView} logout={logout} lowStock={lowStock.length} />
@@ -948,15 +962,45 @@ function LoginScreen({ onLogin, onForgot }) {
   );
 }
 
-function ForgotScreen({ onBack, users, flash }) {
+function ForgotScreen({ onBack, users, flash, onResetForgot }) {
   const [u, setU] = useState("");
   const [sent, setSent] = useState(false);
-  const submit = () => {
-    const found = users.find(x => x.username.toLowerCase() === u.toLowerCase());
+  const [tempInfo, setTempInfo] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const submit = async () => {
+    if (!u.trim()) return;
+    const found = users.find(x => x.username.toLowerCase() === u.trim().toLowerCase());
     if (!found) { flash("Username not found.", "err"); return; }
-    // In real app this would email. Here we notify the admin.
+
+    setLoading(true);
+    const result = await onResetForgot(u);
+    setLoading(false);
+
+    if (!result) { flash("Reset failed.", "err"); return; }
+
+    setTempInfo(result);
     setSent(true);
+
+    // Send email with temp password to admins
+    const adminEmails = "mateusz.targosz@versantmedia.com,sean.fanning@versantmedia.com";
+    const userEmail = result.user.email;
+    const recipients = userEmail ? userEmail + "," + adminEmails : adminEmails;
+    const subject = encodeURIComponent("Password Reset — " + result.user.displayName + " (" + result.user.username + ")");
+    const body = encodeURIComponent(
+      "Password Reset Request\n\n" +
+      "User: " + result.user.displayName + "\n" +
+      "Username: " + result.user.username + "\n\n" +
+      "Temporary Password: " + result.tempPw + "\n\n" +
+      "This password must be changed on first login.\n" +
+      "Please share this temporary password with the user securely.\n\n" +
+      "— HVAC Portal System"
+    );
+    setTimeout(() => {
+      window.location.href = "mailto:" + recipients + "?subject=" + subject + "&body=" + body;
+    }, 500);
   };
+
   return (
     <div style={S.authWrap}>
       <div style={S.authCard}>
@@ -966,17 +1010,28 @@ function ForgotScreen({ onBack, users, flash }) {
         </div>
         {sent ? (
           <>
-            <div style={{ ...S.card, background: "#f0fdf4", border: "1px solid #86efac", textAlign: "center" }}>
-              <p style={{ fontFamily: F.body, color: "#16a34a", margin: 0, fontSize: 14 }}>✓ Password reset request sent to admin.<br />Contact your administrator to get your temporary password.</p>
+            <div style={{ ...S.card, background: "#f0fdf4", border: "1px solid #86efac", textAlign: "center", padding: 20 }}>
+              <p style={{ fontFamily: F.body, color: "#16a34a", margin: 0, fontSize: 14, fontWeight: 700 }}>✓ Password has been reset!</p>
+              <p style={{ fontFamily: F.body, color: "#64748b", margin: "10px 0 0", fontSize: 13 }}>
+                A temporary password has been generated for <b>{tempInfo?.user?.displayName}</b>.
+              </p>
+              <div style={{ background: "#fff", border: "2px dashed #86efac", borderRadius: 8, padding: "12px 16px", margin: "14px 0", textAlign: "center" }}>
+                <p style={{ fontFamily: F.body, fontSize: 11, color: "#64748b", margin: "0 0 4px" }}>TEMPORARY PASSWORD</p>
+                <p style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 22, color: "#0f172a", margin: 0, fontWeight: 700, letterSpacing: 2 }}>{tempInfo?.tempPw}</p>
+              </div>
+              <p style={{ fontFamily: F.body, color: "#64748b", margin: "8px 0 0", fontSize: 12 }}>
+                An email is being sent to the admins with this password.<br />
+                The user must change it after first login.
+              </p>
             </div>
-            <button style={{ ...S.btnSecondary, marginTop: 16 }} onClick={onBack}>Back to Login</button>
+            <button style={{ ...S.btnPrimary, marginTop: 16 }} onClick={onBack}>Back to Login</button>
           </>
         ) : (
           <>
-            <p style={{ fontFamily: F.body, fontSize: 13, color: "#64748b", margin: "0 0 16px" }}>Enter your username. The admin will be notified and will reset your password.</p>
+            <p style={{ fontFamily: F.body, fontSize: 13, color: "#64748b", margin: "0 0 16px" }}>Enter your username. A temporary password will be generated and emailed to the admins.</p>
             <label style={S.label}>Username</label>
-            <input style={S.input} value={u} onChange={e => setU(e.target.value)} placeholder="Your username" onKeyDown={e => e.key === "Enter" && submit()} autoCapitalize="off" />
-            <button style={{ ...S.btnPrimary, marginTop: 8 }} onClick={submit}>Request Reset</button>
+            <input style={S.input} value={u} onChange={e => setU(e.target.value)} placeholder="Your username" onKeyDown={e => e.key === "Enter" && submit()} autoCapitalize="off" autoCorrect="off" spellCheck="false" />
+            <button style={{ ...S.btnPrimary, marginTop: 8, opacity: loading ? 0.6 : 1 }} onClick={submit} disabled={loading}>{loading ? "Resetting…" : "Reset My Password"}</button>
             <button style={S.btnLink} onClick={onBack}>Back to Login</button>
           </>
         )}
