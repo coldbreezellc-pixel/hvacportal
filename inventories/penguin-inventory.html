@@ -20,50 +20,36 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 
   <script type="text/babel">
-    // ── GitHub API storage backend ──
-    const GH_OWNER = "coldbreezellc-pixel";
-    const GH_REPO = "hvacportal";
-    const GH_BRANCH = "main";
-    const GH_TOKEN = "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";
-    const GH_API = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/data/";
-
+    // ── Storage backend via server proxy (token stays server-side) ──
+    const API_BASE = window.location.origin + "/api/data/";
     const _shaCache = {};
 
     window.storage = {
       async get(key) {
-        const url = GH_API + key + ".json?ref=" + GH_BRANCH + "&t=" + Date.now();
-        const res = await fetch(url, { headers: { Authorization: "Bearer " + GH_TOKEN, Accept: "application/vnd.github.v3+json" } });
+        const res = await fetch(API_BASE + key + "?t=" + Date.now());
         if (!res.ok) throw new Error("Not found");
         const data = await res.json();
-        _shaCache[key] = data.sha;
-        const content = atob(data.content.replace(/\n/g, ""));
-        return { key, value: content };
+        if (data.sha) _shaCache[key] = data.sha;
+        return { key, value: data.value };
       },
       async set(key, value) {
-        const url = GH_API + key + ".json";
-        const body = { message: "Update " + key, content: btoa(unescape(encodeURIComponent(value))), branch: GH_BRANCH };
-        if (!_shaCache[key]) {
-          try {
-            const check = await fetch(url + "?ref=" + GH_BRANCH, { headers: { Authorization: "Bearer " + GH_TOKEN, Accept: "application/vnd.github.v3+json" } });
-            if (check.ok) { const d = await check.json(); _shaCache[key] = d.sha; }
-          } catch {}
-        }
-        if (_shaCache[key]) body.sha = _shaCache[key];
-        const res = await fetch(url, { method: "PUT", headers: { Authorization: "Bearer " + GH_TOKEN, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        if (!res.ok) { const err = await res.text(); console.error("GitHub save error:", err); throw new Error("Save failed"); }
-        const result = await res.json();
-        _shaCache[key] = result.content.sha;
+        const res = await fetch(API_BASE + key, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ value, sha: _shaCache[key] || null })
+        });
+        if (!res.ok) { const err = await res.text(); console.error("Save error:", err); throw new Error("Save failed"); }
+        const data = await res.json();
+        if (data.sha) _shaCache[key] = data.sha;
         return { key, value };
       },
       async delete(key) {
-        const url = GH_API + key + ".json";
-        if (!_shaCache[key]) {
-          try { const check = await fetch(url + "?ref=" + GH_BRANCH, { headers: { Authorization: "Bearer " + GH_TOKEN } }); if (check.ok) { const d = await check.json(); _shaCache[key] = d.sha; } } catch {}
-        }
-        if (_shaCache[key]) {
-          await fetch(url, { method: "DELETE", headers: { Authorization: "Bearer " + GH_TOKEN, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" }, body: JSON.stringify({ message: "Delete " + key, sha: _shaCache[key], branch: GH_BRANCH }) });
-          delete _shaCache[key];
-        }
+        await fetch(API_BASE + key, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sha: _shaCache[key] || null })
+        });
+        delete _shaCache[key];
         return { key, deleted: true };
       },
       async list(prefix) {
@@ -71,11 +57,11 @@
       }
     };
 
+    // Local cache for fast UI
     const _localCache = {
       get(key) { try { return localStorage.getItem("gh_" + key); } catch { return null; } },
       set(key, val) { try { localStorage.setItem("gh_" + key, val); } catch {} }
     };
-
     const _origGet = window.storage.get.bind(window.storage);
     const _origSet = window.storage.set.bind(window.storage);
     window.storage.get = async function(key) {
