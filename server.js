@@ -14,11 +14,27 @@ const GMAIL_USER = process.env.GMAIL_USER || "coldbreezellc@gmail.com";
 const GMAIL_APP_PW = process.env.GMAIL_APP_PW;
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: GMAIL_USER, pass: GMAIL_APP_PW }
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: { user: GMAIL_USER, pass: GMAIL_APP_PW },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000
 });
 
 app.use(express.json({ limit: '25mb' }));
+
+// Test email endpoint for debugging
+app.get('/api/test-email', async (req, res) => {
+  try {
+    if (!GMAIL_APP_PW) return res.json({ error: 'GMAIL_APP_PW not set', user: GMAIL_USER });
+    await transporter.verify();
+    res.json({ success: true, message: 'SMTP connection verified', user: GMAIL_USER });
+  } catch (e) {
+    res.json({ error: e.message, code: e.code, user: GMAIL_USER, pwSet: !!GMAIL_APP_PW });
+  }
+});
 
 // ── Helper: push file to GitHub ──
 async function ghPut(filePath, content, message) {
