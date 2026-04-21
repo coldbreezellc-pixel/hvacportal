@@ -4,19 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>HVAC Engineering — Versant Media</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-  :root{--navy:#1B3A5C;--navy-light:#2A5280;--accent:#2979FF;--accent-glow:rgba(41,121,255,.15);--bg:#0E1B2A;--card:rgba(255,255,255,.06);--card-hover:rgba(255,255,255,.1);--border:rgba(255,255,255,.1);--text:#FFFFFF;--text-mid:#94A3B8;--radius:20px}
+  :root{--navy:#1B3A5C;--navy-light:#2A5280;--accent:#2979FF;--accent-glow:rgba(41,121,255,.15);--bg:#0E1B2A;--card:rgba(255,255,255,.06);--card-hover:rgba(255,255,255,.1);--border:rgba(255,255,255,.1);--text:#FFFFFF;--text-mid:#94A3B8;--radius:20px;--success:#16a34a;--danger:#dc2626}
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;overflow-x:hidden}
   .bg-gradient{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse at 20% 0%,rgba(41,121,255,.12) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(27,58,92,.3) 0%,transparent 60%),var(--bg)}
   .bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:48px 48px}
   .wrapper{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 20px}
-  .logo-area{text-align:center;margin-bottom:48px}
+  .logo-area{text-align:center;margin-bottom:32px}
   .logo-icon{width:72px;height:72px;background:linear-gradient(135deg,var(--accent) 0%,var(--navy-light) 100%);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 20px;box-shadow:0 8px 32px rgba(41,121,255,.25)}
   .logo-title{font-size:28px;font-weight:800;letter-spacing:1px;margin-bottom:4px}
   .logo-subtitle{font-size:14px;color:var(--text-mid);font-weight:500;letter-spacing:2px;text-transform:uppercase}
   .logo-location{font-size:12px;color:var(--text-mid);margin-top:8px;opacity:.6}
+
+  /* Login form */
+  .login-card{background:rgba(255,255,255,.05);border:1.5px solid var(--border);border-radius:var(--radius);padding:28px 24px;width:100%;max-width:380px;backdrop-filter:blur(10px)}
+  .login-card label{display:block;font-size:11px;font-weight:600;color:var(--text-mid);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;margin-top:14px}
+  .login-card label:first-of-type{margin-top:0}
+  .login-card input{width:100%;padding:12px 14px;border:1.5px solid rgba(255,255,255,.15);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;color:#fff;background:rgba(255,255,255,.06);transition:border-color .2s,box-shadow .2s}
+  .login-card input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(41,121,255,.2);background:rgba(255,255,255,.1)}
+  .login-card input::placeholder{color:rgba(255,255,255,.3)}
+  .btn-login{width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent) 0%,var(--navy-light) 100%);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:18px;transition:transform .1s,opacity .2s;box-shadow:0 4px 16px rgba(41,121,255,.3)}
+  .btn-login:active{transform:scale(.97)}
+  .btn-login:disabled{opacity:.5;pointer-events:none}
+  .error-msg{color:#f87171;font-size:13px;text-align:center;margin-top:10px;font-weight:500}
+  .toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);padding:11px 22px;border-radius:12px;color:#fff;font-size:13px;font-weight:600;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,0.15);animation:slideDown .3s ease}
+  @keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+  /* Cards */
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:480px}
   @media(max-width:400px){.cards{grid-template-columns:1fr;max-width:320px}}
   .card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:all .25s ease;text-decoration:none;color:var(--text);position:relative;overflow:hidden}
@@ -31,12 +47,25 @@
   .card-desc{font-size:12px;color:var(--text-mid);line-height:1.5;position:relative;z-index:1}
   .card-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:12px;position:relative;z-index:1}
   .badge-live{background:rgba(46,125,50,.2);color:#66BB6A}
+
+  /* User bar */
+  .user-bar{display:flex;align-items:center;gap:12px;margin-bottom:32px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:14px;padding:12px 18px;width:100%;max-width:480px}
+  .user-bar .avatar{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--navy-light));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0}
+  .user-bar .user-info{flex:1}
+  .user-bar .user-name{font-size:15px;font-weight:700;color:#fff}
+  .user-bar .user-role{font-size:11px;color:var(--text-mid);text-transform:uppercase;letter-spacing:1px}
+  .btn-logout{padding:8px 14px;border:1.5px solid rgba(255,255,255,.15);border-radius:8px;background:transparent;color:var(--text-mid);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+  .btn-logout:hover{border-color:#f87171;color:#f87171}
   .footer{text-align:center;margin-top:48px;font-size:11px;color:var(--text-mid);opacity:.4;letter-spacing:.5px}
+  .hidden{display:none}
 </style>
 </head>
 <body>
 <div class="bg-gradient"></div>
 <div class="bg-grid"></div>
+
+<div id="toastEl" class="toast hidden" style="background:#16a34a"></div>
+
 <div class="wrapper">
   <div class="logo-area">
     <div class="logo-icon">🔧</div>
@@ -44,22 +73,169 @@
     <div class="logo-subtitle">Versant Media</div>
     <div class="logo-location">Englewood Cliffs, NJ</div>
   </div>
-  <div class="cards">
-    <a href="./pm/index.html" class="card card-pm">
-      <div class="card-icon">📋</div>
-      <div class="card-title">PM Sheet</div>
-      <div class="card-desc">Preventive Maintenance Work Orders</div>
-      <div class="card-badge badge-live">● Live</div>
-    </a>
-    <a href="./inventories/penguin-inventory.html" class="card card-inv">
-      <div class="card-icon">📦</div>
-      <div class="card-title">Inventories</div>
-      <div class="card-desc">Equipment & Parts Tracking</div>
-      <div class="card-badge badge-live">● Live</div>
-    </a>
+
+  <!-- LOGIN FORM -->
+  <div id="loginSection">
+    <div class="login-card">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Enter username" autocapitalize="off" autocorrect="off" autocomplete="username" spellcheck="false">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Enter password" autocapitalize="off" autocorrect="off" autocomplete="current-password" spellcheck="false">
+      <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
+      <div id="loginError" class="error-msg hidden"></div>
+    </div>
   </div>
+
+  <!-- MENU (shown after login) -->
+  <div id="menuSection" class="hidden">
+    <div class="user-bar">
+      <div class="avatar" id="userAvatar"></div>
+      <div class="user-info">
+        <div class="user-name" id="userName"></div>
+        <div class="user-role" id="userRole"></div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+    <div class="cards">
+      <a href="./pm/index.html" class="card card-pm">
+        <div class="card-icon">📋</div>
+        <div class="card-title">PM Sheet</div>
+        <div class="card-desc">Preventive Maintenance Work Orders</div>
+        <div class="card-badge badge-live">● Live</div>
+      </a>
+      <a href="./inventories/penguin-inventory.html" class="card card-inv">
+        <div class="card-icon">📦</div>
+        <div class="card-title">Inventories</div>
+        <div class="card-desc">Equipment & Parts Tracking</div>
+        <div class="card-badge badge-live">● Live</div>
+      </a>
+    </div>
+  </div>
+
   <div class="footer" id="footer"></div>
 </div>
-<script>document.getElementById('footer').textContent='© '+new Date().getFullYear()+' Versant Media — HVAC Engineering Department';</script>
+
+<script>
+document.getElementById('footer').textContent = '© ' + new Date().getFullYear() + ' Versant Media — HVAC Engineering Department';
+
+// Enter key support
+document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPass').focus(); });
+document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// Hash function (same as inventory app)
+async function hashPw(pw) {
+  const enc = new TextEncoder().encode(pw + "penguin-maint-2026");
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function toast(msg, type) {
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.style.background = type === 'err' ? '#dc2626' : '#16a34a';
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 3000);
+}
+
+// Check existing session on load
+function checkSession() {
+  try {
+    const sess = localStorage.getItem('hvac_session');
+    if (sess) {
+      const data = JSON.parse(sess);
+      if (data.username && data.displayName) {
+        showMenu(data);
+        return;
+      }
+    }
+  } catch {}
+  showLogin();
+}
+
+function showLogin() {
+  document.getElementById('loginSection').classList.remove('hidden');
+  document.getElementById('menuSection').classList.add('hidden');
+}
+
+function showMenu(user) {
+  document.getElementById('loginSection').classList.add('hidden');
+  document.getElementById('menuSection').classList.remove('hidden');
+  document.getElementById('userName').textContent = user.displayName;
+  document.getElementById('userRole').textContent = user.role === 'admin' ? 'Administrator' : 'Crew Member';
+  document.getElementById('userAvatar').textContent = (user.displayName || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value.trim();
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  if (!username || !password) { errEl.textContent = 'Please enter username and password.'; errEl.classList.remove('hidden'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+  errEl.classList.add('hidden');
+
+  try {
+    // Load users from server
+    const res = await fetch('/api/data/pm_users?t=' + Date.now());
+    let users = [];
+    if (res.ok) {
+      const data = await res.json();
+      users = JSON.parse(data.value || '[]');
+    }
+
+    // If no users in DB yet, check hardcoded team seed
+    if (users.length === 0) {
+      // Will be seeded by inventory app on first load
+      errEl.textContent = 'Please open Inventories first to initialize the system.';
+      errEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+      return;
+    }
+
+    const h = await hashPw(password);
+    const found = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.passwordHash === h);
+
+    if (!found) {
+      errEl.textContent = 'Invalid username or password.';
+      errEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+      return;
+    }
+
+    // Save session
+    const session = { id: found.id, username: found.username, displayName: found.displayName, role: found.role, email: found.email || '' };
+    localStorage.setItem('hvac_session', JSON.stringify(session));
+
+    toast('Welcome, ' + found.displayName);
+    showMenu(session);
+
+  } catch (e) {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.classList.remove('hidden');
+    console.error(e);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+}
+
+function doLogout() {
+  localStorage.removeItem('hvac_session');
+  // Also clear inventory session
+  localStorage.removeItem('pm_session');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  showLogin();
+  toast('Signed out');
+}
+
+// Init
+checkSession();
+</script>
 </body>
 </html>
