@@ -1203,6 +1203,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
       "Date: " + dateStr + "\n\n" +
       "Note: Please attach the downloaded file (" + filename + ") to this email."
     );
+    try { fetch("/api/backup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "Filter_Inventory_" + (selectedGroup || "").replace(/\s/g, "_"), technician: engineers.join(", "), details: csv }) }); } catch (e) { console.log("Backup skipped:", e); }
     setTimeout(() => {
       window.location.href = "mailto:mateusz.targosz@versantmedia.com,sean.fanning@versantmedia.com?subject=" + subject + "&body=" + body;
     }, 800);
@@ -1248,6 +1249,7 @@ function InventoryView({ items, allItems, search, setSearch, activeGroup, setAct
       "Total Stock: " + totalStock + "\n\n" +
       "Note: Please attach the downloaded file (" + filename + ") to this email."
     );
+    try { fetch("/api/backup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: (selectedGroup || "Inventory").replace(/\s/g, "_"), technician: engineers.join(", "), details: csv }) }); } catch (e) { console.log("Backup skipped:", e); }
     setTimeout(() => {
       window.location.href = "mailto:mateusz.targosz@versantmedia.com,sean.fanning@versantmedia.com?subject=" + subject + "&body=" + body;
     }, 800);
