@@ -3,16 +3,12 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// GitHub API proxy — keeps token server-side
 const GH_TOKEN = process.env.GH_TOKEN;
 const GH_OWNER = "coldbreezellc-pixel";
 const GH_REPO = "hvacportal";
 const GH_BRANCH = "main";
 
 app.use(express.json({ limit: '10mb' }));
-
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
 
 // GitHub data proxy endpoints
 app.get('/api/data/:key', async (req, res) => {
@@ -38,7 +34,7 @@ app.put('/api/data/:key', async (req, res) => {
       branch: GH_BRANCH
     };
     if (sha) body.sha = sha;
-    
+
     const resp = await fetch(
       `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/data/${req.params.key}.json`,
       {
@@ -62,7 +58,7 @@ app.delete('/api/data/:key', async (req, res) => {
   try {
     const { sha } = req.body;
     if (!sha) return res.status(400).json({ error: 'SHA required' });
-    const resp = await fetch(
+    await fetch(
       `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/data/${req.params.key}.json`,
       {
         method: 'DELETE',
@@ -76,9 +72,12 @@ app.delete('/api/data/:key', async (req, res) => {
   }
 });
 
-// Fallback to index.html for SPA routes
+// Serve static files from repo root (where index.html, pm/, inventories/ are)
+app.use(express.static(path.join(__dirname)));
+
+// Fallback
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => console.log(`HVAC Portal running on port ${PORT}`));
