@@ -1046,22 +1046,30 @@ const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;marg
   sigHtml +
   '<p style="color:#94a3b8;font-size:11px;margin-top:20px;">Sent from HVAC Portal at ' + new Date().toLocaleString('en-US',{timeZone:'America/New_York'}) + '</p></div></div>';
 
+let emailSent = false;
 try {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
   const emailRes = await fetch('/api/send-email', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to: ['mateusz.targosz@versantmedia.com','sean.fanning@versantmedia.com'], subject: subject, html: emailHtml, attachments: lotoAttachments })
+    body: JSON.stringify({ to: ['mateusz.targosz@versantmedia.com','sean.fanning@versantmedia.com'], subject: subject, html: emailHtml, attachments: lotoAttachments }),
+    signal: controller.signal
   });
+  clearTimeout(timeoutId);
   const emailResult = await emailRes.json();
-  if (!emailResult.success) { alert('Email failed: ' + (emailResult.error||'Unknown error')); }
-} catch(e) { console.error('Email error:', e); alert('Could not send email. Check your connection.'); }
+  if (emailResult.success) { emailSent = true; }
+  else { alert('Email failed: ' + (emailResult.error||'Unknown error')); }
+} catch(e) {
+  if(e.name === 'AbortError') { alert('Email timed out. The report may still be sent — check your inbox.'); }
+  else { console.error('Email error:', e); alert('Could not send email: ' + e.message); }
+}
 
 savePMToHistory({ technician: tech, facility: facility, equipment: equipList, frequency: selectedFreq, date: dateVal, followUp: followupYes, followUpNotes: summaryNotes, tasksCompleted: tasksCompleted, generalComments: generalComments, completedAt: new Date().toISOString(), completedBy: _currentUser.displayName || tech });
 clearDraft();
 try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes})})}catch(e){}
-await new Promise(r=>setTimeout(r,1000));
 document.querySelector('.bottom-bar').style.display='flex';
 overlay.classList.remove('show');
-alert('✓ PM Report emailed successfully!');
+if(emailSent) alert('✓ PM Report emailed successfully!');
 }catch(err){console.error('Error:',err);alert('Error: '+err.message);document.querySelector('.bottom-bar').style.display='flex';overlay.classList.remove('show')}
 }
 
