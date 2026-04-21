@@ -143,6 +143,23 @@
     </div>
   </div>
 
+  <!-- CHANGE PASSWORD SCREEN (shown when mustResetPw is true) -->
+  <div id="changePassSection" class="hidden">
+    <div class="login-card">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:32px;margin-bottom:8px;">🔑</div>
+        <div style="font-size:18px;font-weight:800;color:#fff;">Set New Password</div>
+        <p style="font-size:13px;color:#F59E0B;margin:10px 0 0;font-weight:600;">⚠ You must change your temporary password to continue.</p>
+      </div>
+      <label>New Password</label>
+      <input type="password" id="newPass1" placeholder="Min 4 characters" autocomplete="new-password">
+      <label>Confirm Password</label>
+      <input type="password" id="newPass2" placeholder="Repeat new password" autocomplete="new-password">
+      <button class="btn-login" id="changePassBtn" onclick="doChangePassword()" style="margin-top:14px;">Change Password</button>
+      <div id="changePassError" class="error-msg hidden"></div>
+    </div>
+  </div>
+
   <div class="footer" id="footer"></div>
 </div>
 
@@ -171,6 +188,8 @@ resetActivityTimer();
 document.getElementById('loginUser').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginPass').focus(); });
 document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 document.getElementById('forgotUser').addEventListener('keydown', e => { if (e.key === 'Enter') doForgotPassword(); });
+document.getElementById('newPass1').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('newPass2').focus(); });
+document.getElementById('newPass2').addEventListener('keydown', e => { if (e.key === 'Enter') doChangePassword(); });
 
 // Forgot password UI
 function showForgot() {
@@ -278,7 +297,11 @@ function checkSession() {
     if (sess) {
       const data = JSON.parse(sess);
       if (data.username && data.displayName) {
-        showMenu(data);
+        if (data.mustResetPw) {
+          showChangePassword(data);
+        } else {
+          showMenu(data);
+        }
         return;
       }
     }
@@ -294,9 +317,65 @@ function showLogin() {
 function showMenu(user) {
   document.getElementById('loginSection').classList.add('hidden');
   document.getElementById('menuSection').classList.remove('hidden');
+  document.getElementById('forgotSection').classList.add('hidden');
+  document.getElementById('changePassSection').classList.add('hidden');
   document.getElementById('userName').textContent = user.displayName;
   document.getElementById('userRole').textContent = user.role === 'admin' ? 'Administrator' : 'Crew Member';
   document.getElementById('userAvatar').textContent = (user.displayName || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function showChangePassword(user) {
+  document.getElementById('loginSection').classList.add('hidden');
+  document.getElementById('menuSection').classList.add('hidden');
+  document.getElementById('forgotSection').classList.add('hidden');
+  document.getElementById('changePassSection').classList.remove('hidden');
+  document.getElementById('newPass1').value = '';
+  document.getElementById('newPass2').value = '';
+  document.getElementById('changePassError').classList.add('hidden');
+}
+
+async function doChangePassword() {
+  const pw1 = document.getElementById('newPass1').value;
+  const pw2 = document.getElementById('newPass2').value;
+  const errEl = document.getElementById('changePassError');
+  const btn = document.getElementById('changePassBtn');
+
+  if (pw1.length < 4) { errEl.textContent = 'Password must be at least 4 characters.'; errEl.classList.remove('hidden'); return; }
+  if (pw1 !== pw2) { errEl.textContent = 'Passwords don\'t match.'; errEl.classList.remove('hidden'); return; }
+
+  errEl.classList.add('hidden');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const sess = JSON.parse(localStorage.getItem('hvac_session') || '{}');
+    const res = await fetch('/api/data/pm_users?t=' + Date.now());
+    if (!res.ok) throw new Error('Cannot connect');
+    const data = await res.json();
+    let users = JSON.parse(data.value || '[]');
+    const sha = data.sha;
+
+    const h = await hashPw(pw1);
+    users = users.map(u => u.id === sess.id ? { ...u, passwordHash: h, mustResetPw: false } : u);
+
+    await fetch('/api/data/pm_users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.stringify(users), sha: sha })
+    });
+
+    // Update session
+    sess.mustResetPw = false;
+    localStorage.setItem('hvac_session', JSON.stringify(sess));
+
+    toast('Password changed successfully!');
+    showMenu(sess);
+  } catch (e) {
+    errEl.textContent = 'Error: ' + e.message;
+    errEl.classList.remove('hidden');
+  }
+  btn.disabled = false;
+  btn.textContent = 'Change Password';
 }
 
 async function doLogin() {
@@ -342,11 +421,15 @@ async function doLogin() {
     }
 
     // Save session
-    const session = { id: found.id, username: found.username, displayName: found.displayName, role: found.role, email: found.email || '' };
+    const session = { id: found.id, username: found.username, displayName: found.displayName, role: found.role, email: found.email || '', mustResetPw: found.mustResetPw || false };
     localStorage.setItem('hvac_session', JSON.stringify(session));
 
-    toast('Welcome, ' + found.displayName);
-    showMenu(session);
+    if (found.mustResetPw) {
+      showChangePassword(session);
+    } else {
+      toast('Welcome, ' + found.displayName);
+      showMenu(session);
+    }
 
   } catch (e) {
     errEl.textContent = 'Connection error. Please try again.';
