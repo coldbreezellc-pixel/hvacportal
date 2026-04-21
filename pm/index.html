@@ -286,7 +286,7 @@
   </div>
 </div>
 </div>
-<div class="bottom-bar"><button class="btn btn-secondary" onclick="window.print()">🖨 Print</button><button class="btn btn-primary" onclick="saveAndEmail()">📧 Save & Email Report</button></div>
+<div class="bottom-bar"><button class="btn btn-primary" style="flex:1" onclick="saveAndEmail()">📧 Email Report</button></div>
 
 <script>
 // ═══ SESSION CHECK + AUTO-LOGOUT ═══
@@ -1017,9 +1017,6 @@ const safeFirst=equipParts[0].replace(/[^a-zA-Z0-9]/g,'_'),filename='PM_'+safeFi
 
 // Get PDF as base64 for email attachment
 const pdfBase64 = pdf.output('datauristring').split(',')[1];
-
-// Also save a local copy
-pdf.save(filename);
 lt.textContent='Sending email…';
 
 // Restore hidden elements
@@ -1089,7 +1086,7 @@ clearDraft();
 try{lt.textContent='Saving backup…';await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes})})}catch(e){console.log('Backup skipped:',e)}
 await new Promise(r=>setTimeout(r,1500));
 overlay.classList.remove('show');
-alert('✓ PM Report sent successfully!\n\nPDF saved to your device and emailed to the team.');
+alert('✓ PM Report emailed successfully!');
 }catch(err){console.error('PDF Error:',err);alert('Error generating PDF: '+err.message+'\n\nTry using Print instead.');document.querySelector('.bottom-bar').style.display='flex';overlay.classList.remove('show')}
 }
 
