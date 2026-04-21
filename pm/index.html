@@ -1011,7 +1011,7 @@ lotoPhotos.filter(p => p.dataUrl).forEach((p, i) => {
   const caption = p.caption || 'LOTO Photo ' + (i+1);
   if(b64) {
     lotoAttachments.push({ filename: 'LOTO_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg', cid: cid });
-    lotoInlineHtml.push('<div style="display:inline-block;margin:4px;text-align:center;"><img src="cid:' + cid + '" style="max-width:250px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:11px;color:#64748b;margin-top:4px;">' + caption + '</div></div>');
+    lotoInlineHtml.push('<div style="margin:8px 0;"><img src="cid:' + cid + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
   }
 });
 
@@ -1023,7 +1023,7 @@ document.querySelectorAll('.photo-slot.has-photo img').forEach((img, i) => {
     const cid = 'photo' + (i+1);
     if(b64) {
       lotoAttachments.push({ filename: 'Photo_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg', cid: cid });
-      lotoInlineHtml.push('<div style="display:inline-block;margin:4px;text-align:center;"><img src="cid:' + cid + '" style="max-width:250px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:11px;color:#64748b;margin-top:4px;">' + caption + '</div></div>');
+      lotoInlineHtml.push('<div style="margin:8px 0;"><img src="cid:' + cid + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
     }
   }
 });
