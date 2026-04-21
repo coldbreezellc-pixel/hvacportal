@@ -18,7 +18,7 @@ const transporter = nodemailer.createTransport({
   auth: { user: GMAIL_USER, pass: GMAIL_APP_PW }
 });
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
 
 // ── Helper: push file to GitHub ──
 async function ghPut(filePath, content, message) {
@@ -206,17 +206,28 @@ app.post('/api/send-reset-email', async (req, res) => {
 // General email sending (for PM reports, inventory reports)
 app.post('/api/send-email', async (req, res) => {
   try {
-    const { to, subject, body, html } = req.body;
+    const { to, subject, body, html, attachments } = req.body;
     if (!to || !subject) return res.status(400).json({ error: 'Missing to or subject' });
 
-    await transporter.sendMail({
+    const mailOpts = {
       from: `"HVAC Portal" <${GMAIL_USER}>`,
       to: Array.isArray(to) ? to.join(', ') : to,
       subject,
       text: body || '',
       html: html || ''
-    });
+    };
 
+    // Handle PDF attachment (base64)
+    if (attachments && attachments.length) {
+      mailOpts.attachments = attachments.map(a => ({
+        filename: a.filename || 'report.pdf',
+        content: Buffer.from(a.content, 'base64'),
+        contentType: a.contentType || 'application/pdf'
+      }));
+    }
+
+    await transporter.sendMail(mailOpts);
+    console.log(`Email sent: "${subject}" to ${mailOpts.to}`);
     res.json({ success: true });
   } catch (e) {
     console.error('Email error:', e);
