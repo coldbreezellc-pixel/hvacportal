@@ -982,23 +982,19 @@ function ForgotScreen({ onBack, users, flash, onResetForgot }) {
     setTempInfo(result);
     setSent(true);
 
-    // Send email with temp password to admins
-    const adminEmails = "mateusz.targosz@versantmedia.com,sean.fanning@versantmedia.com";
-    const userEmail = result.user.email;
-    const recipients = userEmail ? userEmail + "," + adminEmails : adminEmails;
-    const subject = encodeURIComponent("Password Reset — " + result.user.displayName + " (" + result.user.username + ")");
-    const body = encodeURIComponent(
-      "Password Reset Request\n\n" +
-      "User: " + result.user.displayName + "\n" +
-      "Username: " + result.user.username + "\n\n" +
-      "Temporary Password: " + result.tempPw + "\n\n" +
-      "This password must be changed on first login.\n" +
-      "Please share this temporary password with the user securely.\n\n" +
-      "— HVAC Portal System"
-    );
-    setTimeout(() => {
-      window.location.href = "mailto:" + recipients + "?subject=" + subject + "&body=" + body;
-    }, 500);
+    // Send email via server
+    try {
+      await fetch("/api/send-reset-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName: result.user.displayName,
+          username: result.user.username,
+          tempPassword: result.tempPw,
+          userEmail: result.user.email || null
+        })
+      });
+    } catch (e) { console.log("Email send skipped:", e); }
   };
 
   return (
@@ -1020,7 +1016,7 @@ function ForgotScreen({ onBack, users, flash, onResetForgot }) {
                 <p style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 22, color: "#0f172a", margin: 0, fontWeight: 700, letterSpacing: 2 }}>{tempInfo?.tempPw}</p>
               </div>
               <p style={{ fontFamily: F.body, color: "#64748b", margin: "8px 0 0", fontSize: 12 }}>
-                An email is being sent to the admins with this password.<br />
+                An email with this password has been sent to the admins automatically.<br />
                 The user must change it after first login.
               </p>
             </div>
