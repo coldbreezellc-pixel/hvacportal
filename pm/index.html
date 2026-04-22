@@ -1020,7 +1020,7 @@ const EQUIPMENT_900={
 const EQUIPMENT_904={};
 
 function getFacility(){const f=document.getElementById('facility').value;if(f&&f.startsWith('900'))return '900';if(f&&f.startsWith('904'))return '904';return null}
-function getEquipmentForFacility(){const fac=getFacility();const eq={};if(fac==='900')Object.assign(eq,EQUIPMENT_900);if(fac==='904')Object.assign(eq,EQUIPMENT_904);Object.assign(eq,EQUIPMENT_SHARED);return eq}
+function getEquipmentForFacility(){const fac=getFacility();if(!fac)return{};const eq={};if(fac==='900')Object.assign(eq,EQUIPMENT_900);if(fac==='904')Object.assign(eq,EQUIPMENT_904);Object.assign(eq,EQUIPMENT_SHARED);return eq}
 let liebertUnits=[],liebertIdCounter=0;
 function addLiebertUnit(){liebertIdCounter++;liebertUnits.push({id:liebertIdCounter,num:''});renderLiebertEntries()}
 function removeLiebertUnit(id){liebertUnits=liebertUnits.filter(u=>u.id!==id);renderLiebertEntries();renderPMChecklists()}
