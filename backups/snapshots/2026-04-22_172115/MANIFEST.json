@@ -1,0 +1,6 @@
+{
+  "snapshot_id": "2026-04-22_172115",
+  "created_at": "2026-04-22T17:21:21.298481",
+  "type": "pre_change_backup",
+  "reason": "Before reorganizing equipment groups (PCWP/SCWP/CHWP \u2192 PACO Pumps, merging Liebert groups)"
+}
