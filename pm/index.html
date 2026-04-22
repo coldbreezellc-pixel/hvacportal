@@ -198,17 +198,21 @@
     </div>
   </div>
 
-  <!-- PM History Button -->
-  <div style="display:flex;gap:8px;margin-bottom:14px;">
-    <button onclick="toggleHistory()" id="historyToggleBtn" style="flex:1;padding:10px;border:1.5px solid #D4DCE8;border-radius:8px;background:#fff;color:#5A6A7E;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">📋 PM History <span id="historyCount" style="background:#E8F0FE;color:#2979FF;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;">0</span></button>
-    <a href="/" style="padding:10px 16px;border:1.5px solid #D4DCE8;border-radius:8px;background:#fff;color:#5A6A7E;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:4px;">← Back</a>
-  </div>
-
-  <!-- PM History Panel -->
-  <div id="historyPanel" style="display:none;margin-bottom:14px;">
-    <div style="background:#fff;border:1.5px solid #D4DCE8;border-radius:12px;overflow:hidden;max-height:400px;overflow-y:auto;">
-      <div style="background:var(--navy);color:#fff;padding:10px 14px;font-size:13px;font-weight:700;letter-spacing:.5px;">COMPLETED PM WORK ORDERS</div>
-      <div id="historyList" style="padding:8px;"></div>
+  <!-- PM History — Collapsible at top -->
+  <div style="margin-bottom:14px;border:1.5px solid #D4DCE8;border-radius:12px;overflow:hidden;background:#fff;">
+    <div onclick="toggleHistory()" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:#f8fafc;border-bottom:1px solid #E2E8F0;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">📋</span>
+        <span style="font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;color:#1E293B;">PM History</span>
+        <span id="historyCount" style="background:#E8F0FE;color:#2979FF;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:700;">0</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <a href="/" onclick="event.stopPropagation()" style="font-family:'DM Sans',sans-serif;font-size:12px;color:#5A6A7E;text-decoration:none;font-weight:600;">← Menu</a>
+        <span id="historyArrow" style="font-size:18px;color:#94a3b8;transition:transform .2s;">▼</span>
+      </div>
+    </div>
+    <div id="historyPanel" style="display:none;max-height:500px;overflow-y:auto;">
+      <div id="historyList" style=""></div>
     </div>
   </div>
 
@@ -484,37 +488,52 @@ function clearDraft() {
 }
 
 // ═══ PM HISTORY ═══
-function savePMToHistory(data) {
+async function savePMToHistory(data) {
   try {
-    let history = JSON.parse(localStorage.getItem('pm_history') || '[]');
-    // Strip large photo attachments from storage (keep email HTML for resend)
     const storageData = { ...data };
     if (storageData.emailAttachments) {
       storageData.attachmentCount = storageData.emailAttachments.length;
-      delete storageData.emailAttachments; // too large for localStorage
+      delete storageData.emailAttachments;
     }
+    // Load current history from server
+    let history = [];
+    let sha = null;
+    try {
+      const res = await fetch('/api/data/pm_history?t=' + Date.now());
+      if (res.ok) {
+        const d = await res.json();
+        history = JSON.parse(d.value || '[]');
+        sha = d.sha;
+      }
+    } catch(e) {}
     history.unshift(storageData);
-    if (history.length > 30) history = history.slice(0, 30);
-    localStorage.setItem('pm_history', JSON.stringify(history));
-    // Also save to server
+    if (history.length > 50) history = history.slice(0, 50);
+    // Save back to server
+    await fetch('/api/data/pm_history', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.stringify(history), sha: sha })
+    });
+    // Also backup metadata
     fetch('/api/backup-pm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ technician: data.technician, facility: data.facility, equipment: data.equipment, frequency: data.frequency, followUp: data.followUp, followUpNotes: data.followUpNotes })
-    }).catch(e => console.log('Server backup skipped:', e));
+    }).catch(e => {});
   } catch(e) {
     console.log('History save error:', e);
-    // If localStorage is full, remove oldest entries and retry
-    try {
-      let history = JSON.parse(localStorage.getItem('pm_history') || '[]');
-      history = history.slice(0, 10);
-      localStorage.setItem('pm_history', JSON.stringify(history));
-    } catch(e2) {}
   }
 }
 
-function getPMHistory() {
-  try { return JSON.parse(localStorage.getItem('pm_history') || '[]'); } catch { return []; }
+async function getPMHistory() {
+  try {
+    const res = await fetch('/api/data/pm_history?t=' + Date.now());
+    if (res.ok) {
+      const d = await res.json();
+      return JSON.parse(d.value || '[]');
+    }
+  } catch(e) {}
+  return [];
 }
 
 // ═══ SAFETY CHECKLIST ═══
@@ -1113,17 +1132,21 @@ function dismissDraft() {
 
 function toggleHistory() {
   const panel = document.getElementById('historyPanel');
+  const arrow = document.getElementById('historyArrow');
   if (panel.style.display === 'none') {
     renderHistory();
     panel.style.display = 'block';
+    arrow.style.transform = 'rotate(180deg)';
   } else {
     panel.style.display = 'none';
+    arrow.style.transform = '';
   }
 }
 
-function renderHistory() {
+async function renderHistory() {
   const list = document.getElementById('historyList');
-  const history = getPMHistory();
+  list.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">Loading…</p>';
+  const history = await getPMHistory();
   document.getElementById('historyCount').textContent = history.length;
   if (history.length === 0) {
     list.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">No completed PMs yet.</p>';
@@ -1189,7 +1212,7 @@ function toggleHistoryItem(idx) {
 }
 
 async function resendPM(idx) {
-  const history = getPMHistory();
+  const history = await getPMHistory();
   const pm = history[idx];
   if (!pm) return;
 
@@ -1234,11 +1257,21 @@ async function resendPM(idx) {
   }
 }
 
-function deletePMHistory(idx) {
+async function deletePMHistory(idx) {
   if (!confirm('Delete this PM from history?')) return;
-  let history = getPMHistory();
+  let history = await getPMHistory();
   history.splice(idx, 1);
-  localStorage.setItem('pm_history', JSON.stringify(history));
+  // Get SHA and save
+  try {
+    const res = await fetch('/api/data/pm_history?t=' + Date.now());
+    let sha = null;
+    if (res.ok) { const d = await res.json(); sha = d.sha; }
+    await fetch('/api/data/pm_history', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.stringify(history), sha: sha })
+    });
+  } catch(e) { console.log('Delete error:', e); }
   renderHistory();
 }
 
@@ -1252,8 +1285,8 @@ window.addEventListener('load', () => {
     const savedTime = new Date(draft.savedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
     document.getElementById('draftInfo').textContent = 'Saved ' + savedTime + ' by ' + (draft.savedBy || 'Unknown');
   }
-  // Update history count
-  document.getElementById('historyCount').textContent = getPMHistory().length;
+  // Update history count from server
+  getPMHistory().then(h => { document.getElementById('historyCount').textContent = h.length; });
 });
 </script>
 </body>
