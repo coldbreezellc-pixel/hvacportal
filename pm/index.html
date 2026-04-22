@@ -858,7 +858,7 @@ function addTechName(n){const c=n.trim();if(!c||techNames.includes(c))return;tec
 function removeTechName(i){techNames.splice(i,1);renderTechTags();buildCompletionSignatures();if(ppeAcknowledged)buildSafetySignatures()}
 function renderTechTags(){const w=document.getElementById('techWrap');w.querySelectorAll('.tech-tag').forEach(t=>t.remove());const inp=document.getElementById('techInput');techNames.forEach((n,i)=>{const t=document.createElement('span');t.className='tech-tag';t.innerHTML=n+' <button class="remove-tag" onclick="removeTechName('+i+')">✕</button>';w.insertBefore(t,inp)});inp.placeholder=techNames.length?'Add another…':'Type name, press Enter to add…'}
 function handleTechKey(e){const inp=e.target;if(e.key==='Enter'||e.key===','){e.preventDefault();const v=inp.value.replace(/,/g,'').trim();if(v){addTechName(v);inp.value=''}}if(e.key==='Backspace'&&!inp.value&&techNames.length>0)removeTechName(techNames.length-1)}
-function handleTechBlur(){const inp=document.getElementById('techInput');const v=inp.value.trim();if(v){addTechName(v);inp.value=''}document.getElementById('techWrap').classList.remove('focused')}
+function handleTechBlur(){setTimeout(()=>{const inp=document.getElementById('techInput');const v=inp.value.trim();if(v){addTechName(v);inp.value=''}document.getElementById('techWrap').classList.remove('focused')},150)}
 function getTechString(){return techNames.join(', ')}
 
 // ═══ COMPLETION SIGNATURES ═══
