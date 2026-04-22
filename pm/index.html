@@ -999,7 +999,28 @@ function clearCompSig(idx){
 }
 
 // ═══ EQUIPMENT ═══
-const EQUIPMENT={'Cooling Towers':['Cooling Tower 1','Cooling Tower 2','Cooling Tower 3','Cooling Tower 4'],'PCWP':['PCWP 1','PCWP 2','PCWP 3','PCWP 4'],'SCWP':['SCWP 1','SCWP 2','SCWP 3','SCWP 4'],'CHWP':['CHWP 1','CHWP 2','CHWP 3','CHWP 4'],'Liebert Units':['Liebert Unit'],'Safety':['CO Detectors']};
+// ═══ EQUIPMENT — facility-aware ═══
+// Equipment shared by both facilities
+const EQUIPMENT_SHARED={'Safety':['CO Detectors']};
+// Equipment specific to 900 Sylvan Ave
+const EQUIPMENT_900={
+  'Cooling Towers':['Cooling Tower 1','Cooling Tower 2','Cooling Tower 3','Cooling Tower 4'],
+  'PCWP':['PCWP 1','PCWP 2','PCWP 3','PCWP 4'],
+  'SCWP':['SCWP 1','SCWP 2','SCWP 3','SCWP 4'],
+  'CHWP':['CHWP 1','CHWP 2','CHWP 3','CHWP 4'],
+  'Liebert Units':['Liebert Unit'],
+  'Air Handling':['AHU Buffalo','AHU Studio Units','HV and Fan Units','FCU','GE Penthouse Unit','Bard Unit'],
+  'Fans':['Fan Exhaust','Fan Exhaust Kitchen','Fan Smoke Purge','Filtration Make-Up'],
+  'Heaters':['Stairwell Heater','Hot Water Heater','Domestic Hot Water System'],
+  'Basement':['Basement Liebert Units','Liebert Basement','Blowdown Penthouse'],
+  'Plumbing':['Bathroom Hardware','Bathroom Plumbing','Drain Fitness Center'],
+  'Fountains':['Fountain Courtyard','Fountain Water Hall']
+};
+// Equipment specific to 904 Sylvan Ave (only CO Detectors for now)
+const EQUIPMENT_904={};
+
+function getFacility(){const f=document.getElementById('facility').value;if(f&&f.startsWith('900'))return '900';if(f&&f.startsWith('904'))return '904';return null}
+function getEquipmentForFacility(){const fac=getFacility();const eq={};if(fac==='900')Object.assign(eq,EQUIPMENT_900);if(fac==='904')Object.assign(eq,EQUIPMENT_904);Object.assign(eq,EQUIPMENT_SHARED);return eq}
 let liebertUnits=[],liebertIdCounter=0;
 function addLiebertUnit(){liebertIdCounter++;liebertUnits.push({id:liebertIdCounter,num:''});renderLiebertEntries()}
 function removeLiebertUnit(id){liebertUnits=liebertUnits.filter(u=>u.id!==id);renderLiebertEntries();renderPMChecklists()}
@@ -1015,26 +1036,128 @@ const LIEBERT_PM={'Monthly':{sections:[{sub:'Blower Section',tasks:['Clean and i
 let selectedFreq='Quarterly';
 function selectFreq(el){document.querySelectorAll('.freq-chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');selectedFreq=el.dataset.freq;renderPMChecklists()}
 const selectedEquip=new Set();const grid=document.getElementById('equipGrid');
-Object.entries(EQUIPMENT).forEach(([group,items])=>{const lbl=document.createElement('div');lbl.className='equip-group-label';lbl.textContent=group;grid.appendChild(lbl);items.forEach(name=>{const chip=document.createElement('div');chip.className='equip-chip';chip.innerHTML='<span class="chip-check">✓</span><span>'+name+'</span>';chip.addEventListener('click',()=>{if(selectedEquip.has(name)){selectedEquip.delete(name);chip.classList.remove('selected')}else{selectedEquip.add(name);chip.classList.add('selected')}toggleLiebertArea();renderPMChecklists()});grid.appendChild(chip)})});
+function buildEquipmentChips(){const grid=document.getElementById('equipGrid');grid.innerHTML='';const EQUIPMENT=getEquipmentForFacility();if(!Object.keys(EQUIPMENT).length){grid.innerHTML='<p style="font-size:13px;color:var(--text-light);padding:10px;grid-column:1/-1;">Select a facility above to see available equipment.</p>';return}Object.entries(EQUIPMENT).forEach(([group,items])=>{const lbl=document.createElement('div');lbl.className='equip-group-label';lbl.textContent=group;grid.appendChild(lbl);items.forEach(name=>{const chip=document.createElement('div');chip.className='equip-chip'+(selectedEquip.has(name)?' selected':'');chip.innerHTML='<span class="chip-check">✓</span><span>'+name+'</span>';chip.addEventListener('click',()=>{if(selectedEquip.has(name)){selectedEquip.delete(name);chip.classList.remove('selected')}else{selectedEquip.add(name);chip.classList.add('selected')}toggleLiebertArea();renderPMChecklists()});grid.appendChild(chip)})})}
+buildEquipmentChips();
+document.getElementById('facility').addEventListener('change',()=>{
+  // When facility changes, clear equipment selections that don't match the new facility
+  const EQUIPMENT=getEquipmentForFacility();
+  const validNames=new Set();
+  Object.values(EQUIPMENT).forEach(items=>items.forEach(n=>validNames.add(n)));
+  [...selectedEquip].forEach(n=>{if(!validNames.has(n))selectedEquip.delete(n)});
+  buildEquipmentChips();
+  toggleLiebertArea();
+  renderPMChecklists();
+});
 function isCT(n){return n.startsWith('Cooling Tower')}function isPump(n){return n.startsWith('PCWP')||n.startsWith('SCWP')||n.startsWith('CHWP')}function isLiebert(n){return n.startsWith('Liebert')}function isCO(n){return n==='CO Detectors'}
 const CO_PM={'Monthly':['Notify Security you will be testing CO detectors and causing a local audible alert','Press and hold test button on wall mounted detector until audible alert is heard'],'Annual':['Notify Security you will be testing CO detectors and causing a local audible alert','Replace batteries using (1) 9V battery in each detector','Press and hold test button on wall mounted detector until audible alert is heard']};
 function getCOTasks(f){const t={};if(f==='Monthly'||f==='Quarterly'||f==='Semi-Annual'||f==='Annual')t['Monthly']=CO_PM['Monthly'];if(f==='Annual')t['Annual']=CO_PM['Annual'];return t}
+
+// ═══ GENERIC PM DATA for 900 Sylvan equipment ═══
+// Each entry: { intervals: {freq: [tasks]}, amps: true/false, ampLabels: ['L1','L2','L3'] }
+const GENERIC_PM={
+  'AHU Buffalo':{amps:false,intervals:{
+    'Quarterly':['Check physical condition of blower section','Check belt condition and tension — use belt checker, replace if necessary','Inspect vibration eliminators — adjust if necessary','Check all bearings, pulleys, and set screws for tightness','Ensure condensate pan and drain are clean and clear of obstruction','Inspect for any signs of algae or bacteria — REPORT ISSUES IMMEDIATELY','VFD: Ensure proper operation of cooling fans — REPORT ISSUES IMMEDIATELY','CHW: Blow down chilled water strainers','CHW: Check proper operation via BMS','CHW: Inspect all pressure gauges for proper operation — replace if necessary'],
+    'Semi-Annual':['Clean and inspect blower wheel for loose or cracked blades','Lubricate blower shaft bearings (REFER TO LUBE MASTER) — wipe excess grease from bearing after adding lube','Lubricate motor if serviceable type (REFER TO LUBE MASTER)','Inspect all electrical contactors for excessively burnt, corroded or pitted contacts','Inspect air dampers for proper sealing — adjust if necessary','Replace all 2" Pre-Filters, box old ones and move to loading dock for removal','Flush condensate drains with fresh water and ensure unrestricted flow','Wipe down exterior of the unit','Vacuum all exterior flood containment pans as well as the Air Handler Room Floors'],
+    'Annual':['Check all Blower bearings, pulleys and set screws for tightness','Inspect all electric wires for signs of overheating — replace if necessary']
+  }},
+  'AHU Studio Units':{amps:false,intervals:{
+    'Quarterly':['Check physical condition of blower section','Check belt condition and tension — use belt checker, replace if necessary','Inspect vibration eliminators — adjust if necessary','Check all bearings, pulleys, and set screws for tightness','Ensure condensate pan and drain are clean and clear of obstruction','VFD: Ensure proper operation of cooling fans — REPORT ISSUES IMMEDIATELY','CHW: Blow down chilled water strainers','CHW: Check proper operation via BMS','Pour Chromate "Lift" into all floor drains in the Studio AHU Room'],
+    'Semi-Annual':['Clean and inspect blower wheel for loose or cracked blades','Lubricate blower shaft bearings (REFER TO LUBE MASTER)','Lubricate motor if serviceable type (REFER TO LUBE MASTER)','Inspect all electrical contactors for excessively burnt, corroded or pitted contacts','Inspect air dampers for proper sealing — adjust if necessary','Replace Air Filters','Flush condensate drains with fresh water and ensure unrestricted flow','Wipe down exterior of the unit','Vacuum all exterior flood containment pans as well as the Air Handler Room Floors'],
+    'Annual':['Check all Blower bearings, pulleys and set screws for tightness','Inspect all electric wires for signs of overheating — replace if necessary','Ensure all wire terminations are tight','Remove, clean and apply never seize to chilled water strainers']
+  }},
+  'Bard Unit':{amps:true,ampLabels:['Evap Fan','Cond Fan','Crankcase Htr','Compressor'],intervals:{
+    'Quarterly':['Replace air filter','Inspect Evaporator Fan operation — clean if necessary','Record Evaporator Fan Amperes','Inspect Condenser Fan operation — clean if necessary','Record Condenser Fan Amperes','Check Refrigerant Cycle (Evaporator Temp, Condenser Coil Temperature)','Inspect for refrigerant leaks','Check all contactors and controls','Inspect Crankcase Heaters if Equipped (Record Amperes)','Ensure Condensate pan is clean and drain runs free of obstruction','Record Compressor Amperes','Inspect Economizer for proper operation','Inspect thermostat for proper operation'],
+    'Semi-Annual':['Clean condensate pan and drain','Tighten all electrical connections (Lock Out Tag Out)','Check all fasteners and set screws (Lock Out Tag Out)','Clean Condenser Fan and Coil','Clean Evaporator Fan and Coil']
+  }},
+  'Basement Liebert Units':{amps:false,intervals:{
+    'Monthly':['Blower: Impellers free of debris — USE LOTO','Blower: Bearings are FREE','Blower: Inspect belt condition and tension (replace if necessary) — USE LOTO','Humidifier: Inspect drain pan for leaks','Humidifier: Inspect Humidifier Lamps','Humidifier: Inspect humidifier fill valve assembly — confirm proper operation','Humidifier: Check pan for mineral deposits — clean if necessary','Heaters: Inspect heating elements for deterioration','Heaters: Engage heaters through the controller and confirm proper operation','Air Filters: Check air filter switch','Air Filters: Wipe section clean','Condensate Pump: Inspect pump operation and connections','CHW Piping: Inspect all actuators for leaks and unrestricted movement'],
+    'Semi-Annual':['Blower: Clean and inspect blower wheel(s) for loose or cracked blades','Blower: Bearings inspect for free movement and check set screw for tightness','Blower: Lubricate drive motor if serviceable (2oz every 3 years from initial PM date)','Blower: Inspect belt condition and tension (replace if necessary)','Blower: Inspect and tighten electrical connections']
+  }},
+  'Bathroom Hardware':{amps:false,intervals:{
+    'Quarterly':['Inspect all hinges — repair if necessary','Inspect privacy latches for proper operation and alignment','Inspect partition alignment — repair if necessary','Inspect partition floor skirts — repair if necessary','Inspect partition mounting hardware and anchoring — repair if necessary','Inspect accessory coat hook and toilet paper dispenser — repair if necessary','Inspect entrance door hardware and operation — repair if necessary','Inspect Janitor closet lock and door hardware — repair if necessary']
+  }},
+  'Bathroom Plumbing':{amps:false,intervals:{
+    'Quarterly':['Inspect and test all fixtures for proper mounting and operation — repair if necessary','Inspect and test all soap dispensers for proper mounting and operation — repair if necessary','Inspect and test all Flushometers for proper operation and no leakage — repair if necessary','Inspect and ensure that all Escutcheons are properly installed — repair if necessary','Inspect and ensure that all drains are working properly and not leaking — repair if necessary','Inspect and ensure that toilet paper holders are not loose and working properly — repair if necessary']
+  }},
+  'Blowdown Penthouse':{amps:false,intervals:{
+    'Semi-Annual':['Primary Pump #1 — blow down','Primary Pump #2 — blow down','Primary Pump #3 — blow down','Primary Pump #4 — blow down','Secondary Pump #1 — blow down','Secondary Pump #2 — blow down','Secondary Pump #3 — blow down','Secondary Pump #4 — blow down','Chilled Pump #1 — blow down','Chilled Pump #2 — blow down','Chilled Pump #3 — blow down','Chilled Pump #4 — blow down','HX Plate and Frame — HX 1','HX Plate and Frame — HX 2','Brominator','Strainer — blow down','Tower Bleed','Tower Filter','Separator','Bag Filter','Tower Filtration #1','Tower Filtration #2','Ensure air vents are operating properly']
+  }},
+  'Domestic Hot Water System':{amps:true,ampLabels:['Gas Heater Pump','Elec HWH Element','Fitness Pump'],intervals:{
+    'Quarterly':['Gas Fired Heater (Kitchen): Inspect tank for any signs of leakage','Gas Fired Heater (Kitchen): Increase Temp Set Point to activate heater','Gas Fired Heater (Kitchen): Inspect gas line for corrosion (repair if necessary)','Gas Fired Heater (Kitchen): Inspect Flue for damage or signs of leakage','Gas Fired Heater (Kitchen): Run heat — check flame pattern (refer to O+M)','Gas Fired Heater (Kitchen): Blow down sediment from bottom of tank','Gas Circulation Pump (Kitchen): Inspect Pump for any signs of leakage','Gas Circulation Pump (Kitchen): Record amps and compare with Nameplate','Electric HWH (Fitness): Inspect Tank for any signs of leakage','Electric HWH (Fitness): Inspect Heating Elements and Wiring (use LOTO)','Electric HWH (Fitness): Increase Temp set point to activate heater','Electric HWH (Fitness): Record current draw on each heating element and compare with Nameplate','Circulation Pump (Fitness): Inspect Pump for any signs of leakage','Circulation Pump (Fitness): Record amps and compare with Nameplate']
+  }},
+  'Drain Fitness Center':{amps:false,intervals:{
+    'Monthly':['Remove hair from interceptors','Flush drains with water','Snake each drain using 100\' snake'],
+    'Quarterly':['Remove hair from interceptors','Flush drains with water','Snake each drain using 100\' snake','Apply WHAM to shower and sink drains — USE PROPER PPE','Flush with water after treating as directed by manufacturer']
+  }},
+  'FCU':{amps:true,ampLabels:['Motor 1','Motor 2 (DD)','Heater B1','Heater B2'],intervals:{
+    'Quarterly':['Inspect physical conditions of sheaves and pulleys — check alignment','Inspect all bearings, pulleys and set screws for tightness — adjust if necessary','Inspect belt condition and tension — use belts checker','Clean and vacuum condensate pan and drain','Inspect condensate pump for proper operation','Test flood alarm circuit — pump and pan sensors','Ensure both CHW Actuators close when flood alarm is tripped','Exercise all automatic and manual isolation valves','Test proper operation of thermostats','Test all gauges and ensure proper operation — replace if necessary','Ensure proper operation of electric heaters in FCU-B1 and B2 — record amperes','Inspect blower vibration eliminators — adjust if necessary','Inspect all contactors for excessively burnt, corroded or pitted contacts','Inspect all wires for signs of overheating — replace any wires if necessary','Inspect physical condition and proper operation of Chilled Water Actuator','Inspect all chilled water piping — repair or add insulation where necessary','Measure motor(s) amperage and record (DD drives have 2 motors)'],
+    'Semi-Annual':['Blow down chilled water strainer','Change Air Filter in the Unit — see master sheet for proper size'],
+    'Annual':['Lubricate shaft bearings (if serviceable type)','Lubricate motor (if serviceable type)']
+  }},
+  'Fan Exhaust':{amps:false,intervals:{
+    'Semi-Annual':['Check belt condition, replace or adjust tension as necessary','Clean the fan wheel and shaft','Inspect all electrical terminations and tighten as necessary','Lubricate fan shaft bearings (USE SHELL ALVANIA #2)','Lubricate drive motor if applicable (USE CHEVRON SRI)']
+  }},
+  'Fan Exhaust Kitchen':{amps:true,ampLabels:['L1','L2','L3'],intervals:{
+    'Quarterly':['Inspect belt for wear — adjust or replace as necessary','Inspect physical condition and proper alignment of sheaves and pulleys','Inspect all electrical terminations — tighten as necessary','Inspect bearings and ensure set screws are snug','Ensure access door to blower wheel are tight and there are no leaks','Inspect vibration eliminators — adjust or replace as necessary','Record Amperes (L1, L2, L3)','Wipe down all internal and external parts of the unit','Run and ensure proper operation of the unit after performing PM'],
+    'Semi-Annual':['Lubricate fan shaft bearings — refer to Lube Master','Lubricate drive motor (if applicable — refer to O+M)']
+  }},
+  'Fan Smoke Purge':{amps:false,intervals:{
+    'Quarterly':['Inspect belts for wear (adjust or replace as necessary)','Inspect sheaves and pulleys for wear and alignment','Inspect exterior of fans for any signs of rust or corrosion and repair same','Inspect spring isolators for signs of wear or failure','Clean fan wheel and shaft','Inspect all electrical terminations and tighten as necessary','Ensure supply and return screens or louvers (as applicable) are free of debris and move freely','After PMs are completed, see Chief Engineer to perform Quarterly run test'],
+    'Semi-Annual':['Lubricate fan shaft bearings (USE SHELL ALVANIA #2)','Lubricate drive motor if applicable (USE CHEVRON SRI)']
+  }},
+  'Filtration Make-Up':{amps:true,ampLabels:['Motor Amps'],intervals:{
+    'Quarterly':['Inspect Fan for proper operation','Ensure blades are free from debris and spin freely','Record Motor Amperes','Vacuum supply and return registers','Replace Pre-Filters'],
+    'Semi-Annual':['Replace 4 inch HEPA Filters'],
+    'Annual':['Replace Charcoal activated filters']
+  }},
+  'Fountain Courtyard':{amps:true,ampLabels:['SE','CTR#1','CTR#2','SW'],intervals:{
+    'Monthly':['Inspect general condition of water','Inspect the domestic water makeup system operation','Remove and clean filter cartridge','Record Motor Amperes (SE, CTR#1, CTR#2, SW)','Ensure all spray heads are clear of debris','Ensure PVC screening is clean','Remove PVC screening and inspect pump filter screening — clean if necessary','Check condition of the anode — replace if necessary (check O+M)'],
+    'Semi-Annual':['Full fountain cleaning','Shock with liquid chlorine 3 days before the PM']
+  }},
+  'Fountain Water Hall':{amps:false,intervals:{
+    'Quarterly':['Inspect all water connections for signs of leakage','Vacuum Condenser Coil','Inspect Condenser Fan operation — clean if necessary','Check Refrigerant Cycle (Evaporator Temp, Condenser Coil Temperature)','Inspect for refrigerant leaks','Inspect water actuator and linkages','Ensure drain is clean and drain runs free of obstruction','Tighten all electrical connections','Check all fasteners and set screws']
+  }},
+  'GE Penthouse Unit':{amps:true,ampLabels:['Evap Fan','Cond Fan','Crankcase Htr','Compressor'],intervals:{
+    'Quarterly':['Clean all air filters','Inspect Evaporator Fan operation — clean if necessary','Record Evaporator Fan Amperes','Inspect Condenser Fan operation — clean if necessary','Record Condenser Fan Amperes','Check Refrigerant Cycle (Evaporator Temp, Condenser Coil Temperature)','Inspect for refrigerant leaks','Check all contactors and controls','Inspect Crankcase Heaters if Equipped (Record Amperes)','Ensure Condensate pan is clean and drain runs free of obstruction','Record Compressor Amperes','Inspect thermostat for proper operation','Clean Condenser Fan and Coil','Clean Evaporator Fan and Coil'],
+    'Semi-Annual':['Clean condensate pan and drain','Tighten all electrical connections (Lock Out Tag Out)','Check all fasteners and set screws (Lock Out Tag Out)']
+  }},
+  'HV and Fan Units':{amps:false,intervals:{
+    'Quarterly':['Make sure to include EX-B1, AC-B1, SF-B2 in this PM','Blower (Direct Drive): Check physical condition of blower section, wipe any dirt buildup from blades','Blower: Check cone alignment, set screws and bearings for tightness','Blower: Check Motor and motor mounting section for any damage — REPORT ANY ISSUES','Blower: Ensure motor mounting bolts are snug','Blower: Check motor shaft for free rotation (LOTO)']
+  }},
+  'Stairwell Heater':{amps:true,ampLabels:['Blower','Heating Element'],intervals:{
+    'Quarterly':['Vacuum Elements','Clean blower wheel','Record Amperage of blower','Record amperage of heating element','Replace Air Filters','Confirm Stat Operation','Ensure all electrical connections are tight','Wipe down cabinet']
+  }},
+  'Hot Water Heater':{amps:false,intervals:{
+    'Quarterly':['Check for any signs of discharge of the Safety Valve into the pan','Ensure the temperature is between 110°F and 120°F max','Inspect all wiring','Element Condition — Leakage? Corrosion?'],
+    'Semi-Annual':['Remove and clean Low Water Cutoff sensor']
+  }},
+  'Liebert Basement':{amps:false,intervals:{
+    'Monthly':['Blower: Clean and inspect blower wheel(s) for loose or cracked blades','Blower: Bearings inspect for free movement and check set screw for tightness','Blower: Inspect belt condition and tension (replace if necessary) — USE LOTO','Heaters: Inspect heating elements for deterioration','Heaters: Engage heaters through the controller and confirm proper operation','Air Filters: Check air filter switch','Air Filters: Wipe section clean including intake grills — report any damage to unit','Condensate Pump: Inspect mechanical pump operation','Condensate Pump: Inspect all electrical connections','CHW Piping: Inspect all piping actuators for leaks and unrestricted movement (stroke via Test Outputs Menu)','CHW Piping: Inspect all CHW insulation — repair if necessary','CHW Piping: Inspect and test supply, return gauges and iso valves — replace if necessary','CHW Piping: Inspect and test all Belimo Actuators — report any issues to Chief immediately'],
+    'Semi-Annual':['Blower: Lubricate drive motor if serviceable (2oz every 3 years from initial PM date)','Blower: Inspect and tighten electrical connections','Strainers: Blow down supply strainers','Strainers: Ensure there are no leaks, reinstall cap and make sure there are no leaks']
+  }}
+};
+
+function isGeneric(n){return GENERIC_PM.hasOwnProperty(n)}
+function getGenericTasks(n,f){const pm=GENERIC_PM[n];if(!pm)return{};const t={};const order=['Monthly','Quarterly','Semi-Annual','Annual'];const fIdx=order.indexOf(f);if(fIdx<0)return{};for(let i=0;i<=fIdx;i++){if(pm.intervals[order[i]])t[order[i]]=pm.intervals[order[i]]}return t}
 function getCTTasks(f){const t={};if(f!=='Monthly'){if(f==='Quarterly'||f==='Semi-Annual'||f==='Annual'){t['Quarterly']=CT_PM['Quarterly'];t['Quarterly — VFD']=CT_PM['Quarterly — VFD']}if(f==='Semi-Annual'||f==='Annual')t['Semi-Annual']=CT_PM['Semi-Annual'];if(f==='Annual')t['Annual']=CT_PM['Annual']}return t}
 function getPumpTasks(f){const t={};t['Daily']=PUMP_PM['Daily'];if(f==='Quarterly'||f==='Semi-Annual'||f==='Annual')t['Quarterly']=PUMP_PM['Quarterly'];if(f==='Semi-Annual'||f==='Annual')t['Semi-Annual']=PUMP_PM['Semi-Annual'];return t}
 function getLiebertTasks(f){const t={};if(f==='Monthly'||f==='Quarterly'||f==='Semi-Annual'||f==='Annual')t['Monthly']=LIEBERT_PM['Monthly'];if(f==='Semi-Annual'||f==='Annual')t['Semi-Annual']=LIEBERT_PM['Semi-Annual'];return t}
 
 let uid=0;
-function renderPMChecklists(){uid=0;const sec=document.getElementById('pmChecklistSection'),body=document.getElementById('pmChecklistBody');body.innerHTML='';const cts=[...selectedEquip].filter(isCT),pumps=[...selectedEquip].filter(isPump),hasLiebert=[...selectedEquip].some(isLiebert),coDetectors=[...selectedEquip].filter(isCO);if(!cts.length&&!pumps.length&&!hasLiebert&&!coDetectors.length){sec.style.display='none';return}sec.style.display='';body.appendChild(mkWarn());
+function renderPMChecklists(){uid=0;const sec=document.getElementById('pmChecklistSection'),body=document.getElementById('pmChecklistBody');body.innerHTML='';const cts=[...selectedEquip].filter(isCT),pumps=[...selectedEquip].filter(isPump),hasLiebert=[...selectedEquip].some(isLiebert),coDetectors=[...selectedEquip].filter(isCO),generics=[...selectedEquip].filter(isGeneric);if(!cts.length&&!pumps.length&&!hasLiebert&&!coDetectors.length&&!generics.length){sec.style.display='none';return}sec.style.display='';body.appendChild(mkWarn());
 // REPAIR mode — only show findings per equipment, no PM task checklists
 if(selectedFreq==='Repair'){
   cts.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🔧 '+name+' — Repair'));appendFindings(b,name);body.appendChild(b)});
   pumps.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('pump-header','🔧 '+name+' — Repair'));appendFindings(b,name);body.appendChild(b)});
   if(hasLiebert&&liebertUnits.length){liebertUnits.forEach((unit,ui)=>{const ul=unit.num?'Liebert Unit #'+unit.num:'Liebert Unit '+(ui+1);const b=mkBlock();b.appendChild(mkHeader('liebert-header','🔧 '+ul+' — Repair'));appendFindings(b,ul);body.appendChild(b)})}
   coDetectors.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🔧 '+name+' — Repair'));appendFindings(b,name);body.appendChild(b)});
+  generics.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🔧 '+name+' — Repair'));appendFindings(b,name);body.appendChild(b)});
   return;
 }
 if(cts.length){const tasks=getCTTasks(selectedFreq);if(Object.keys(tasks).length)cts.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🏗 '+name+' — '+selectedFreq+' PM'));Object.entries(tasks).forEach(([f,ts])=>{b.appendChild(mkFreqLabel(f));ts.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});appendFindings(b,name);body.appendChild(b)})}if(pumps.length){const tasks=getPumpTasks(selectedFreq);pumps.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('pump-header','⚙️ '+name+' — '+selectedFreq+' Paco Pump PM'));Object.entries(tasks).forEach(([f,data])=>{b.appendChild(mkFreqLabel(f));if(data.note)b.appendChild(mkNote(data.note));data.tasks.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});appendFindings(b,name);body.appendChild(b)})}if(hasLiebert&&liebertUnits.length){const tasks=getLiebertTasks(selectedFreq);liebertUnits.forEach((unit,ui)=>{const ul=unit.num?'Liebert Unit #'+unit.num:'Liebert Unit '+(ui+1);const b=mkBlock();b.appendChild(mkHeader('liebert-header','❄️ '+ul+' — '+selectedFreq+' CAC PM'));Object.entries(tasks).forEach(([freq,data])=>{b.appendChild(mkFreqLabel(freq));data.sections.forEach(sec=>{b.appendChild(mkSubLabel(sec.sub));sec.tasks.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)));if(sec.alert)b.appendChild(mkAlert(sec.alert));if(sec.hasHeaterReadings){const r=document.createElement('div');r.className='reading-row';r.innerHTML='<div><label>HTR #1 Amps</label><input type="text" placeholder="—"></div><div><label>HTR #2 Amps</label><input type="text" placeholder="—"></div><div><label>HTR #3 Amps</label><input type="text" placeholder="—"></div>';b.appendChild(r)}if(sec.hasMotorReadings){const r=document.createElement('div');r.className='reading-row';r.innerHTML='<div><label>L#1 Amps</label><input type="text" placeholder="—"></div><div><label>L#2 Amps</label><input type="text" placeholder="—"></div><div><label>L#3 Amps</label><input type="text" placeholder="—"></div>';b.appendChild(r)}})});appendFindings(b,ul);body.appendChild(b)})}
 if(coDetectors.length){const tasks=getCOTasks(selectedFreq);if(Object.keys(tasks).length)coDetectors.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🔴 '+name+' — '+selectedFreq+' PM'));Object.entries(tasks).forEach(([f,ts])=>{b.appendChild(mkFreqLabel(f));ts.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});appendFindings(b,name);body.appendChild(b)})}
+// Generic equipment (all 900 Sylvan equipment)
+generics.forEach(name=>{const pm=GENERIC_PM[name];const tasks=getGenericTasks(name,selectedFreq);if(!Object.keys(tasks).length)return;const b=mkBlock();b.appendChild(mkHeader('ct-header','🔧 '+name+' — '+selectedFreq+' PM'));Object.entries(tasks).forEach(([f,ts])=>{b.appendChild(mkFreqLabel(f));ts.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});if(pm.amps&&pm.ampLabels&&pm.ampLabels.length){const r=document.createElement('div');r.className='reading-row';r.style.cssText='display:grid;grid-template-columns:repeat('+Math.min(pm.ampLabels.length,3)+',1fr);gap:8px;margin-top:8px;';r.innerHTML=pm.ampLabels.map(lbl=>'<div><label style="font-size:11px;color:var(--text-mid);">'+lbl+' Amps</label><input type="text" placeholder="—" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;"></div>').join('');b.appendChild(mkFreqLabel('Amp Readings'));b.appendChild(r)}appendFindings(b,name);body.appendChild(b)});
 }
 function mkBlock(){const d=document.createElement('div');d.className='pm-checklist';return d}function mkHeader(c,t){const d=document.createElement('div');d.className='pm-checklist-header '+c;d.innerHTML='<span class="equip-tag">'+t+'</span>';return d}function mkFreqLabel(t){const d=document.createElement('div');d.className='pm-freq-label';d.textContent=t;return d}function mkSubLabel(t){const d=document.createElement('div');d.className='pm-sub-label';d.textContent=t;return d}function mkTaskRow(t,i){uid++;const id='tk_'+uid;const d=document.createElement('div');d.className='pm-task-row';d.innerHTML='<div class="pm-task-check" id="'+id+'" onclick="toggleCheck(\''+id+'\')">✓</div><div class="pm-task-text" id="'+id+'_t">'+(i+1)+'. '+t+'</div>';return d}function mkNote(t){const d=document.createElement('div');d.className='pm-note';d.textContent=t;return d}function mkAlert(t){const d=document.createElement('div');d.className='pm-alert';d.textContent=t;return d}function mkWarn(){const d=document.createElement('div');d.className='pm-warn';d.textContent='⚠️ MAKE SURE TO USE PROPER PPE AT ALL TIMES';return d}function appendFindings(b,n){b.appendChild(mkFreqLabel('Findings'));const ta=document.createElement('textarea');ta.placeholder='Findings for '+n+'…';ta.rows=3;ta.style.cssText='width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:DM Sans,sans-serif;font-size:14px;color:var(--text);background:#FAFBFD;resize:vertical;margin-top:4px;';b.appendChild(ta)}function toggleCheck(id){document.getElementById(id).classList.toggle('checked');document.getElementById(id+'_t').classList.toggle('checked-text')}
 
