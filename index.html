@@ -34,7 +34,7 @@
 
   /* Cards */
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:480px}
-  @media(max-width:400px){.cards{grid-template-columns:1fr;max-width:320px}}
+  @media(max-width:500px){.cards{grid-template-columns:1fr !important;max-width:320px}}
   .card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:all .25s ease;text-decoration:none;color:var(--text);position:relative;overflow:hidden}
   .card::before{content:'';position:absolute;inset:0;border-radius:var(--radius);background:linear-gradient(135deg,transparent 0%,rgba(41,121,255,.05) 100%);opacity:0;transition:opacity .25s}
   .card:hover,.card:active{background:var(--card-hover);border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-glow),0 12px 40px rgba(0,0,0,.3);transform:translateY(-2px)}
@@ -127,7 +127,7 @@
       </div>
       <button class="btn-logout" onclick="doLogout()">Sign Out</button>
     </div>
-    <div class="cards">
+    <div class="cards" style="grid-template-columns:1fr 1fr 1fr;">
       <a href="./pm/index.html" class="card card-pm">
         <div class="card-icon">📋</div>
         <div class="card-title">PM Sheet</div>
@@ -139,6 +139,12 @@
         <div class="card-title">Inventories</div>
         <div class="card-desc">Equipment & Parts Tracking</div>
         <div class="card-badge badge-live">● Live</div>
+      </a>
+      <a href="./pm-records/" class="card card-pm" style="border-color:rgba(255,255,255,.15);">
+        <div class="card-icon" style="background:rgba(46,125,50,.15);">📁</div>
+        <div class="card-title">PM Records</div>
+        <div class="card-desc">Browse All Completed PMs</div>
+        <div class="card-badge badge-live">● Archive</div>
       </a>
     </div>
   </div>
