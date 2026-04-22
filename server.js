@@ -168,7 +168,7 @@ const MONTHS = ['01-January','02-February','03-March','04-April','05-May','06-Ju
 
 app.post('/api/backup-pm', async (req, res) => {
   try {
-    const { technician, facility, equipment, frequency, followUp, followUpNotes, date, emailHtml, safetyData, postJobData, checklistData, generalComments, tasksCompleted } = req.body;
+    const { technician, facility, equipment, frequency, followUp, followUpNotes, date, emailHtml, safetyData, postJobData, checklistData, signatureData, generalComments, tasksCompleted } = req.body;
     const now = new Date();
     const year = now.getFullYear();
     const month = MONTHS[now.getMonth()];
@@ -192,6 +192,7 @@ app.post('/api/backup-pm', async (req, res) => {
       safetyData: safetyData || null,
       postJobData: postJobData || null,
       checklistData: checklistData || null,
+      signatureData: signatureData || null,
       emailHtml: emailHtml || null,
       createdAt: now.toISOString(),
       dateFormatted: `${now.getMonth()+1}/${day}/${year}`,
