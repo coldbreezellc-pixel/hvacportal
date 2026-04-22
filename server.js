@@ -274,6 +274,52 @@ app.post('/api/send-email', async (req, res) => {
   }
 });
 
+// ── PM RECORDS BROWSER ──
+// List years
+app.get('/api/pm-records', async (req, res) => {
+  try {
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/pm-records?ref=${GH_BRANCH}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+    if (!resp.ok) return res.json({ items: [] });
+    const items = await resp.json();
+    const years = items.filter(i => i.type === 'dir').map(i => i.name).sort().reverse();
+    res.json({ items: years });
+  } catch (e) { res.json({ items: [] }); }
+});
+
+// List months in a year
+app.get('/api/pm-records/:year', async (req, res) => {
+  try {
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/pm-records/${req.params.year}?ref=${GH_BRANCH}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+    if (!resp.ok) return res.json({ items: [] });
+    const items = await resp.json();
+    const months = items.filter(i => i.type === 'dir').map(i => i.name).sort();
+    res.json({ items: months });
+  } catch (e) { res.json({ items: [] }); }
+});
+
+// List PMs in a month
+app.get('/api/pm-records/:year/:month', async (req, res) => {
+  try {
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/pm-records/${req.params.year}/${req.params.month}?ref=${GH_BRANCH}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+    if (!resp.ok) return res.json({ items: [] });
+    const items = await resp.json();
+    const files = items.filter(i => i.type === 'file' && i.name.endsWith('.json')).map(i => i.name.replace('.json', '')).sort().reverse();
+    res.json({ items: files });
+  } catch (e) { res.json({ items: [] }); }
+});
+
+// Get a specific PM record
+app.get('/api/pm-records/:year/:month/:file', async (req, res) => {
+  try {
+    const data = await ghGet(`pm-records/${req.params.year}/${req.params.month}/${req.params.file}.json`);
+    if (!data) return res.status(404).json({ error: 'Not found' });
+    res.json(JSON.parse(data.content));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Serve static files from repo root
 app.use(express.static(path.join(__dirname)));
 
