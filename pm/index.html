@@ -514,12 +514,6 @@ async function savePMToHistory(data) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ value: JSON.stringify(history), sha: sha })
     });
-    // Also backup metadata
-    fetch('/api/backup-pm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ technician: data.technician, facility: data.facility, equipment: data.equipment, frequency: data.frequency, followUp: data.followUp, followUpNotes: data.followUpNotes })
-    }).catch(e => {});
   } catch(e) {
     console.log('History save error:', e);
   }
@@ -1112,7 +1106,7 @@ try {
 
 savePMToHistory({ technician: tech, facility: facility, equipment: equipList, frequency: selectedFreq, date: dateVal, followUp: followupYes, followUpNotes: summaryNotes, tasksCompleted: tasksCompleted, generalComments: generalComments, completedAt: new Date().toISOString(), completedBy: _currentUser.displayName || tech, emailSubject: subject, emailHtml: emailHtml, emailAttachments: lotoAttachments });
 clearDraft();
-try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes})})}catch(e){}
+try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes,date:dateVal,tasksCompleted:tasksCompleted,generalComments:generalComments,emailHtml:emailHtml,safetyData:safetyData,checklistData:checklistData})})}catch(e){}
 document.querySelector('.bottom-bar').style.display='flex';
 overlay.classList.remove('show');
 if(emailSent) alert('✓ PM Report emailed successfully!');
