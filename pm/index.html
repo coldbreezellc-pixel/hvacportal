@@ -251,8 +251,6 @@
       <table class="safety-table" id="gasTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
       <div class="safety-sub-header">Emergency Procedures</div>
       <div class="emergency-box"><ul><li><strong>Electrical Shock:</strong> Do not touch the person. Disconnect power source if possible and call the Chief and emergency services.</li><li><strong>Gas Leak:</strong> Evacuate the area immediately. Do not use electrical switches or open flames. Call the gas company from a safe distance.</li><li><strong>Fire:</strong> Use a fire extinguisher if safe to do so. Evacuate the area and call emergency services and Notify Chief and GRIC.</li><li><strong>Chemical Spill:</strong> Use appropriate PPE and clean-up materials. Refer to the Safety Data Sheet (SDS) for specific handling instructions.</li></ul></div>
-      <div class="safety-sub-header">Post-Job</div>
-      <table class="safety-table" id="postJobTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
       
       <!-- Per-technician safety signatures -->
       <div id="safetySignaturesArea" style="display:none;margin-top:16px;">
@@ -276,6 +274,10 @@
   <div class="section" id="pmChecklistSection" style="display:none;"><div class="section-header"><span class="icon">🔧</span> PM Checklist</div><div class="section-body" id="pmChecklistBody"></div></div>
   <div class="section"><div class="section-header"><span class="icon">💬</span> General Comments / Findings</div><div class="section-body"><textarea id="general_comments" placeholder="Enter observations, findings, or follow-up items…" rows="4"></textarea></div></div>
   <div class="section"><div class="section-header"><span class="icon">📸</span> Photo Documentation</div><div class="section-body"><p style="font-size:12px;color:var(--text-light);margin-bottom:12px;">Tap a slot to take a photo or choose from your gallery.</p><div class="photo-grid" id="photoGrid"></div><button class="btn btn-secondary" style="margin-top:12px;flex:none;width:100%;" onclick="addPhotoSlot()">+ Add More Photo Slots</button></div></div>
+  <div class="section"><div class="section-header" style="background:var(--safety)"><span class="icon">✅</span> Post-Job Safety Checklist</div><div class="section-body">
+    <p style="font-size:12px;color:var(--text-mid);margin-bottom:10px;">Complete these items after finishing all PM work.</p>
+    <table class="safety-table" id="postJobTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+  </div></div>
   <div class="section"><div class="section-header"><span class="icon">📊</span> Completion Summary</div><div class="section-body"><div class="field-group"><label>Tasks Completed</label><input type="text" id="tasks_completed" placeholder="e.g. 8/8"></div><div class="field-group"><label>Follow-up Required?</label><div class="check-row"><label><input type="radio" name="followup" value="yes"> Yes</label><label><input type="radio" name="followup" value="no" checked> No</label></div></div><div class="field-group"><label>Summary Notes</label><textarea id="summary_notes" placeholder="Final summary or follow-up details…" rows="3"></textarea></div></div></div>
 
   <!-- Per-technician completion signatures -->
@@ -726,12 +728,13 @@ function initSafetySigCanvas(idx, name){
 }
 
 function isSafetyComplete() {
-  // Check ALL safety checklist items are marked Done or N/A
+  // Check safety checklist items (NOT Post-Job which is at the bottom now)
   let allChecked = true;
   const unchecked = [];
-  document.querySelectorAll('.safety-table').forEach(table => {
+  document.querySelectorAll('#safetySection .safety-table').forEach(table => {
+    if (table.id === 'postJobTable') return; // skip — it's checked separately
     table.querySelectorAll('tr').forEach((tr, i) => {
-      if (i === 0) return; // skip header
+      if (i === 0) return;
       const doneEl = tr.querySelector('.done-check');
       const naEl = tr.querySelector('.na-check');
       const done = doneEl?.classList.contains('active') || false;
@@ -743,11 +746,31 @@ function isSafetyComplete() {
       }
     });
   });
-  // Also check PPE condition selects
+  // Check PPE condition selects
   document.querySelectorAll('#ppeTable .condition-select').forEach((sel, idx) => {
     if (!sel.value || sel.value === '') {
       allChecked = false;
       unchecked.push('PPE condition for ' + (PPE_ITEMS[idx] || 'item'));
+    }
+  });
+  return { complete: allChecked, unchecked };
+}
+
+function isPostJobComplete() {
+  const table = document.getElementById('postJobTable');
+  if (!table) return { complete: true, unchecked: [] };
+  let allChecked = true;
+  const unchecked = [];
+  table.querySelectorAll('tr').forEach((tr, i) => {
+    if (i === 0) return;
+    const doneEl = tr.querySelector('.done-check');
+    const naEl = tr.querySelector('.na-check');
+    const done = doneEl?.classList.contains('active') || false;
+    const na = naEl?.classList.contains('active') || false;
+    if (!done && !na) {
+      allChecked = false;
+      const task = tr.querySelector('td')?.textContent || 'Item';
+      unchecked.push(task);
     }
   });
   return { complete: allChecked, unchecked };
@@ -936,6 +959,17 @@ function initCompSigCanvas(idx, name){
 
 function confirmCompSig(idx){
   const name = techNames[idx];
+  
+  // Check Post-Job checklist is complete
+  const postJob = isPostJobComplete();
+  if (!postJob.complete) {
+    const missing = postJob.unchecked.slice(0, 3).join('\n• ');
+    const more = postJob.unchecked.length > 3 ? '\n...and ' + (postJob.unchecked.length - 3) + ' more' : '';
+    alert('⚠️ All Post-Job checklist items must be completed before signing.\n\nIncomplete items:\n• ' + missing + more);
+    document.getElementById('postJobTable').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  
   if(!compSigs[name] || !compSigs[name].hasDrawing){
     alert('Please sign above before confirming.');
     return;
@@ -1060,9 +1094,10 @@ document.querySelectorAll('.pm-checklist').forEach(block => {
   checklistData.push({ header, tasks, findings });
 });
 
-// Gather safety checklist status
+// Gather safety checklist status (safety section only, not Post-Job)
 const safetyData = [];
-document.querySelectorAll('.safety-table').forEach(table => {
+document.querySelectorAll('#safetySection .safety-table').forEach(table => {
+  if (table.id === 'postJobTable') return;
   const rows = [];
   table.querySelectorAll('tr').forEach((tr, i) => {
     if(i === 0) return;
@@ -1078,6 +1113,21 @@ document.querySelectorAll('.safety-table').forEach(table => {
   });
   if(rows.length) safetyData.push(rows);
 });
+
+// Gather Post-Job data separately
+const postJobData = [];
+const postJobTable = document.getElementById('postJobTable');
+if (postJobTable) {
+  postJobTable.querySelectorAll('tr').forEach((tr, i) => {
+    if(i === 0) return;
+    const task = tr.querySelector('td')?.textContent || '';
+    const doneEl = tr.querySelector('.done-check');
+    const naEl = tr.querySelector('.na-check');
+    const done = doneEl?.classList.contains('active') || false;
+    const na = naEl?.classList.contains('active') || false;
+    postJobData.push({ task, done, na });
+  });
+}
 
 // Gather LOTO photos
 const lotoAttachments = [];
@@ -1124,7 +1174,7 @@ checklistData.forEach(cl => {
 });
 
 let safetyHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">Safety Checklist</div>';
-const safetyLabels = ['PPE Condition','Pre-Job Safety','Electrical Safety','Gas & Chemical Safety','Post-Job'];
+const safetyLabels = ['PPE Condition','Pre-Job Safety','Electrical Safety','Gas & Chemical Safety'];
 safetyData.forEach((section, si) => {
   safetyHtml += '<div style="font-size:12px;font-weight:700;color:#64748b;margin:8px 0 4px;text-transform:uppercase;">' + (safetyLabels[si]||'Section') + '</div>';
   section.forEach(row => {
@@ -1134,6 +1184,17 @@ safetyData.forEach((section, si) => {
   });
 });
 safetyHtml += '</div>';
+
+// Post-Job HTML
+let postJobHtml = '';
+if (postJobData.length) {
+  postJobHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#E65100;margin-bottom:8px;">✅ Post-Job Checklist</div>';
+  postJobData.forEach(row => {
+    const icon = row.done ? '✅' : (row.na ? '➖' : '⬜');
+    postJobHtml += '<div style="padding:3px 0;font-size:12px;">' + icon + ' ' + row.task + '</div>';
+  });
+  postJobHtml += '</div>';
+}
 
 let sigHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">Technician Signatures</div>';
 techNames.forEach(name => { sigHtml += '<span style="display:inline-block;margin:4px 8px 4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;">✓ ' + name + '</span>'; });
@@ -1146,6 +1207,7 @@ const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;marg
   '<tr><td style="padding:6px 0;color:#64748b;">Follow-up:</td><td style="padding:6px 0;font-weight:700;color:' + (followupYes?'#DC2626':'#16a34a') + ';">' + (followupYes?'YES':'No') + '</td></tr></table>' +
   safetyHtml + checklistHtml +
   photosHtml +
+  postJobHtml +
   (generalComments ? '<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Comments / Findings</div><div style="font-size:14px;color:#1e293b;">' + generalComments.replace(/\n/g,'<br>') + '</div></div>' : '') +
   sigHtml +
   '<p style="color:#94a3b8;font-size:11px;margin-top:20px;">Sent from HVAC Portal at ' + new Date().toLocaleString('en-US',{timeZone:'America/New_York'}) + '</p></div></div>';
@@ -1170,7 +1232,7 @@ try {
 
 savePMToHistory({ technician: tech, facility: facility, equipment: equipList, frequency: selectedFreq, date: dateVal, followUp: followupYes, followUpNotes: summaryNotes, tasksCompleted: tasksCompleted, generalComments: generalComments, completedAt: new Date().toISOString(), completedBy: _currentUser.displayName || tech, emailSubject: subject, emailHtml: emailHtml, emailAttachments: lotoAttachments });
 clearDraft();
-try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes,date:dateVal,tasksCompleted:tasksCompleted,generalComments:generalComments,emailHtml:emailHtml,safetyData:safetyData,checklistData:checklistData})})}catch(e){}
+try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes,date:dateVal,tasksCompleted:tasksCompleted,generalComments:generalComments,emailHtml:emailHtml,safetyData:safetyData,postJobData:postJobData,checklistData:checklistData})})}catch(e){}
 document.querySelector('.bottom-bar').style.display='flex';
 overlay.classList.remove('show');
 if(emailSent) alert('✓ PM Report emailed successfully!');
