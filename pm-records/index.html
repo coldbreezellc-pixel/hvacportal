@@ -242,6 +242,23 @@ async function viewPM(year, month, file) {
       html += '</div></div>';
     }
 
+    // Signatures
+    if (pm.signatureData && pm.signatureData.length) {
+      html += '<div class="detail-section"><div class="detail-header">✍️ Signatures</div><div class="detail-body">';
+      pm.signatureData.forEach(sig => {
+        const label = sig.type === 'safety' ? '🛡 Safety' : '✅ Completion';
+        html += '<div style="margin:8px 0;padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">';
+        html += '<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;">' + label + ' — ' + sig.name + '</div>';
+        if (sig.image) {
+          html += '<img src="data:image/png;base64,' + sig.image + '" style="max-width:100%;height:70px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;" />';
+        } else {
+          html += '<span style="color:#16a34a;font-weight:600;">✓ Signed</span>';
+        }
+        html += '</div>';
+      });
+      html += '</div></div>';
+    }
+
     // Action buttons
     html += '<div class="action-row">';
     html += '<button class="print-btn" onclick="window.print()">🖨 Print</button>';
