@@ -163,28 +163,53 @@ app.post('/api/backup', async (req, res) => {
   }
 });
 
-// ── PM WORK ORDER BACKUP ──
+// ── PM WORK ORDER PERMANENT ARCHIVE ──
+const MONTHS = ['01-January','02-February','03-March','04-April','05-May','06-June','07-July','08-August','09-September','10-October','11-November','12-December'];
+
 app.post('/api/backup-pm', async (req, res) => {
   try {
-    const { technician, facility, equipment, frequency, pdfData } = req.body;
+    const { technician, facility, equipment, frequency, followUp, followUpNotes, date, emailHtml, safetyData, checklistData, generalComments, tasksCompleted } = req.body;
     const now = new Date();
+    const year = now.getFullYear();
+    const month = MONTHS[now.getMonth()];
+    const day = String(now.getDate()).padStart(2, '0');
     const ts = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const dateStr = (now.getMonth()+1) + '-' + now.getDate() + '-' + now.getFullYear();
     const techName = (technician || 'unknown').replace(/[^a-zA-Z0-9,. ]/g, '').replace(/\s+/g, '_');
+    const equipShort = (equipment || 'unknown').split(',')[0].trim().replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_').slice(0, 30);
+    const freqLabel = frequency === 'Repair' ? 'Repair' : (frequency || 'PM') + '_PM';
 
-    // Save PM report metadata
-    const metadata = JSON.stringify({
-      technician, facility, equipment, frequency,
-      date: now.toISOString(),
-      dateFormatted: dateStr
-    }, null, 2);
+    // Build comprehensive PM record
+    const record = {
+      id: ts + '_' + Math.random().toString(36).slice(2, 6),
+      technician,
+      facility,
+      equipment,
+      frequency,
+      followUp: followUp || false,
+      followUpNotes: followUpNotes || '',
+      tasksCompleted: tasksCompleted || '',
+      generalComments: generalComments || '',
+      safetyData: safetyData || null,
+      checklistData: checklistData || null,
+      emailHtml: emailHtml || null,
+      createdAt: now.toISOString(),
+      dateFormatted: `${now.getMonth()+1}/${day}/${year}`,
+      archivedBy: technician
+    };
 
-    const backupName = `PM_${techName}_${ts}`;
-    await ghPut(`backups/pm/${dateStr}/${backupName}.json`, metadata, `PM Work Order — ${technician} — ${facility} — ${dateStr}`);
+    const filename = `${day}_${freqLabel}_${equipShort}_${techName}`;
+    const folderPath = `pm-records/${year}/${month}`;
 
-    res.json({ success: true, backup: backupName });
+    await ghPut(
+      `${folderPath}/${filename}.json`,
+      JSON.stringify(record, null, 2),
+      `PM ${freqLabel} — ${equipment} — ${technician} — ${now.getMonth()+1}/${day}/${year}`
+    );
+
+    console.log(`PM archived: ${folderPath}/${filename}.json`);
+    res.json({ success: true, path: `${folderPath}/${filename}.json` });
   } catch (e) {
-    console.error('PM Backup error:', e);
+    console.error('PM Archive error:', e);
     res.status(500).json({ error: e.message });
   }
 });
