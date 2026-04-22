@@ -1132,13 +1132,15 @@ if (postJobTable) {
 // Gather LOTO photos
 const lotoAttachments = [];
 const lotoInlineHtml = [];
+const lotoArchiveData = [];
 lotoPhotos.filter(p => p.dataUrl).forEach((p, i) => {
   const b64 = p.dataUrl.split(',')[1];
-  const cid = 'loto' + (i+1);
   const caption = p.caption || 'LOTO Photo ' + (i+1);
+  const dataUri = p.dataUrl;
   if(b64) {
-    lotoAttachments.push({ filename: 'LOTO_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg', cid: cid });
-    lotoInlineHtml.push('<div style="margin:8px 0;"><img src="cid:' + cid + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
+    lotoAttachments.push({ filename: 'LOTO_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg' });
+    lotoInlineHtml.push('<div style="margin:8px 0;"><img src="' + dataUri + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
+    lotoArchiveData.push({ caption: caption, image: b64 });
   }
 });
 
@@ -1147,10 +1149,10 @@ document.querySelectorAll('.photo-slot.has-photo img').forEach((img, i) => {
   if(img.src && img.src.startsWith('data:')) {
     const b64 = img.src.split(',')[1];
     const caption = img.closest('.photo-slot')?.parentElement?.querySelector('.photo-caption input')?.value || 'Photo ' + (i+1);
-    const cid = 'photo' + (i+1);
     if(b64) {
-      lotoAttachments.push({ filename: 'Photo_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg', cid: cid });
-      lotoInlineHtml.push('<div style="margin:8px 0;"><img src="cid:' + cid + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
+      lotoAttachments.push({ filename: 'Photo_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg' });
+      lotoInlineHtml.push('<div style="margin:8px 0;"><img src="' + img.src + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
+      lotoArchiveData.push({ caption: caption, image: b64 });
     }
   }
 });
@@ -1208,12 +1210,10 @@ techNames.forEach((name, i) => {
     try { sigB64 = canvas.toDataURL('image/png').split(',')[1]; } catch(e) {}
   }
   if (sigB64) {
-    const cid = 'safesig' + i;
-    lotoAttachments.push({ filename: 'SafetySig_' + name.replace(/[^a-zA-Z0-9]/g, '_') + '.png', content: sigB64, contentType: 'image/png', cid: cid });
     signatureData.push({ type: 'safety', name: name, image: sigB64 });
     sigHtml += '<div style="margin:8px 0;padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">' +
       '<div style="font-size:12px;font-weight:700;color:#1B3A5C;margin-bottom:6px;">🛡 ' + name + ' — Safety</div>' +
-      '<img src="cid:' + cid + '" style="max-width:300px;height:60px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;" /></div>';
+      '<img src="data:image/png;base64,' + sigB64 + '" style="max-width:300px;height:60px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;" /></div>';
   } else {
     sigHtml += '<div style="margin:4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;display:inline-block;">✓ ' + name + ' — Safety</div>';
   }
@@ -1229,12 +1229,10 @@ techNames.forEach((name, i) => {
     try { sigB64 = canvas.toDataURL('image/png').split(',')[1]; } catch(e) {}
   }
   if (sigB64) {
-    const cid = 'compsig' + i;
-    lotoAttachments.push({ filename: 'CompletionSig_' + name.replace(/[^a-zA-Z0-9]/g, '_') + '.png', content: sigB64, contentType: 'image/png', cid: cid });
     signatureData.push({ type: 'completion', name: name, image: sigB64 });
     sigHtml += '<div style="margin:8px 0;padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">' +
       '<div style="font-size:12px;font-weight:700;color:#1B3A5C;margin-bottom:6px;">✅ ' + name + ' — Completion</div>' +
-      '<img src="cid:' + cid + '" style="max-width:300px;height:60px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;" /></div>';
+      '<img src="data:image/png;base64,' + sigB64 + '" style="max-width:300px;height:60px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;" /></div>';
   } else {
     sigHtml += '<div style="margin:4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;display:inline-block;">✓ ' + name + ' — Completion</div>';
   }
@@ -1273,7 +1271,7 @@ try {
 
 savePMToHistory({ technician: tech, facility: facility, equipment: equipList, frequency: selectedFreq, date: dateVal, followUp: followupYes, followUpNotes: summaryNotes, tasksCompleted: tasksCompleted, generalComments: generalComments, completedAt: new Date().toISOString(), completedBy: _currentUser.displayName || tech, emailSubject: subject, emailHtml: emailHtml, emailAttachments: lotoAttachments });
 clearDraft();
-try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes,date:dateVal,tasksCompleted:tasksCompleted,generalComments:generalComments,emailHtml:emailHtml,safetyData:safetyData,postJobData:postJobData,checklistData:checklistData,signatureData:signatureData})})}catch(e){}
+try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes,date:dateVal,tasksCompleted:tasksCompleted,generalComments:generalComments,emailHtml:emailHtml,safetyData:safetyData,postJobData:postJobData,checklistData:checklistData,signatureData:signatureData,lotoPhotos:lotoArchiveData})})}catch(e){}
 document.querySelector('.bottom-bar').style.display='flex';
 overlay.classList.remove('show');
 if(emailSent) alert('✓ PM Report emailed successfully!');
