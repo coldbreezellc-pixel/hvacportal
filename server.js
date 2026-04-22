@@ -323,6 +323,84 @@ app.get('/api/pm-records/:year/:month/:file', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── FULL SNAPSHOT BACKUP ──
+// Creates a timestamped snapshot of all data + PM records
+app.post('/api/snapshot', async (req, res) => {
+  try {
+    const now = new Date();
+    const ts = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const snap = `backups/snapshots/${ts}`;
+    const results = [];
+
+    // Back up data files
+    const dataFiles = ['pm_users.json', 'pm_inventory.json', 'pm_logs.json', 'pm_history.json', 'inventory.json', 'users.json'];
+    for (const fn of dataFiles) {
+      try {
+        const d = await ghGet(`data/${fn}`);
+        if (d && d.content) {
+          const rawContent = Buffer.from(d.content, 'base64').toString('utf-8');
+          await ghPut(`${snap}/data/${fn}`, rawContent, `Snapshot ${ts} — data/${fn}`);
+          results.push(`data/${fn}`);
+        }
+      } catch (e) { /* skip missing files */ }
+    }
+
+    // Back up pm-records recursively (list years → months → files)
+    try {
+      const yearsResp = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/pm-records?ref=${GH_BRANCH}`, { headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+      if (yearsResp.ok) {
+        const yearsData = await yearsResp.json();
+        for (const yearItem of yearsData.filter(i => i.type === 'dir')) {
+          const monthsResp = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/pm-records/${yearItem.name}?ref=${GH_BRANCH}`, { headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+          if (!monthsResp.ok) continue;
+          const monthsData = await monthsResp.json();
+          for (const monthItem of monthsData.filter(i => i.type === 'dir')) {
+            const filesResp = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/pm-records/${yearItem.name}/${monthItem.name}?ref=${GH_BRANCH}`, { headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+            if (!filesResp.ok) continue;
+            const filesData = await filesResp.json();
+            for (const file of filesData.filter(i => i.type === 'file' && i.name.endsWith('.json'))) {
+              const f = await ghGet(`pm-records/${yearItem.name}/${monthItem.name}/${file.name}`);
+              if (f && f.content) {
+                const rawContent = Buffer.from(f.content, 'base64').toString('utf-8');
+                await ghPut(`${snap}/pm-records/${yearItem.name}/${monthItem.name}/${file.name}`, rawContent, `Snapshot ${ts} — ${file.name}`);
+                results.push(`pm-records/${yearItem.name}/${monthItem.name}/${file.name}`);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) { console.error('PM records backup error:', e); }
+
+    // Create manifest
+    const manifest = {
+      snapshot_id: ts,
+      created_at: now.toISOString(),
+      triggered_by: req.body.triggeredBy || 'manual',
+      files_backed_up: results.length,
+      files: results
+    };
+    await ghPut(`${snap}/MANIFEST.json`, JSON.stringify(manifest, null, 2), `Snapshot ${ts} manifest`);
+
+    console.log(`Snapshot created: ${snap} (${results.length} files)`);
+    res.json({ success: true, snapshot: ts, filesBackedUp: results.length });
+  } catch (e) {
+    console.error('Snapshot error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// List available snapshots
+app.get('/api/snapshots', async (req, res) => {
+  try {
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/backups/snapshots?ref=${GH_BRANCH}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+    if (!resp.ok) return res.json({ snapshots: [] });
+    const items = await resp.json();
+    const snapshots = items.filter(i => i.type === 'dir').map(i => i.name).sort().reverse();
+    res.json({ snapshots });
+  } catch (e) { res.json({ snapshots: [] }); }
+});
+
 // Serve static files — no cache for HTML to always get latest
 app.use((req, res, next) => {
   if (req.path.endsWith('.html') || req.path.endsWith('/') || !req.path.includes('.')) {
