@@ -1196,8 +1196,49 @@ if (postJobData.length) {
   postJobHtml += '</div>';
 }
 
-let sigHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">Technician Signatures</div>';
-techNames.forEach(name => { sigHtml += '<span style="display:inline-block;margin:4px 8px 4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;">✓ ' + name + '</span>'; });
+// Capture all signature images
+const signatureData = [];
+
+// Safety signatures
+let sigHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:12px;">✍️ Safety Signatures</div>';
+techNames.forEach((name, i) => {
+  const canvas = document.getElementById('safeSigCanvas_' + i);
+  let sigB64 = null;
+  if (canvas) {
+    try { sigB64 = canvas.toDataURL('image/png').split(',')[1]; } catch(e) {}
+  }
+  if (sigB64) {
+    const cid = 'safesig' + i;
+    lotoAttachments.push({ filename: 'SafetySig_' + name.replace(/[^a-zA-Z0-9]/g, '_') + '.png', content: sigB64, contentType: 'image/png', cid: cid });
+    signatureData.push({ type: 'safety', name: name, image: sigB64 });
+    sigHtml += '<div style="margin:8px 0;padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">' +
+      '<div style="font-size:12px;font-weight:700;color:#1B3A5C;margin-bottom:6px;">🛡 ' + name + ' — Safety</div>' +
+      '<img src="cid:' + cid + '" style="max-width:300px;height:60px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;" /></div>';
+  } else {
+    sigHtml += '<div style="margin:4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;display:inline-block;">✓ ' + name + ' — Safety</div>';
+  }
+});
+sigHtml += '</div>';
+
+// Completion signatures
+sigHtml += '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:12px;">✍️ Completion Signatures</div>';
+techNames.forEach((name, i) => {
+  const canvas = document.getElementById('compSigCanvas_' + i);
+  let sigB64 = null;
+  if (canvas) {
+    try { sigB64 = canvas.toDataURL('image/png').split(',')[1]; } catch(e) {}
+  }
+  if (sigB64) {
+    const cid = 'compsig' + i;
+    lotoAttachments.push({ filename: 'CompletionSig_' + name.replace(/[^a-zA-Z0-9]/g, '_') + '.png', content: sigB64, contentType: 'image/png', cid: cid });
+    signatureData.push({ type: 'completion', name: name, image: sigB64 });
+    sigHtml += '<div style="margin:8px 0;padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">' +
+      '<div style="font-size:12px;font-weight:700;color:#1B3A5C;margin-bottom:6px;">✅ ' + name + ' — Completion</div>' +
+      '<img src="cid:' + cid + '" style="max-width:300px;height:60px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;" /></div>';
+  } else {
+    sigHtml += '<div style="margin:4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;display:inline-block;">✓ ' + name + ' — Completion</div>';
+  }
+});
 sigHtml += '</div>';
 
 const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;"><div style="background:#1B3A5C;color:#fff;padding:16px 20px;border-radius:10px 10px 0 0;"><h2 style="margin:0;font-size:18px;">📋 PM Work Order Report</h2><p style="margin:4px 0 0;font-size:12px;opacity:0.7;">HVAC Engineering — Local 68</p></div><div style="border:1px solid #e2e8f0;border-top:none;padding:20px;border-radius:0 0 10px 10px;">' +
@@ -1232,7 +1273,7 @@ try {
 
 savePMToHistory({ technician: tech, facility: facility, equipment: equipList, frequency: selectedFreq, date: dateVal, followUp: followupYes, followUpNotes: summaryNotes, tasksCompleted: tasksCompleted, generalComments: generalComments, completedAt: new Date().toISOString(), completedBy: _currentUser.displayName || tech, emailSubject: subject, emailHtml: emailHtml, emailAttachments: lotoAttachments });
 clearDraft();
-try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes,date:dateVal,tasksCompleted:tasksCompleted,generalComments:generalComments,emailHtml:emailHtml,safetyData:safetyData,postJobData:postJobData,checklistData:checklistData})})}catch(e){}
+try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes,date:dateVal,tasksCompleted:tasksCompleted,generalComments:generalComments,emailHtml:emailHtml,safetyData:safetyData,postJobData:postJobData,checklistData:checklistData,signatureData:signatureData})})}catch(e){}
 document.querySelector('.bottom-bar').style.display='flex';
 overlay.classList.remove('show');
 if(emailSent) alert('✓ PM Report emailed successfully!');
