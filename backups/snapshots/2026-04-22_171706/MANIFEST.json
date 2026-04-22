@@ -1,0 +1,16 @@
+{
+  "snapshot_id": "2026-04-22_171706",
+  "created_at": "2026-04-22T17:17:21.388319",
+  "type": "initial_manual_backup",
+  "contents": {
+    "data_files": [
+      "pm_users.json",
+      "pm_inventory.json",
+      "pm_logs.json",
+      "inventory.json",
+      "users.json"
+    ],
+    "pm_records": "full recursive copy"
+  },
+  "note": "Initial backup before adding new equipment PM sheets"
+}
