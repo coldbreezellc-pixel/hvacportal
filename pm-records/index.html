@@ -222,6 +222,16 @@ async function viewPM(year, month, file) {
       html += '</div></div>';
     }
 
+    // Post-Job Data
+    if (pm.postJobData && pm.postJobData.length) {
+      html += '<div class="detail-section"><div class="detail-header" style="background:#E65100;">✅ Post-Job Checklist</div><div class="detail-body">';
+      pm.postJobData.forEach(row => {
+        const icon = row.done ? '✅' : (row.na ? '➖' : '⬜');
+        html += '<div class="safety-row">' + icon + ' ' + row.task + '</div>';
+      });
+      html += '</div></div>';
+    }
+
     // Resend button
     if (pm.emailHtml) {
       html += '<button class="resend-btn" onclick="resendRecord()">📧 Resend This PM Report</button>';
