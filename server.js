@@ -323,7 +323,15 @@ app.get('/api/pm-records/:year/:month/:file', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Serve static files from repo root
+// Serve static files — no cache for HTML to always get latest
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') || req.path.endsWith('/') || !req.path.includes('.')) {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname)));
 
 // Fallback
