@@ -48,8 +48,18 @@
   .findings-box{margin-top:8px;padding:8px;background:#FFF8E1;border-radius:6px;border:1px solid #FFE082;font-size:13px;color:#92400E}
   .safety-row{padding:3px 0;font-size:12px}
   .safety-section-label{font-size:11px;font-weight:700;color:var(--text-mid);text-transform:uppercase;margin:8px 0 4px;letter-spacing:.5px}
-  .resend-btn{width:100%;padding:12px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
+  .resend-btn{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
   .resend-btn:active{transform:scale(.97)}
+  .print-btn{flex:1;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#fff;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+  .print-btn:active{transform:scale(.97)}
+  .action-row{display:flex;gap:8px;margin-top:12px}
+  @media print{
+    .header,.breadcrumb,.action-row,.footer,.back-btn{display:none !important}
+    body{background:#fff}
+    .container{padding:0;max-width:100%}
+    .detail-section{box-shadow:none;break-inside:avoid;page-break-inside:avoid;border:1px solid #ccc}
+    .followup-banner{break-inside:avoid}
+  }
   .footer{text-align:center;padding:20px;font-size:11px;color:var(--text-light)}
 </style>
 </head>
@@ -232,11 +242,14 @@ async function viewPM(year, month, file) {
       html += '</div></div>';
     }
 
-    // Resend button
+    // Action buttons
+    html += '<div class="action-row">';
+    html += '<button class="print-btn" onclick="window.print()">🖨 Print</button>';
     if (pm.emailHtml) {
-      html += '<button class="resend-btn" onclick="resendRecord()">📧 Resend This PM Report</button>';
+      html += '<button class="resend-btn" onclick="resendRecord()">📧 Resend</button>';
       window._currentPMRecord = pm;
     }
+    html += '</div>';
 
     // Archived info
     html += '<div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text-light);">Archived: ' + (pm.createdAt ? new Date(pm.createdAt).toLocaleString() : '—') + '</div>';
