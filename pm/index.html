@@ -1489,13 +1489,216 @@ const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;marg
   sigHtml +
   '<p style="color:#94a3b8;font-size:11px;margin-top:20px;">Sent from HVAC Portal at ' + new Date().toLocaleString('en-US',{timeZone:'America/New_York'}) + '</p></div></div>';
 
+// Build PDF using jsPDF (text-based, no html2canvas — fast and reliable on mobile)
+let pdfAttachment = null;
+try {
+  lt.textContent='Building PDF…';
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+  const margin = 12, pageW = 210, pageH = 297, contentW = pageW - 2*margin;
+  let y = margin;
+
+  function checkPage(needed) {
+    if (y + needed > pageH - margin) { pdf.addPage(); y = margin; }
+  }
+  function addLine(text, opts = {}) {
+    const size = opts.size || 10;
+    const bold = opts.bold || false;
+    const color = opts.color || [30, 41, 59];
+    pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+    pdf.setFontSize(size);
+    pdf.setTextColor(...color);
+    const lines = pdf.splitTextToSize(text, opts.width || contentW);
+    lines.forEach(line => {
+      checkPage(size * 0.5);
+      pdf.text(line, opts.x || margin, y);
+      y += size * 0.42 + 0.5;
+    });
+  }
+  function addSectionHeader(text, color = [27, 58, 92]) {
+    checkPage(12);
+    y += 3;
+    pdf.setFillColor(...color);
+    pdf.rect(margin, y - 4, contentW, 7, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(text, margin + 2, y + 1);
+    y += 7;
+  }
+  function addRule() { y += 1; pdf.setDrawColor(220, 226, 232); pdf.line(margin, y, pageW - margin, y); y += 2; }
+
+  // Title
+  pdf.setFillColor(27, 58, 92);
+  pdf.rect(0, 0, pageW, 18, 'F');
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(14);
+  pdf.setTextColor(255, 255, 255);
+  pdf.text('PM Work Order Report', margin, 8);
+  pdf.setFontSize(9);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text('HVAC Engineering — Local 68', margin, 13);
+  y = 24;
+
+  // Follow-up banner
+  if (followupYes) {
+    pdf.setFillColor(254, 242, 242);
+    pdf.setDrawColor(220, 38, 38);
+    pdf.rect(margin, y - 1, contentW, 14, 'FD');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(220, 38, 38);
+    pdf.text('FOLLOW-UP REQUIRED', margin + 2, y + 4);
+    pdf.setFontSize(9);
+    pdf.setTextColor(127, 29, 29);
+    pdf.setFont('helvetica', 'normal');
+    const fnotes = pdf.splitTextToSize(summaryNotes || '', contentW - 4);
+    pdf.text(fnotes, margin + 2, y + 9);
+    y += 14 + (fnotes.length - 1) * 4 + 3;
+  }
+
+  // Work order details
+  addSectionHeader('Work Order Details');
+  const details = [
+    ['Facility', facility],
+    ['Equipment', equipList],
+    ['Service', selectedFreq],
+    ['Technician(s)', tech],
+    ['Date', dateFormatted],
+    ['Tasks Completed', tasksCompleted || '—'],
+    ['Follow-up', followupYes ? 'YES' : 'No']
+  ];
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(10);
+  details.forEach(([label, val]) => {
+    checkPage(6);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(label + ':', margin, y);
+    pdf.setTextColor(30, 41, 59);
+    pdf.setFont('helvetica', 'bold');
+    const wrapped = pdf.splitTextToSize(String(val || '—'), contentW - 40);
+    pdf.text(wrapped, margin + 38, y);
+    pdf.setFont('helvetica', 'normal');
+    y += Math.max(5, wrapped.length * 4.5);
+  });
+
+  // Comments
+  if (generalComments) {
+    addSectionHeader('Comments / Findings');
+    addLine(generalComments, { size: 10 });
+  }
+
+  // Safety checklist
+  if (safetyData && safetyData.length) {
+    addSectionHeader('Safety Checklist');
+    const safetyLabels2 = ['PPE Condition', 'Pre-Job Safety', 'Electrical Safety', 'Gas & Chemical Safety'];
+    safetyData.forEach((section, si) => {
+      checkPage(8);
+      addLine(safetyLabels2[si] || 'Section', { size: 9, bold: true, color: [100, 116, 139] });
+      section.forEach(row => {
+        const icon = row.done ? '[X]' : (row.na ? '[N/A]' : '[ ]');
+        const extra = row.condition ? ' (' + row.condition + ')' : '';
+        addLine(icon + ' ' + row.task + extra, { size: 9 });
+      });
+      y += 1;
+    });
+  }
+
+  // PM Checklist
+  if (checklistData && checklistData.length) {
+    addSectionHeader('PM Checklist');
+    checklistData.forEach(cl => {
+      checkPage(10);
+      addLine(cl.header, { size: 10, bold: true, color: [27, 58, 92] });
+      cl.tasks.forEach(t => {
+        const icon = t.done ? '[X]' : '[ ]';
+        addLine(icon + ' ' + t.text, { size: 9 });
+      });
+      if (cl.findings) {
+        y += 1;
+        addLine('Findings: ' + cl.findings, { size: 9, color: [146, 64, 14] });
+      }
+      y += 2;
+    });
+  }
+
+  // Post-Job
+  if (postJobData && postJobData.length) {
+    addSectionHeader('Post-Job Checklist', [230, 81, 0]);
+    postJobData.forEach(row => {
+      const icon = row.done ? '[X]' : (row.na ? '[N/A]' : '[ ]');
+      addLine(icon + ' ' + row.task, { size: 9 });
+    });
+  }
+
+  // Photos
+  const photosForPdf = lotoPhotos.filter(p => p.dataUrl);
+  const regPhotosForPdf = [];
+  document.querySelectorAll('.photo-slot.has-photo img').forEach(img => {
+    if (img.src && img.src.startsWith('data:')) {
+      const cap = img.closest('.photo-slot')?.parentElement?.querySelector('.photo-caption input')?.value || '';
+      regPhotosForPdf.push({ dataUrl: img.src, caption: cap });
+    }
+  });
+  const allPhotos = [...photosForPdf, ...regPhotosForPdf];
+  if (allPhotos.length) {
+    addSectionHeader('Photos', [230, 81, 0]);
+    for (const p of allPhotos) {
+      checkPage(80);
+      try {
+        // Calculate dimensions to fit page width, max 70mm height
+        const imgW = contentW - 10;
+        const imgH = 65;
+        pdf.addImage(p.dataUrl, 'JPEG', margin + 5, y, imgW, imgH, undefined, 'FAST');
+        y += imgH + 2;
+        addLine(p.caption || 'Photo', { size: 9, color: [100, 116, 139] });
+        y += 3;
+      } catch (e) { console.log('Photo embed failed:', e); }
+    }
+  }
+
+  // Signatures
+  if (signatureData && signatureData.length) {
+    addSectionHeader('Signatures');
+    for (const sig of signatureData) {
+      checkPage(35);
+      const label = sig.type === 'safety' ? 'Safety' : 'Completion';
+      addLine(label + ' — ' + sig.name, { size: 10, bold: true });
+      try {
+        pdf.addImage('data:image/png;base64,' + sig.image, 'PNG', margin + 5, y, 60, 20);
+        y += 22;
+      } catch (e) { y += 2; }
+    }
+  }
+
+  // Footer
+  const pageCount = pdf.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+    pdf.setFontSize(8);
+    pdf.setTextColor(150, 150, 150);
+    pdf.text('Page ' + i + ' of ' + pageCount + ' · Generated ' + new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }), margin, pageH - 5);
+  }
+
+  const pdfBase64 = pdf.output('datauristring').split(',')[1];
+  const pdfFilename = 'PM_' + equipParts[0].replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30) + '_' + selectedFreq + '_' + (dateVal || 'no-date') + '.pdf';
+  pdfAttachment = { filename: pdfFilename, content: pdfBase64, contentType: 'application/pdf' };
+  console.log('PDF built, size:', pdfBase64.length);
+} catch (pdfErr) {
+  console.error('PDF generation error:', pdfErr);
+  // Continue without PDF — email will still go through with photos
+}
+
+// Add PDF to attachments at the front so it's the first attachment
+const allAttachments = pdfAttachment ? [pdfAttachment, ...lotoAttachments] : lotoAttachments;
+
 let emailSent = false;
 try {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s for larger payload
   const emailRes = await fetch('/api/send-email', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to: ['mateusz.targosz@versantmedia.com','sean.fanning@versantmedia.com'], subject: subject, html: emailHtml, attachments: lotoAttachments }),
+    body: JSON.stringify({ to: ['mateusz.targosz@versantmedia.com','sean.fanning@versantmedia.com'], subject: subject, html: emailHtml, attachments: allAttachments }),
     signal: controller.signal
   });
   clearTimeout(timeoutId);
@@ -1507,7 +1710,7 @@ try {
   else { console.error('Email error:', e); alert('Could not send email: ' + e.message); }
 }
 
-savePMToHistory({ technician: tech, facility: facility, equipment: equipList, frequency: selectedFreq, date: dateVal, followUp: followupYes, followUpNotes: summaryNotes, tasksCompleted: tasksCompleted, generalComments: generalComments, completedAt: new Date().toISOString(), completedBy: _currentUser.displayName || tech, emailSubject: subject, emailHtml: emailHtml, emailAttachments: lotoAttachments });
+savePMToHistory({ technician: tech, facility: facility, equipment: equipList, frequency: selectedFreq, date: dateVal, followUp: followupYes, followUpNotes: summaryNotes, tasksCompleted: tasksCompleted, generalComments: generalComments, completedAt: new Date().toISOString(), completedBy: _currentUser.displayName || tech, emailSubject: subject, emailHtml: emailHtml, emailAttachments: allAttachments });
 clearDraft();
 try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes,date:dateVal,tasksCompleted:tasksCompleted,generalComments:generalComments,emailHtml:emailHtml,safetyData:safetyData,postJobData:postJobData,checklistData:checklistData,signatureData:signatureData,lotoPhotos:lotoArchiveData})})}catch(e){}
 document.querySelector('.bottom-bar').style.display='flex';
