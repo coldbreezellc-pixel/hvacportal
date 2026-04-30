@@ -336,6 +336,32 @@ function saveDraft() {
     const followupYes = document.querySelector('input[name="followup"][value="yes"]')?.checked || false;
     // Capture Liebert unit numbers
     const liebertData = liebertUnits.map(u => ({ id: u.id, num: u.num }));
+    // Capture multi-unit equipment data
+    const equipUnitsData = {};
+    Object.entries(equipUnits || {}).forEach(([name, units]) => {
+      equipUnitsData[name] = units.map(u => ({ id: u.id, num: u.num }));
+    });
+    // Capture all amp readings and findings textareas in PM checklists
+    const checklistInputs = {};
+    document.querySelectorAll('#pmChecklistBody input[type="text"], #pmChecklistBody textarea').forEach((el, idx) => {
+      // Use a stable identifier based on parent header + index
+      const block = el.closest('.pm-checklist');
+      if (!block) return;
+      const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || ('block' + idx);
+      const inputsInBlock = Array.from(block.querySelectorAll('input[type="text"], textarea'));
+      const localIdx = inputsInBlock.indexOf(el);
+      checklistInputs[header + '|' + localIdx] = el.value || '';
+    });
+    // Capture all PM checklist task checked states
+    const checkedTasks = {};
+    document.querySelectorAll('#pmChecklistBody .pm-task-check').forEach(el => {
+      const block = el.closest('.pm-checklist');
+      if (!block) return;
+      const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || '';
+      const allChecks = Array.from(block.querySelectorAll('.pm-task-check'));
+      const localIdx = allChecks.indexOf(el);
+      checkedTasks[header + '|' + localIdx] = el.classList.contains('checked');
+    });
     // Capture LOTO photos
     const lotoData = lotoPhotos.map(p => ({ id: p.id, dataUrl: p.dataUrl, caption: p.caption }));
 
@@ -351,6 +377,9 @@ function saveDraft() {
       ppeConditions: ppeConditions,
       followupYes: followupYes,
       liebertData: liebertData,
+      equipUnitsData: equipUnitsData,
+      checklistInputs: checklistInputs,
+      checkedTasks: checkedTasks,
       lotoData: lotoData,
       generalComments: document.getElementById('general_comments')?.value || '',
       tasksCompleted: document.getElementById('tasks_completed')?.value || '',
@@ -365,6 +394,18 @@ function saveDraft() {
 setInterval(saveDraft, 30000);
 // Save on any input change
 document.addEventListener('change', saveDraft);
+// Save on input typing (debounced) for findings/amp reading fields
+let _saveDebounce;
+document.addEventListener('input', () => {
+  clearTimeout(_saveDebounce);
+  _saveDebounce = setTimeout(saveDraft, 1000);
+});
+// Save when task checkboxes are clicked
+document.addEventListener('click', e => {
+  if (e.target && (e.target.classList.contains('pm-task-check') || e.target.closest('.pm-task-check'))) {
+    setTimeout(saveDraft, 100);
+  }
+});
 
 function loadDraft() {
   try {
@@ -455,6 +496,80 @@ function restoreDraft(d) {
       renderLiebertEntries();
       renderPMChecklists();
     }, 600);
+  }
+
+  // Multi-unit equipment data
+  if (d.equipUnitsData) {
+    setTimeout(() => {
+      equipUnits = {};
+      Object.entries(d.equipUnitsData).forEach(([name, units]) => {
+        equipUnits[name] = units.map(u => {
+          equipUnitIdCounter++;
+          return { id: equipUnitIdCounter, num: u.num || '' };
+        });
+      });
+      renderMultiUnitArea();
+      renderPMChecklists();
+      // After checklists are rendered, restore the inputs and check states
+      setTimeout(() => {
+        if (d.checklistInputs) {
+          document.querySelectorAll('#pmChecklistBody input[type="text"], #pmChecklistBody textarea').forEach((el, idx) => {
+            const block = el.closest('.pm-checklist');
+            if (!block) return;
+            const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || ('block' + idx);
+            const inputsInBlock = Array.from(block.querySelectorAll('input[type="text"], textarea'));
+            const localIdx = inputsInBlock.indexOf(el);
+            const key = header + '|' + localIdx;
+            if (d.checklistInputs[key] !== undefined) el.value = d.checklistInputs[key];
+          });
+        }
+        if (d.checkedTasks) {
+          document.querySelectorAll('#pmChecklistBody .pm-task-check').forEach(el => {
+            const block = el.closest('.pm-checklist');
+            if (!block) return;
+            const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || '';
+            const allChecks = Array.from(block.querySelectorAll('.pm-task-check'));
+            const localIdx = allChecks.indexOf(el);
+            const key = header + '|' + localIdx;
+            if (d.checkedTasks[key]) {
+              el.classList.add('checked');
+              const textEl = document.getElementById(el.id + '_t');
+              if (textEl) textEl.classList.add('checked-text');
+            }
+          });
+        }
+      }, 400);
+    }, 700);
+  } else if (d.checklistInputs || d.checkedTasks) {
+    // Restore checklist state even without multi-unit data
+    setTimeout(() => {
+      if (d.checklistInputs) {
+        document.querySelectorAll('#pmChecklistBody input[type="text"], #pmChecklistBody textarea').forEach((el, idx) => {
+          const block = el.closest('.pm-checklist');
+          if (!block) return;
+          const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || ('block' + idx);
+          const inputsInBlock = Array.from(block.querySelectorAll('input[type="text"], textarea'));
+          const localIdx = inputsInBlock.indexOf(el);
+          const key = header + '|' + localIdx;
+          if (d.checklistInputs[key] !== undefined) el.value = d.checklistInputs[key];
+        });
+      }
+      if (d.checkedTasks) {
+        document.querySelectorAll('#pmChecklistBody .pm-task-check').forEach(el => {
+          const block = el.closest('.pm-checklist');
+          if (!block) return;
+          const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || '';
+          const allChecks = Array.from(block.querySelectorAll('.pm-task-check'));
+          const localIdx = allChecks.indexOf(el);
+          const key = header + '|' + localIdx;
+          if (d.checkedTasks[key]) {
+            el.classList.add('checked');
+            const textEl = document.getElementById(el.id + '_t');
+            if (textEl) textEl.classList.add('checked-text');
+          }
+        });
+      }
+    }, 800);
   }
 
   // Follow-up
