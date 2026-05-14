@@ -25,7 +25,17 @@
     "woNumber": "WO-2026-0002",
     "id": "WO-2026-0002",
     "createdAt": "2026-05-14T14:01:55.485Z",
-    "visits": []
+    "visits": [
+      {
+        "date": "2026-05-14",
+        "tech": "Robert R",
+        "hours": 0.5,
+        "notes": "Primed drain and added deodorizer",
+        "photos": [],
+        "loggedAt": "2026-05-14T14:05:04.656Z"
+      }
+    ],
+    "updatedAt": "2026-05-14T14:05:04.862Z"
   },
   {
     "title": "kitchen sink loose",
