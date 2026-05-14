@@ -11,6 +11,16 @@
     "woNumber": "WO-2026-0001",
     "id": "WO-2026-0001",
     "createdAt": "2026-05-14T13:59:47.375Z",
-    "visits": []
+    "visits": [
+      {
+        "date": "2026-05-14",
+        "tech": "Sean Fanning christian D, Robert R",
+        "hours": 0.5,
+        "notes": "part on order",
+        "photos": [],
+        "loggedAt": "2026-05-14T14:00:38.857Z"
+      }
+    ],
+    "updatedAt": "2026-05-14T14:00:39.078Z"
   }
 ]
