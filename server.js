@@ -401,6 +401,71 @@ app.get('/api/snapshots', async (req, res) => {
   } catch (e) { res.json({ snapshots: [] }); }
 });
 
+// ── WORK ORDER TRACKING ──
+// Work orders stored in data/work_orders.json as an array
+async function getWorkOrders() {
+  const d = await ghGet('data/work_orders.json');
+  if (d && d.content) {
+    try { return JSON.parse(d.content); }
+    catch (e) { return []; }
+  }
+  return [];
+}
+
+// List all work orders
+app.get('/api/work-orders', async (req, res) => {
+  try {
+    const orders = await getWorkOrders();
+    res.json({ orders });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Create a work order
+app.post('/api/work-orders', async (req, res) => {
+  try {
+    const orders = await getWorkOrders();
+    const wo = req.body;
+    const year = new Date().getFullYear();
+    const existingNums = orders.map(o => {
+      const m = (o.woNumber || '').match(/WO-\d+-(\d+)/);
+      return m ? parseInt(m[1]) : 0;
+    });
+    const nextNum = (existingNums.length ? Math.max(...existingNums) : 0) + 1;
+    wo.woNumber = `WO-${year}-${String(nextNum).padStart(4, '0')}`;
+    wo.id = wo.woNumber;
+    wo.createdAt = new Date().toISOString();
+    wo.visits = wo.visits || [];
+    orders.unshift(wo);
+    await ghPut('data/work_orders.json', JSON.stringify(orders, null, 2), `Create work order ${wo.woNumber}`);
+    res.json({ success: true, workOrder: wo });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Update a work order (add visit, change status, etc.)
+app.put('/api/work-orders/:id', async (req, res) => {
+  try {
+    const orders = await getWorkOrders();
+    const idx = orders.findIndex(o => o.id === req.params.id || o.woNumber === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: 'Work order not found' });
+    orders[idx] = { ...orders[idx], ...req.body, id: orders[idx].id, woNumber: orders[idx].woNumber, createdAt: orders[idx].createdAt };
+    orders[idx].updatedAt = new Date().toISOString();
+    await ghPut('data/work_orders.json', JSON.stringify(orders, null, 2), `Update work order ${orders[idx].woNumber}`);
+    res.json({ success: true, workOrder: orders[idx] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Delete a work order
+app.delete('/api/work-orders/:id', async (req, res) => {
+  try {
+    const orders = await getWorkOrders();
+    const idx = orders.findIndex(o => o.id === req.params.id || o.woNumber === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: 'Work order not found' });
+    const removed = orders.splice(idx, 1)[0];
+    await ghPut('data/work_orders.json', JSON.stringify(orders, null, 2), `Delete work order ${removed.woNumber}`);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Serve static files — no cache for HTML to always get latest
 app.use((req, res, next) => {
   if (req.path.endsWith('.html') || req.path.endsWith('/') || !req.path.includes('.')) {
