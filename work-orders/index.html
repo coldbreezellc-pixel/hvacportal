@@ -64,6 +64,19 @@
   .modal-foot button{flex:1;padding:11px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--text)}
   .modal-foot button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
   .footer{text-align:center;padding:20px;font-size:11px;color:var(--text-light)}
+  /* Photos */
+  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+  .photo-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);background:#F8FAFC}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;cursor:pointer}
+  .photo-thumb .rm{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(198,40,40,.9);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+  .add-photo-btn{aspect-ratio:1;border:1.5px dashed var(--border);border-radius:8px;background:#F8FAFC;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text-mid);font-size:11px;gap:2px}
+  .add-photo-btn .ic{font-size:20px}
+  .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:2000;align-items:center;justify-content:center;padding:20px}
+  .lightbox.show{display:flex}
+  .lightbox img{max-width:100%;max-height:90vh;border-radius:8px}
+  .lightbox .close-lb{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;border:none;font-size:22px;cursor:pointer}
+  .wo-photos-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .wo-photos-row img{width:54px;height:54px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer}
 </style>
 </head>
 <body>
@@ -87,6 +100,12 @@
 </div>
 <div class="footer" id="footer"></div>
 
+<!-- Photo lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="close-lb" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
 <!-- New / Edit Work Order Modal -->
 <div class="modal-overlay" id="woModal">
   <div class="modal">
@@ -98,6 +117,11 @@
       <div class="field"><label>Priority</label><select id="f_priority"><option>Normal</option><option>High</option><option>Urgent</option><option>Low</option></select></div>
       <div class="field"><label>Status</label><select id="f_status"><option>Open</option><option>In Progress</option><option>On Hold</option><option>Completed</option></select></div>
       <div class="field"><label>Details / Notes</label><textarea id="f_details" placeholder="Describe the issue, equipment involved, etc."></textarea></div>
+      <div class="field">
+        <label>Photos</label>
+        <div class="photo-grid" id="woPhotoGrid"></div>
+        <input type="file" id="woPhotoInput" accept="image/*" multiple style="display:none;" onchange="handleWoPhotos(this)">
+      </div>
     </div>
     <div class="modal-foot">
       <button onclick="closeModal()">Cancel</button>
@@ -115,6 +139,11 @@
       <div class="field"><label>Technician(s)</label><input type="text" id="v_tech" placeholder="Who went out"></div>
       <div class="field"><label>Hours Spent</label><input type="number" id="v_hours" step="0.25" min="0" placeholder="e.g. 2.5"></div>
       <div class="field"><label>Work Done / Notes</label><textarea id="v_notes" placeholder="What was done on this visit"></textarea></div>
+      <div class="field">
+        <label>Photos</label>
+        <div class="photo-grid" id="visitPhotoGrid"></div>
+        <input type="file" id="visitPhotoInput" accept="image/*" multiple style="display:none;" onchange="handleVisitPhotos(this)">
+      </div>
     </div>
     <div class="modal-foot">
       <button onclick="closeVisitModal()">Cancel</button>
@@ -149,6 +178,86 @@ let workOrders = [];
 let currentFilter = 'all';
 let editingId = null;
 let visitForId = null;
+let woPhotos = [];      // photos for the WO being created/edited
+let visitPhotos = [];   // photos for the visit being logged
+
+// ── Photo handling ──
+function compressImage(file, maxW, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleWoPhotos(input) {
+  for (const file of input.files) {
+    try {
+      const dataUrl = await compressImage(file, 1400, 0.8);
+      woPhotos.push(dataUrl);
+    } catch (e) { console.log('Photo error:', e); }
+  }
+  input.value = '';
+  renderWoPhotoGrid();
+}
+
+function renderWoPhotoGrid() {
+  const grid = document.getElementById('woPhotoGrid');
+  grid.innerHTML = woPhotos.map((p, i) =>
+    '<div class="photo-thumb"><img src="' + p + '" onclick="openLightbox(\'' + i + '\',\'wo\')"><button class="rm" onclick="removeWoPhoto(' + i + ')">✕</button></div>'
+  ).join('') +
+  '<div class="add-photo-btn" onclick="document.getElementById(\'woPhotoInput\').click()"><span class="ic">📷</span><span>Add</span></div>';
+}
+
+function removeWoPhoto(i) { woPhotos.splice(i, 1); renderWoPhotoGrid(); }
+
+async function handleVisitPhotos(input) {
+  for (const file of input.files) {
+    try {
+      const dataUrl = await compressImage(file, 1400, 0.8);
+      visitPhotos.push(dataUrl);
+    } catch (e) { console.log('Photo error:', e); }
+  }
+  input.value = '';
+  renderVisitPhotoGrid();
+}
+
+function renderVisitPhotoGrid() {
+  const grid = document.getElementById('visitPhotoGrid');
+  grid.innerHTML = visitPhotos.map((p, i) =>
+    '<div class="photo-thumb"><img src="' + p + '" onclick="openLightbox(\'' + i + '\',\'visit\')"><button class="rm" onclick="removeVisitPhoto(' + i + ')">✕</button></div>'
+  ).join('') +
+  '<div class="add-photo-btn" onclick="document.getElementById(\'visitPhotoInput\').click()"><span class="ic">📷</span><span>Add</span></div>';
+}
+
+function removeVisitPhoto(i) { visitPhotos.splice(i, 1); renderVisitPhotoGrid(); }
+
+function openLightbox(idx, source) {
+  let src;
+  if (source === 'wo') src = woPhotos[idx];
+  else if (source === 'visit') src = visitPhotos[idx];
+  else src = idx; // direct data URL passed
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('show');
+}
+function openLightboxUrl(url) {
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
 
 async function loadWorkOrders() {
   try {
@@ -217,11 +326,13 @@ function renderList() {
       '</div>' +
       '<div class="wo-detail" id="detail_' + wo.id + '">' +
         (wo.details ? '<div class="detail-label">Details</div><div class="detail-text">' + escapeHtml(wo.details).replace(/\n/g,'<br>') + '</div>' : '') +
+        ((wo.photos && wo.photos.length) ? '<div class="detail-label">Photos (' + wo.photos.length + ')</div><div class="wo-photos-row">' + wo.photos.map(p => '<img src="' + p + '" onclick="openLightboxUrl(\'' + p.replace(/'/g,"\\'") + '\')">').join('') + '</div>' : '') +
         '<div class="detail-label">Visit Log (' + visits.length + ')</div>' +
         (visits.length ? visits.map(v =>
           '<div class="visit-item">' +
             '<div class="visit-head"><span>' + (v.date || '') + ' · ' + escapeHtml(v.tech || '') + '</span><span>' + (parseFloat(v.hours) || 0) + ' hrs</span></div>' +
             (v.notes ? '<div class="visit-notes">' + escapeHtml(v.notes).replace(/\n/g,'<br>') + '</div>' : '') +
+            ((v.photos && v.photos.length) ? '<div class="wo-photos-row">' + v.photos.map(p => '<img src="' + p + '" onclick="openLightboxUrl(\'' + p.replace(/'/g,"\\'") + '\')">').join('') + '</div>' : '') +
           '</div>'
         ).join('') : '<div class="detail-text" style="color:var(--text-light);">No visits logged yet.</div>') +
         '<div class="wo-actions">' +
@@ -249,6 +360,7 @@ function toggleDetail(id) {
 // New / Edit modal
 function openNewModal() {
   editingId = null;
+  woPhotos = [];
   document.getElementById('modalTitle').textContent = 'New Work Order';
   document.getElementById('f_title').value = '';
   document.getElementById('f_location').value = '900 Sylvan Ave';
@@ -256,6 +368,7 @@ function openNewModal() {
   document.getElementById('f_priority').value = 'Normal';
   document.getElementById('f_status').value = 'Open';
   document.getElementById('f_details').value = '';
+  renderWoPhotoGrid();
   document.getElementById('woModal').classList.add('show');
 }
 
@@ -263,6 +376,7 @@ function openEditModal(id) {
   const wo = workOrders.find(w => w.id === id);
   if (!wo) return;
   editingId = id;
+  woPhotos = (wo.photos || []).slice();
   document.getElementById('modalTitle').textContent = 'Edit ' + wo.woNumber;
   document.getElementById('f_title').value = wo.title || '';
   document.getElementById('f_location').value = wo.location || '900 Sylvan Ave';
@@ -270,6 +384,7 @@ function openEditModal(id) {
   document.getElementById('f_priority').value = wo.priority || 'Normal';
   document.getElementById('f_status').value = wo.status || 'Open';
   document.getElementById('f_details').value = wo.details || '';
+  renderWoPhotoGrid();
   document.getElementById('woModal').classList.add('show');
 }
 
@@ -284,7 +399,8 @@ async function saveWorkOrder() {
     type: document.getElementById('f_type').value,
     priority: document.getElementById('f_priority').value,
     status: document.getElementById('f_status').value,
-    details: document.getElementById('f_details').value.trim()
+    details: document.getElementById('f_details').value.trim(),
+    photos: woPhotos
   };
   const btn = document.getElementById('saveBtn');
   btn.textContent = 'Saving…'; btn.disabled = true;
@@ -306,11 +422,13 @@ async function saveWorkOrder() {
 // Visit modal
 function openVisitModal(id) {
   visitForId = id;
+  visitPhotos = [];
   const today = new Date();
   document.getElementById('v_date').value = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
   document.getElementById('v_tech').value = _currentUser.displayName || '';
   document.getElementById('v_hours').value = '';
   document.getElementById('v_notes').value = '';
+  renderVisitPhotoGrid();
   document.getElementById('visitModal').classList.add('show');
 }
 
@@ -326,6 +444,7 @@ async function saveVisit() {
     tech: document.getElementById('v_tech').value.trim(),
     hours: hours,
     notes: document.getElementById('v_notes').value.trim(),
+    photos: visitPhotos,
     loggedAt: new Date().toISOString()
   };
   const visits = (wo.visits || []).concat([visit]);
