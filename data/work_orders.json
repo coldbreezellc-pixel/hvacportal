@@ -18,7 +18,7 @@
     "location": "900 Sylvan Ave",
     "type": "Other",
     "priority": "Normal",
-    "status": "Open",
+    "status": "Completed",
     "details": "smell coming from drain in noc pre-action closet",
     "photos": [],
     "createdBy": "Sean Fanning",
@@ -35,7 +35,7 @@
         "loggedAt": "2026-05-14T14:05:04.656Z"
       }
     ],
-    "updatedAt": "2026-05-14T14:05:04.862Z"
+    "updatedAt": "2026-05-14T14:05:19.030Z"
   },
   {
     "title": "kitchen sink loose",
