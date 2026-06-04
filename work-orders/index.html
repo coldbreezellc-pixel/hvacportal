@@ -312,7 +312,7 @@ function renderList() {
       '<div class="wo-head" onclick="toggleDetail(\'' + wo.id + '\')">' +
         '<div class="wo-top">' +
           '<div style="flex:1;">' +
-            '<div class="wo-num">' + wo.woNumber + '</div>' +
+            '<div class="wo-num">' + wo.woNumber + (wo.source === 'slack' || wo.source === 'slack-slash' ? ' <span style="background:#4A154B;color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;">Slack</span>' : '') + '</div>' +
             '<div class="wo-title">' + escapeHtml(wo.title || 'Untitled') + '</div>' +
             '<div class="wo-meta">' + (wo.location || '') + ' · ' + (wo.type || '') + ' · ' + (wo.priority || 'Normal') + ' priority</div>' +
           '</div>' +
