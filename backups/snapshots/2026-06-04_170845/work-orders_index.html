@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Work Orders — HVAC Engineering</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1B3A5C;--navy-light:#2A5280;--accent:#2979FF;--bg:#F3F6FA;--card:#FFFFFF;--border:#D4DCE8;--text:#1E2A3A;--text-mid:#5A6A7E;--text-light:#8A96A8;--success:#2E7D32;--danger:#C62828;--warn:#E65100;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(27,58,92,0.08)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+  .header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);color:#fff;padding:16px 20px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(27,58,92,.25);display:flex;align-items:center;gap:12px}
+  .header h1{font-size:17px;font-weight:700;letter-spacing:.5px;flex:1}
+  .back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+  .container{padding:16px;max-width:640px;margin:0 auto;padding-bottom:40px}
+  .toolbar{display:flex;gap:8px;margin-bottom:14px}
+  .search-box{flex:1;position:relative}
+  .search-box input{width:100%;padding:11px 12px 11px 36px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;background:#fff}
+  .search-box::before{content:'🔍';position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px}
+  .btn-new{padding:11px 16px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .btn-new:active{transform:scale(.97)}
+  .filter-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .filter-chip{padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;background:#fff;font-size:12px;font-weight:600;color:var(--text-mid);cursor:pointer}
+  .filter-chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .wo-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:10px;overflow:hidden}
+  .wo-head{padding:12px 14px;cursor:pointer}
+  .wo-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .wo-num{font-size:12px;font-weight:700;color:var(--accent);font-family:monospace}
+  .wo-title{font-size:15px;font-weight:700;color:var(--text);margin-top:2px;line-height:1.3}
+  .wo-meta{font-size:12px;color:var(--text-mid);margin-top:4px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase}
+  .badge-open{background:#FEF3C7;color:#92400E}
+  .badge-progress{background:#DBEAFE;color:#1E40AF}
+  .badge-completed{background:#D1FAE5;color:#065F46}
+  .badge-hold{background:#FEE2E2;color:#991B1B}
+  .wo-stats{display:flex;gap:14px;margin-top:8px;font-size:12px}
+  .wo-stat{color:var(--text-mid)}
+  .wo-stat b{color:var(--text);font-size:14px}
+  .wo-detail{display:none;padding:0 14px 14px;border-top:1px solid #F1F5F9}
+  .wo-detail.open{display:block}
+  .detail-label{font-size:11px;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px;font-weight:700}
+  .detail-text{font-size:14px;color:var(--text);line-height:1.5}
+  .visit-item{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px;margin-top:6px}
+  .visit-head{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--navy)}
+  .visit-notes{font-size:13px;color:var(--text-mid);margin-top:4px}
+  .wo-actions{display:flex;gap:8px;margin-top:12px}
+  .act-btn{flex:1;padding:9px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#fff;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+  .act-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .act-btn.danger{background:#fff;color:var(--danger);border-color:#FECACA}
+  .empty{text-align:center;padding:40px;color:var(--text-light);font-size:14px}
+  .loading{text-align:center;padding:40px;color:var(--text-mid)}
+  /* Modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:1000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+  .modal-overlay.show{display:flex}
+  .modal{background:#fff;border-radius:var(--radius);max-width:520px;width:100%;margin-top:20px;overflow:hidden}
+  .modal-head{background:var(--navy);color:#fff;padding:14px 18px;font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+  .modal-head .x{cursor:pointer;font-size:20px;background:none;border:none;color:#fff}
+  .modal-body{padding:18px;max-height:70vh;overflow-y:auto}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+  .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;background:#fff;color:var(--text)}
+  .field textarea{resize:vertical;min-height:70px}
+  .modal-foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px}
+  .modal-foot button{flex:1;padding:11px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--text)}
+  .modal-foot button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .footer{text-align:center;padding:20px;font-size:11px;color:var(--text-light)}
+  /* Photos */
+  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+  .photo-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);background:#F8FAFC}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;cursor:pointer}
+  .photo-thumb .rm{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(198,40,40,.9);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+  .add-photo-btn{aspect-ratio:1;border:1.5px dashed var(--border);border-radius:8px;background:#F8FAFC;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text-mid);font-size:11px;gap:2px}
+  .add-photo-btn .ic{font-size:20px}
+  .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:2000;align-items:center;justify-content:center;padding:20px}
+  .lightbox.show{display:flex}
+  .lightbox img{max-width:100%;max-height:90vh;border-radius:8px}
+  .lightbox .close-lb{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;border:none;font-size:22px;cursor:pointer}
+  .wo-photos-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .wo-photos-row img{width:54px;height:54px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="/" class="back-btn">← Menu</a>
+  <h1>🔧 Work Orders</h1>
+</div>
+<div class="container">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="searchInput" placeholder="Search WO#, title, location…" oninput="renderList()"></div>
+    <button class="btn-new" onclick="openNewModal()">+ New</button>
+  </div>
+  <div class="filter-row" id="filterRow">
+    <div class="filter-chip active" data-status="all" onclick="setFilter(this)">All</div>
+    <div class="filter-chip" data-status="Open" onclick="setFilter(this)">Open</div>
+    <div class="filter-chip" data-status="In Progress" onclick="setFilter(this)">In Progress</div>
+    <div class="filter-chip" data-status="On Hold" onclick="setFilter(this)">On Hold</div>
+    <div class="filter-chip" data-status="Completed" onclick="setFilter(this)">Completed</div>
+  </div>
+  <div id="woList"><div class="loading">Loading work orders…</div></div>
+</div>
+<div class="footer" id="footer"></div>
+
+<!-- Photo lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="close-lb" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<!-- New / Edit Work Order Modal -->
+<div class="modal-overlay" id="woModal">
+  <div class="modal">
+    <div class="modal-head"><span id="modalTitle">New Work Order</span><button class="x" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Title / Description *</label><input type="text" id="f_title" placeholder="e.g. AC not cooling in Studio B"></div>
+      <div class="field"><label>Location</label><select id="f_location"><option>900 Sylvan Ave</option><option>904 Sylvan Ave</option><option>Other</option></select></div>
+      <div class="field"><label>Type</label><select id="f_type"><option>Cold Call</option><option>Repair</option><option>Preventive Maintenance</option><option>Installation</option><option>Inspection</option><option>Emergency</option><option>Other</option></select></div>
+      <div class="field"><label>Priority</label><select id="f_priority"><option>Normal</option><option>High</option><option>Urgent</option><option>Low</option></select></div>
+      <div class="field"><label>Status</label><select id="f_status"><option>Open</option><option>In Progress</option><option>On Hold</option><option>Completed</option></select></div>
+      <div class="field"><label>Details / Notes</label><textarea id="f_details" placeholder="Describe the issue, equipment involved, etc."></textarea></div>
+      <div class="field">
+        <label>Photos</label>
+        <div class="photo-grid" id="woPhotoGrid"></div>
+        <input type="file" id="woPhotoInput" accept="image/*" multiple style="display:none;" onchange="handleWoPhotos(this)">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="primary" id="saveBtn" onclick="saveWorkOrder()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Visit Modal -->
+<div class="modal-overlay" id="visitModal">
+  <div class="modal">
+    <div class="modal-head"><span>Log a Visit</span><button class="x" onclick="closeVisitModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Date</label><input type="date" id="v_date"></div>
+      <div class="field"><label>Technician(s)</label><input type="text" id="v_tech" placeholder="Who went out"></div>
+      <div class="field"><label>Hours Spent</label><input type="number" id="v_hours" step="0.25" min="0" placeholder="e.g. 2.5"></div>
+      <div class="field"><label>Work Done / Notes</label><textarea id="v_notes" placeholder="What was done on this visit"></textarea></div>
+      <div class="field">
+        <label>Photos</label>
+        <div class="photo-grid" id="visitPhotoGrid"></div>
+        <input type="file" id="visitPhotoInput" accept="image/*" multiple style="display:none;" onchange="handleVisitPhotos(this)">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button onclick="closeVisitModal()">Cancel</button>
+      <button class="primary" id="visitSaveBtn" onclick="saveVisit()">Add Visit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('footer').textContent = '© ' + new Date().getFullYear() + ' Local 68 — HVAC Engineering Department';
+
+// Session check + auto-logout
+const TIMEOUT_MS = 10 * 60 * 1000;
+function resetActivityTimer() { localStorage.setItem('hvac_last_activity', Date.now().toString()); }
+function checkInactivity() {
+  const last = parseInt(localStorage.getItem('hvac_last_activity') || '0');
+  const sess = localStorage.getItem('hvac_session');
+  if (sess && last && (Date.now() - last > TIMEOUT_MS)) {
+    localStorage.removeItem('hvac_session'); localStorage.removeItem('hvac_last_activity');
+    alert('Session expired — please sign in again.'); window.location.href = '/';
+  }
+  if (!sess) window.location.href = '/';
+}
+['click','touchstart','keydown','scroll','mousemove'].forEach(evt => document.addEventListener(evt, resetActivityTimer, { passive: true }));
+setInterval(checkInactivity, 30000);
+resetActivityTimer();
+if (!localStorage.getItem('hvac_session')) window.location.href = '/';
+const _currentUser = JSON.parse(localStorage.getItem('hvac_session') || '{}');
+const isAdmin = _currentUser.role === 'admin';
+
+let workOrders = [];
+let currentFilter = 'all';
+let editingId = null;
+let visitForId = null;
+let woPhotos = [];      // photos for the WO being created/edited
+let visitPhotos = [];   // photos for the visit being logged
+
+// ── Photo handling ──
+function compressImage(file, maxW, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleWoPhotos(input) {
+  for (const file of input.files) {
+    try {
+      const dataUrl = await compressImage(file, 1400, 0.8);
+      woPhotos.push(dataUrl);
+    } catch (e) { console.log('Photo error:', e); }
+  }
+  input.value = '';
+  renderWoPhotoGrid();
+}
+
+function renderWoPhotoGrid() {
+  const grid = document.getElementById('woPhotoGrid');
+  grid.innerHTML = woPhotos.map((p, i) =>
+    '<div class="photo-thumb"><img src="' + p + '" onclick="openLightbox(\'' + i + '\',\'wo\')"><button class="rm" onclick="removeWoPhoto(' + i + ')">✕</button></div>'
+  ).join('') +
+  '<div class="add-photo-btn" onclick="document.getElementById(\'woPhotoInput\').click()"><span class="ic">📷</span><span>Add</span></div>';
+}
+
+function removeWoPhoto(i) { woPhotos.splice(i, 1); renderWoPhotoGrid(); }
+
+async function handleVisitPhotos(input) {
+  for (const file of input.files) {
+    try {
+      const dataUrl = await compressImage(file, 1400, 0.8);
+      visitPhotos.push(dataUrl);
+    } catch (e) { console.log('Photo error:', e); }
+  }
+  input.value = '';
+  renderVisitPhotoGrid();
+}
+
+function renderVisitPhotoGrid() {
+  const grid = document.getElementById('visitPhotoGrid');
+  grid.innerHTML = visitPhotos.map((p, i) =>
+    '<div class="photo-thumb"><img src="' + p + '" onclick="openLightbox(\'' + i + '\',\'visit\')"><button class="rm" onclick="removeVisitPhoto(' + i + ')">✕</button></div>'
+  ).join('') +
+  '<div class="add-photo-btn" onclick="document.getElementById(\'visitPhotoInput\').click()"><span class="ic">📷</span><span>Add</span></div>';
+}
+
+function removeVisitPhoto(i) { visitPhotos.splice(i, 1); renderVisitPhotoGrid(); }
+
+function openLightbox(idx, source) {
+  let src;
+  if (source === 'wo') src = woPhotos[idx];
+  else if (source === 'visit') src = visitPhotos[idx];
+  else src = idx; // direct data URL passed
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('show');
+}
+function openLightboxUrl(url) {
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
+
+async function loadWorkOrders() {
+  try {
+    const res = await fetch('/api/work-orders?t=' + Date.now());
+    const data = await res.json();
+    workOrders = data.orders || [];
+    renderList();
+  } catch (e) {
+    document.getElementById('woList').innerHTML = '<div class="empty">Could not load work orders. Check your connection.</div>';
+  }
+}
+
+function totalHours(wo) {
+  return (wo.visits || []).reduce((sum, v) => sum + (parseFloat(v.hours) || 0), 0);
+}
+
+function statusBadge(status) {
+  const map = { 'Open': 'badge-open', 'In Progress': 'badge-progress', 'Completed': 'badge-completed', 'On Hold': 'badge-hold' };
+  return '<span class="badge ' + (map[status] || 'badge-open') + '">' + status + '</span>';
+}
+
+function setFilter(el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = el.dataset.status;
+  renderList();
+}
+
+function renderList() {
+  const list = document.getElementById('woList');
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  let filtered = workOrders;
+  if (currentFilter !== 'all') filtered = filtered.filter(w => w.status === currentFilter);
+  if (q) {
+    filtered = filtered.filter(w =>
+      (w.woNumber || '').toLowerCase().includes(q) ||
+      (w.title || '').toLowerCase().includes(q) ||
+      (w.location || '').toLowerCase().includes(q) ||
+      (w.type || '').toLowerCase().includes(q) ||
+      (w.details || '').toLowerCase().includes(q)
+    );
+  }
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">' + (workOrders.length ? 'No work orders match your search.' : 'No work orders yet. Tap + New to create one.') + '</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(wo => {
+    const visits = wo.visits || [];
+    const hrs = totalHours(wo);
+    const created = wo.createdAt ? new Date(wo.createdAt).toLocaleDateString() : '';
+    return '<div class="wo-card">' +
+      '<div class="wo-head" onclick="toggleDetail(\'' + wo.id + '\')">' +
+        '<div class="wo-top">' +
+          '<div style="flex:1;">' +
+            '<div class="wo-num">' + wo.woNumber + (wo.source === 'slack' || wo.source === 'slack-slash' ? ' <span style="background:#4A154B;color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;">Slack</span>' : '') + '</div>' +
+            '<div class="wo-title">' + escapeHtml(wo.title || 'Untitled') + '</div>' +
+            '<div class="wo-meta">' + (wo.location || '') + ' · ' + (wo.type || '') + ' · ' + (wo.priority || 'Normal') + ' priority</div>' +
+          '</div>' +
+          statusBadge(wo.status || 'Open') +
+        '</div>' +
+        '<div class="wo-stats">' +
+          '<div class="wo-stat">Visits: <b>' + visits.length + '</b></div>' +
+          '<div class="wo-stat">Total Hours: <b>' + hrs.toFixed(2) + '</b></div>' +
+          '<div class="wo-stat">Created: ' + created + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wo-detail" id="detail_' + wo.id + '">' +
+        (wo.details ? '<div class="detail-label">Details</div><div class="detail-text">' + escapeHtml(wo.details).replace(/\n/g,'<br>') + '</div>' : '') +
+        ((wo.photos && wo.photos.length) ? '<div class="detail-label">Photos (' + wo.photos.length + ')</div><div class="wo-photos-row">' + wo.photos.map(p => '<img src="' + p + '" onclick="openLightboxUrl(\'' + p.replace(/'/g,"\\'") + '\')">').join('') + '</div>' : '') +
+        '<div class="detail-label">Visit Log (' + visits.length + ')</div>' +
+        (visits.length ? visits.map(v =>
+          '<div class="visit-item">' +
+            '<div class="visit-head"><span>' + (v.date || '') + ' · ' + escapeHtml(v.tech || '') + '</span><span>' + (parseFloat(v.hours) || 0) + ' hrs</span></div>' +
+            (v.notes ? '<div class="visit-notes">' + escapeHtml(v.notes).replace(/\n/g,'<br>') + '</div>' : '') +
+            ((v.photos && v.photos.length) ? '<div class="wo-photos-row">' + v.photos.map(p => '<img src="' + p + '" onclick="openLightboxUrl(\'' + p.replace(/'/g,"\\'") + '\')">').join('') + '</div>' : '') +
+          '</div>'
+        ).join('') : '<div class="detail-text" style="color:var(--text-light);">No visits logged yet.</div>') +
+        '<div class="wo-actions">' +
+          '<button class="act-btn primary" onclick="openVisitModal(\'' + wo.id + '\')">+ Log Visit</button>' +
+          '<button class="act-btn" onclick="openEditModal(\'' + wo.id + '\')">Edit</button>' +
+          (isAdmin ? '<button class="act-btn danger" onclick="deleteWorkOrder(\'' + wo.id + '\')">Delete</button>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleDetail(id) {
+  const el = document.getElementById('detail_' + id);
+  if (!el) return;
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.wo-detail').forEach(d => d.classList.remove('open'));
+  if (!isOpen) el.classList.add('open');
+}
+
+// New / Edit modal
+function openNewModal() {
+  editingId = null;
+  woPhotos = [];
+  document.getElementById('modalTitle').textContent = 'New Work Order';
+  document.getElementById('f_title').value = '';
+  document.getElementById('f_location').value = '900 Sylvan Ave';
+  document.getElementById('f_type').value = 'Cold Call';
+  document.getElementById('f_priority').value = 'Normal';
+  document.getElementById('f_status').value = 'Open';
+  document.getElementById('f_details').value = '';
+  renderWoPhotoGrid();
+  document.getElementById('woModal').classList.add('show');
+}
+
+function openEditModal(id) {
+  const wo = workOrders.find(w => w.id === id);
+  if (!wo) return;
+  editingId = id;
+  woPhotos = (wo.photos || []).slice();
+  document.getElementById('modalTitle').textContent = 'Edit ' + wo.woNumber;
+  document.getElementById('f_title').value = wo.title || '';
+  document.getElementById('f_location').value = wo.location || '900 Sylvan Ave';
+  document.getElementById('f_type').value = wo.type || 'Cold Call';
+  document.getElementById('f_priority').value = wo.priority || 'Normal';
+  document.getElementById('f_status').value = wo.status || 'Open';
+  document.getElementById('f_details').value = wo.details || '';
+  renderWoPhotoGrid();
+  document.getElementById('woModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('woModal').classList.remove('show'); }
+
+async function saveWorkOrder() {
+  const title = document.getElementById('f_title').value.trim();
+  if (!title) { alert('Please enter a title/description.'); return; }
+  const payload = {
+    title: title,
+    location: document.getElementById('f_location').value,
+    type: document.getElementById('f_type').value,
+    priority: document.getElementById('f_priority').value,
+    status: document.getElementById('f_status').value,
+    details: document.getElementById('f_details').value.trim(),
+    photos: woPhotos
+  };
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    if (editingId) {
+      await fetch('/api/work-orders/' + editingId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    } else {
+      payload.createdBy = _currentUser.displayName || 'Unknown';
+      await fetch('/api/work-orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    }
+    closeModal();
+    await loadWorkOrders();
+  } catch (e) {
+    alert('Could not save: ' + e.message);
+  }
+  btn.textContent = 'Save'; btn.disabled = false;
+}
+
+// Visit modal
+function openVisitModal(id) {
+  visitForId = id;
+  visitPhotos = [];
+  const today = new Date();
+  document.getElementById('v_date').value = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  document.getElementById('v_tech').value = _currentUser.displayName || '';
+  document.getElementById('v_hours').value = '';
+  document.getElementById('v_notes').value = '';
+  renderVisitPhotoGrid();
+  document.getElementById('visitModal').classList.add('show');
+}
+
+function closeVisitModal() { document.getElementById('visitModal').classList.remove('show'); }
+
+async function saveVisit() {
+  const wo = workOrders.find(w => w.id === visitForId);
+  if (!wo) return;
+  const hours = parseFloat(document.getElementById('v_hours').value);
+  if (isNaN(hours) || hours < 0) { alert('Please enter valid hours.'); return; }
+  const visit = {
+    date: document.getElementById('v_date').value,
+    tech: document.getElementById('v_tech').value.trim(),
+    hours: hours,
+    notes: document.getElementById('v_notes').value.trim(),
+    photos: visitPhotos,
+    loggedAt: new Date().toISOString()
+  };
+  const visits = (wo.visits || []).concat([visit]);
+  const btn = document.getElementById('visitSaveBtn');
+  btn.textContent = 'Adding…'; btn.disabled = true;
+  try {
+    await fetch('/api/work-orders/' + visitForId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visits: visits }) });
+    closeVisitModal();
+    await loadWorkOrders();
+    // Re-open the detail for this WO
+    setTimeout(() => { const el = document.getElementById('detail_' + visitForId); if (el) el.classList.add('open'); }, 100);
+  } catch (e) {
+    alert('Could not add visit: ' + e.message);
+  }
+  btn.textContent = 'Add Visit'; btn.disabled = false;
+}
+
+async function deleteWorkOrder(id) {
+  const wo = workOrders.find(w => w.id === id);
+  if (!wo) return;
+  if (!confirm('Delete ' + wo.woNumber + '?\n\n"' + wo.title + '"\n\nThis cannot be undone.')) return;
+  try {
+    await fetch('/api/work-orders/' + id, { method: 'DELETE' });
+    await loadWorkOrders();
+  } catch (e) {
+    alert('Could not delete: ' + e.message);
+  }
+}
+
+// Init
+loadWorkOrders();
+</script>
+</body>
+</html>
