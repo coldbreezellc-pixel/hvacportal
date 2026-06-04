@@ -1,0 +1,6 @@
+{
+  "snapshot_id": "2026-06-04_170845",
+  "created_at": "2026-06-04T17:08:53.832683",
+  "type": "pre_change_backup",
+  "reason": "Before adding Cloudflare R2 photo storage"
+}
