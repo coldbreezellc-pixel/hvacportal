@@ -710,10 +710,32 @@ function handleLotoPhoto(id, input) {
       renderLotoPhotos();
       saveDraft();
       checkAllSafetySigned();
+      // Upload to R2 in background (replaces dataUrl with URL on success)
+      uploadPhotoToServer(dataUrl, 'loto', file.name).then(url => {
+        if (url && url !== dataUrl) {
+          const pp = lotoPhotos.find(x => x.id === id);
+          if (pp) { pp.dataUrl = url; saveDraft(); }
+        }
+      }).catch(()=>{});
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+// Upload a photo (data URL) to the server; server uploads to R2 or echoes back unchanged
+async function uploadPhotoToServer(dataUrl, folder, filename) {
+  try {
+    const res = await fetch('/api/upload-photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataUrl, folder, filename })
+    });
+    const result = await res.json();
+    return result.url || dataUrl;
+  } catch {
+    return dataUrl;
+  }
 }
 
 function removeLotoPhoto(id) {
@@ -1380,7 +1402,7 @@ function mkBlock(){const d=document.createElement('div');d.className='pm-checkli
 
 const _today=new Date();document.getElementById('wo_date').value=_today.getFullYear()+'-'+String(_today.getMonth()+1).padStart(2,'0')+'-'+String(_today.getDate()).padStart(2,'0');
 let photoCount=0;function addPhotoSlot(){photoCount++;const n=photoCount;const w=document.createElement('div');w.innerHTML='<div class="photo-slot" id="ps'+n+'" onclick="document.getElementById(\'pi'+n+'\').click()"><div class="slot-badge">'+n+'</div><div class="placeholder"><span class="cam-icon">📷</span><div class="tap-text">Tap to Add Photo</div><div class="sub-text">Camera or Gallery</div></div><input type="file" id="pi'+n+'" accept="image/*" onchange="handlePhoto(this,'+n+')"><button class="remove-btn" onclick="removePhoto(event,'+n+')">✕</button></div><div class="photo-caption"><input type="text" placeholder="Caption…"></div>';document.getElementById('photoGrid').appendChild(w)}for(let i=0;i<4;i++)addPhotoSlot();
-function handlePhoto(inp,n){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){const s=document.getElementById('ps'+n);const o=s.querySelector('img');if(o)o.remove();const img=document.createElement('img');img.src=e.target.result;s.appendChild(img);s.classList.add('has-photo')};r.readAsDataURL(f)}function removePhoto(e,n){e.stopPropagation();const s=document.getElementById('ps'+n);const img=s.querySelector('img');if(img)img.remove();s.classList.remove('has-photo');document.getElementById('pi'+n).value=''}
+function handlePhoto(inp,n){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){const s=document.getElementById('ps'+n);const o=s.querySelector('img');if(o)o.remove();const img=document.createElement('img');img.src=e.target.result;s.appendChild(img);s.classList.add('has-photo');uploadPhotoToServer(e.target.result,'pm-photos',f.name).then(url=>{if(url&&url!==e.target.result){img.src=url}}).catch(()=>{})};r.readAsDataURL(f)}function removePhoto(e,n){e.stopPropagation();const s=document.getElementById('ps'+n);const img=s.querySelector('img');if(img)img.remove();s.classList.remove('has-photo');document.getElementById('pi'+n).value=''}
 
 function formatDate(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return(d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear()}
 async function saveAndEmail(){
@@ -1758,10 +1780,24 @@ try {
   const allPhotos = [...photosForPdf, ...regPhotosForPdf];
   if (allPhotos.length) {
     addSectionHeader('Photos', [230, 81, 0]);
+    // Pre-fetch URL photos and convert to base64 (jsPDF needs base64)
+    for (const p of allPhotos) {
+      if (p.dataUrl && /^https?:\/\//i.test(p.dataUrl)) {
+        try {
+          const resp = await fetch(p.dataUrl);
+          const blob = await resp.blob();
+          p.dataUrl = await new Promise((res, rej) => {
+            const fr = new FileReader();
+            fr.onload = () => res(fr.result);
+            fr.onerror = rej;
+            fr.readAsDataURL(blob);
+          });
+        } catch (e) { console.log('Photo fetch failed:', e); }
+      }
+    }
     for (const p of allPhotos) {
       checkPage(80);
       try {
-        // Calculate dimensions to fit page width, max 70mm height
         const imgW = contentW - 10;
         const imgH = 65;
         pdf.addImage(p.dataUrl, 'JPEG', margin + 5, y, imgW, imgH, undefined, 'FAST');
