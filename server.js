@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -10,6 +11,12 @@ const GH_BRANCH = "main";
 
 // ── Resend Email API (HTTPS, no SMTP port issues) ──
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+// ── Slack integration (optional — set in Railway env vars) ──
+const SLACK_SIGNING_SECRET = process.env.SLACK_SIGNING_SECRET;  // required to receive Slack events
+const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN;            // optional — for posting confirmations
+const SLACK_ALLOWED_CHANNELS = (process.env.SLACK_ALLOWED_CHANNELS || '').split(',').map(s=>s.trim()).filter(Boolean);
+const SLACK_TRIGGER_KEYWORDS = (process.env.SLACK_TRIGGER_KEYWORDS || 'wo,work order,cold call,repair,emergency').toLowerCase().split(',').map(s=>s.trim());
 
 async function sendEmail({ to, subject, html, attachments }) {
   const body = {
@@ -39,7 +46,8 @@ async function sendEmail({ to, subject, html, attachments }) {
   return result;
 }
 
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
+app.use(express.urlencoded({ extended: true, limit: '25mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 // Test email endpoint
 app.get('/api/test-email', async (req, res) => {
@@ -464,6 +472,208 @@ app.delete('/api/work-orders/:id', async (req, res) => {
     await ghPut('data/work_orders.json', JSON.stringify(orders, null, 2), `Delete work order ${removed.woNumber}`);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════════════════
+// ── SLACK INTEGRATION — auto-create work orders from Slack messages ──
+// ═══════════════════════════════════════════
+// Setup:
+// 1. Create a Slack app at https://api.slack.com/apps
+// 2. Add Bot Token Scopes: channels:history, channels:read, chat:write (optional)
+// 3. Enable Event Subscriptions, Request URL: https://local68.up.railway.app/api/slack/events
+// 4. Subscribe to bot event: message.channels
+// 5. (Optional) Add Slash Command /wo with Request URL: https://local68.up.railway.app/api/slack/command
+// 6. Install to workspace, invite bot to the channel(s) you want monitored
+// 7. Set Railway env vars: SLACK_SIGNING_SECRET, SLACK_BOT_TOKEN (optional), SLACK_ALLOWED_CHANNELS (optional)
+
+function verifySlackSignature(req) {
+  if (!SLACK_SIGNING_SECRET) return false;
+  const sig = req.header('X-Slack-Signature');
+  const ts = req.header('X-Slack-Request-Timestamp');
+  if (!sig || !ts || !req.rawBody) return false;
+  // Reject if older than 5 minutes (replay protection)
+  if (Math.abs(Date.now() / 1000 - parseInt(ts)) > 300) return false;
+  const basestring = `v0:${ts}:${req.rawBody.toString('utf8')}`;
+  const computed = 'v0=' + crypto.createHmac('sha256', SLACK_SIGNING_SECRET).update(basestring).digest('hex');
+  try { return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(sig)); }
+  catch { return false; }
+}
+
+// Parse a Slack message into a work order. Smart-detects location, type, priority.
+function parseSlackMessage(text, user) {
+  const t = (text || '').replace(/\s+/g, ' ').trim();
+  const lower = t.toLowerCase();
+
+  // Location detection
+  let location = 'Other';
+  if (/\b904\b/.test(t) || /904\s*sylvan/i.test(t)) location = '904 Sylvan Ave';
+  else if (/\b900\b/.test(t) || /900\s*sylvan/i.test(t)) location = '900 Sylvan Ave';
+
+  // Type detection
+  let type = 'Cold Call';
+  if (/\bemergency\b/i.test(t)) type = 'Emergency';
+  else if (/\brepair\b/i.test(t)) type = 'Repair';
+  else if (/\bpm\b|preventive maintenance/i.test(t)) type = 'Preventive Maintenance';
+  else if (/\binstall(ation)?\b/i.test(t)) type = 'Installation';
+  else if (/\binspect(ion)?\b/i.test(t)) type = 'Inspection';
+
+  // Priority detection
+  let priority = 'Normal';
+  if (/\b(urgent|asap|critical|emergency|down)\b/i.test(t)) priority = 'Urgent';
+  else if (/\bhigh\b/i.test(t) || /priority/i.test(t)) priority = 'High';
+  else if (/\blow\b|whenever|no rush/i.test(t)) priority = 'Low';
+
+  // Title — strip leading directives like "WO:", "Work Order:", "@bot" mentions
+  let title = t
+    .replace(/^(wo|work order|create wo|new wo)[\s:.-]+/i, '')
+    .replace(/<@[A-Z0-9]+>/g, '')   // strip user mentions
+    .replace(/<#[A-Z0-9]+\|[^>]+>/g, '') // strip channel mentions
+    .trim();
+  if (!title) title = 'Work order from Slack';
+  if (title.length > 100) title = title.slice(0, 97) + '…';
+
+  return { title, location, type, priority, status: 'Open', details: t, createdBy: user || 'Slack' };
+}
+
+// Optional: post message back to Slack
+async function postToSlack(channel, text, threadTs) {
+  if (!SLACK_BOT_TOKEN || !channel) return null;
+  try {
+    const body = { channel, text };
+    if (threadTs) body.thread_ts = threadTs;
+    const resp = await fetch('https://slack.com/api/chat.postMessage', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${SLACK_BOT_TOKEN}`, 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(body)
+    });
+    return await resp.json();
+  } catch (e) { console.error('postToSlack error:', e); return null; }
+}
+
+// Dedup cache (event IDs already processed) — keep last 500 in memory
+const recentSlackEvents = [];
+function alreadyProcessed(eventId) {
+  if (!eventId) return false;
+  if (recentSlackEvents.includes(eventId)) return true;
+  recentSlackEvents.push(eventId);
+  if (recentSlackEvents.length > 500) recentSlackEvents.shift();
+  return false;
+}
+
+// ── Slack Events API webhook ──
+app.post('/api/slack/events', async (req, res) => {
+  const body = req.body || {};
+
+  // Slack URL verification handshake — must respond fast with challenge value
+  if (body.type === 'url_verification') {
+    return res.json({ challenge: body.challenge });
+  }
+
+  // Verify signature
+  if (!verifySlackSignature(req)) {
+    console.warn('Slack signature verification failed');
+    return res.status(401).send('Invalid signature');
+  }
+
+  // Dedup
+  if (alreadyProcessed(body.event_id)) return res.status(200).send('ok');
+
+  // Acknowledge immediately (Slack requires <3s response)
+  res.status(200).send('ok');
+
+  // Process asynchronously
+  if (body.type !== 'event_callback' || !body.event) return;
+  const event = body.event;
+
+  // Only handle real user messages (not edits, bot messages, threaded replies optionally)
+  if (event.type !== 'message') return;
+  if (event.subtype && event.subtype !== 'file_share') return;
+  if (event.bot_id) return;
+  if (!event.text || !event.text.trim()) return;
+
+  // Channel filter
+  if (SLACK_ALLOWED_CHANNELS.length && !SLACK_ALLOWED_CHANNELS.includes(event.channel)) {
+    console.log(`Slack message in unmonitored channel ${event.channel} — ignored`);
+    return;
+  }
+
+  // Trigger keyword check (any keyword in message OR if bot is mentioned)
+  const lower = event.text.toLowerCase();
+  const isMentioned = lower.includes('<@') && body.authorizations && body.authorizations[0] && lower.includes('<@' + body.authorizations[0].user_id.toLowerCase());
+  const hasKeyword = SLACK_TRIGGER_KEYWORDS.some(k => k && lower.includes(k));
+  if (!hasKeyword && !isMentioned && SLACK_ALLOWED_CHANNELS.length === 0) {
+    // No channel filter AND no trigger — too broad, skip
+    return;
+  }
+
+  try {
+    // Parse and create work order
+    const wo = parseSlackMessage(event.text, event.user ? `Slack:${event.user}` : 'Slack');
+    const orders = await getWorkOrders();
+    const year = new Date().getFullYear();
+    const existingNums = orders.map(o => {
+      const m = (o.woNumber || '').match(/WO-\d+-(\d+)/);
+      return m ? parseInt(m[1]) : 0;
+    });
+    const nextNum = (existingNums.length ? Math.max(...existingNums) : 0) + 1;
+    wo.woNumber = `WO-${year}-${String(nextNum).padStart(4, '0')}`;
+    wo.id = wo.woNumber;
+    wo.createdAt = new Date().toISOString();
+    wo.visits = [];
+    wo.source = 'slack';
+    wo.slackChannel = event.channel;
+    wo.slackTs = event.ts;
+    orders.unshift(wo);
+    await ghPut('data/work_orders.json', JSON.stringify(orders, null, 2), `Slack → ${wo.woNumber}`);
+    console.log(`Created ${wo.woNumber} from Slack message`);
+
+    // Reply in Slack with confirmation (if bot token configured)
+    await postToSlack(event.channel, `✅ Created *${wo.woNumber}* — _${wo.title}_\n• Location: ${wo.location}  • Type: ${wo.type}  • Priority: ${wo.priority}\n<https://local68.up.railway.app/work-orders/|View in Work Orders>`, event.ts);
+  } catch (e) {
+    console.error('Slack → WO error:', e);
+    await postToSlack(event.channel, `⚠️ Couldn't create work order: ${e.message}`, event.ts);
+  }
+});
+
+// ── Optional: Slash command `/wo <description>` ──
+app.post('/api/slack/command', async (req, res) => {
+  if (!verifySlackSignature(req)) {
+    return res.status(401).send('Invalid signature');
+  }
+  const text = req.body.text || '';
+  if (!text.trim()) {
+    return res.json({ response_type: 'ephemeral', text: 'Usage: `/wo <description>` — e.g. `/wo AC not cooling in studio B at 900 Sylvan urgent`' });
+  }
+  try {
+    const wo = parseSlackMessage(text, req.body.user_name ? `Slack:${req.body.user_name}` : 'Slack');
+    const orders = await getWorkOrders();
+    const year = new Date().getFullYear();
+    const existingNums = orders.map(o => { const m = (o.woNumber||'').match(/WO-\d+-(\d+)/); return m ? parseInt(m[1]) : 0; });
+    const nextNum = (existingNums.length ? Math.max(...existingNums) : 0) + 1;
+    wo.woNumber = `WO-${year}-${String(nextNum).padStart(4, '0')}`;
+    wo.id = wo.woNumber;
+    wo.createdAt = new Date().toISOString();
+    wo.visits = [];
+    wo.source = 'slack-slash';
+    orders.unshift(wo);
+    await ghPut('data/work_orders.json', JSON.stringify(orders, null, 2), `Slack /wo → ${wo.woNumber}`);
+    res.json({
+      response_type: 'in_channel',
+      text: `✅ Created *${wo.woNumber}* — _${wo.title}_\n• Location: ${wo.location}  • Type: ${wo.type}  • Priority: ${wo.priority}\n<https://local68.up.railway.app/work-orders/|View in Work Orders>`
+    });
+  } catch (e) {
+    res.json({ response_type: 'ephemeral', text: `⚠️ Couldn't create work order: ${e.message}` });
+  }
+});
+
+// Status endpoint — check if Slack integration is configured (for admin debugging)
+app.get('/api/slack/status', (req, res) => {
+  res.json({
+    signing_secret_configured: !!SLACK_SIGNING_SECRET,
+    bot_token_configured: !!SLACK_BOT_TOKEN,
+    allowed_channels: SLACK_ALLOWED_CHANNELS,
+    trigger_keywords: SLACK_TRIGGER_KEYWORDS
+  });
 });
 
 // Serve static files — no cache for HTML to always get latest
