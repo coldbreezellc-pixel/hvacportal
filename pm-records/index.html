@@ -310,7 +310,7 @@ async function viewPM(year, month, file) {
   }
 }
 
-function buildPDFFromRecord(pm) {
+async function buildPDFFromRecord(pm) {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
   const margin = 12, pageW = 210, pageH = 297, contentW = pageW - 2*margin;
@@ -444,19 +444,37 @@ function buildPDFFromRecord(pm) {
     });
   }
 
-  // Photos from archive (lotoPhotos field)
+  // Photos from archive (lotoPhotos field) — handle URL, data URL, or raw base64
   if (pm.lotoPhotos && pm.lotoPhotos.length) {
     addSectionHeader('Photos', [230, 81, 0]);
+    // Pre-fetch any HTTPS URLs and convert to data URLs (jsPDF needs base64)
+    const photosForPdf = [];
     for (const p of pm.lotoPhotos) {
+      let src = p.image || p.dataUrl || '';
+      if (!src) continue;
+      if (/^https?:\/\//i.test(src)) {
+        try {
+          const resp = await fetch(src);
+          const blob = await resp.blob();
+          src = await new Promise((res, rej) => {
+            const fr = new FileReader();
+            fr.onload = () => res(fr.result);
+            fr.onerror = rej;
+            fr.readAsDataURL(blob);
+          });
+        } catch (e) { console.log('Photo fetch failed:', e); continue; }
+      } else if (!src.startsWith('data:')) {
+        src = 'data:image/jpeg;base64,' + src;
+      }
+      photosForPdf.push({ dataUri: src, caption: p.caption || '' });
+    }
+    for (const p of photosForPdf) {
       checkPage(80);
       try {
-        const dataUri = p.image && !p.image.startsWith('data:') ? 'data:image/jpeg;base64,' + p.image : p.image;
-        if (dataUri) {
-          pdf.addImage(dataUri, 'JPEG', margin + 5, y, contentW - 10, 65, undefined, 'FAST');
-          y += 67;
-          addLine(p.caption || 'Photo', { size: 9, color: [100, 116, 139] });
-          y += 3;
-        }
+        pdf.addImage(p.dataUri, 'JPEG', margin + 5, y, contentW - 10, 65, undefined, 'FAST');
+        y += 67;
+        addLine(p.caption || 'Photo', { size: 9, color: [100, 116, 139] });
+        y += 3;
       } catch (e) { console.log('Photo embed failed:', e); }
     }
   }
@@ -500,7 +518,7 @@ async function resendRecord() {
 
   try {
     // Build PDF from archived data
-    const pdf = buildPDFFromRecord(pm);
+    const pdf = await buildPDFFromRecord(pm);
     const pdfBase64 = pdf.output('datauristring').split(',')[1];
     const equipShort = (pm.equipment || 'PM').split(',')[0].replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30);
     const pdfFilename = 'PM_' + equipShort + '_' + (pm.frequency || 'PM') + '_' + (pm.dateFormatted || 'no-date').replace(/\//g, '-') + '.pdf';
