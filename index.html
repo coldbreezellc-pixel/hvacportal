@@ -58,6 +58,12 @@
   .btn-logout:hover{border-color:#f87171;color:#f87171}
   .footer{text-align:center;margin-top:48px;font-size:11px;color:var(--text-mid);opacity:.4;letter-spacing:.5px}
   .hidden{display:none}
+  /* Secondary nav — Dashboard, Users, Logs, Profile */
+  .secondary-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;max-width:480px;margin-top:16px}
+  .sec-nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 6px;text-decoration:none;color:var(--text-mid);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;transition:all .2s}
+  .sec-nav-btn:hover,.sec-nav-btn:active{background:rgba(255,255,255,.08);border-color:var(--accent);color:#fff}
+  .sec-nav-btn .sn-ic{font-size:22px;margin-bottom:2px}
+  .sec-nav-btn.admin-only.hidden{display:none}
 </style>
 </head>
 <body>
@@ -152,6 +158,13 @@
         <div class="card-desc">Track Jobs, Hours & Visits</div>
         <div class="card-badge badge-live">● Live</div>
       </a>
+    </div>
+    <!-- Secondary nav — Dashboard, Users, Logs, Profile -->
+    <div class="secondary-nav" id="secondaryNav">
+      <a href="./inventories/penguin-inventory.html?view=dashboard" class="sec-nav-btn"><span class="sn-ic">📊</span><span>Dashboard</span></a>
+      <a href="./inventories/penguin-inventory.html?view=users" class="sec-nav-btn admin-only"><span class="sn-ic">👥</span><span>Users</span></a>
+      <a href="./inventories/penguin-inventory.html?view=logs" class="sec-nav-btn admin-only"><span class="sn-ic">📋</span><span>Logs</span></a>
+      <a href="./inventories/penguin-inventory.html?view=profile" class="sec-nav-btn"><span class="sn-ic">⚙</span><span>Profile</span></a>
     </div>
   </div>
 
@@ -334,6 +347,13 @@ function showMenu(user) {
   document.getElementById('userName').textContent = user.displayName;
   document.getElementById('userRole').textContent = user.role === 'admin' ? 'Administrator' : 'Crew Member';
   document.getElementById('userAvatar').textContent = (user.displayName || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  // Show/hide admin-only nav buttons
+  const isAdmin = user.role === 'admin';
+  document.querySelectorAll('.sec-nav-btn.admin-only').forEach(el => {
+    el.classList.toggle('hidden', !isAdmin);
+  });
+  // Adjust grid: 4 columns for admin, 2 for crew (only Dashboard + Profile)
+  document.getElementById('secondaryNav').style.gridTemplateColumns = isAdmin ? 'repeat(4,1fr)' : 'repeat(2,1fr)';
 }
 
 function showChangePassword(user) {
