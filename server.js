@@ -729,7 +729,7 @@ app.post('/api/upload-photo', async (req, res) => {
     const safeFolder = (folder || 'photos').replace(/[^a-zA-Z0-9/_-]/g, '');
     const ts = Date.now();
     const rand = Math.random().toString(36).slice(2, 10);
-    const safeFilename = (filename || '').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 40);
+    const safeFilename = (filename || '').replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 40);
     const key = `${safeFolder}/${ts}-${rand}${safeFilename ? '-' + safeFilename : ''}.${ext}`;
 
     const { PutObjectCommand } = require('@aws-sdk/client-s3');
