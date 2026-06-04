@@ -18,6 +18,30 @@ const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN;            // optional — 
 const SLACK_ALLOWED_CHANNELS = (process.env.SLACK_ALLOWED_CHANNELS || '').split(',').map(s=>s.trim()).filter(Boolean);
 const SLACK_TRIGGER_KEYWORDS = (process.env.SLACK_TRIGGER_KEYWORDS || 'wo,work order,cold call,repair,emergency').toLowerCase().split(',').map(s=>s.trim());
 
+// ── Cloudflare R2 photo storage (optional — set in Railway env vars) ──
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+const R2_PUBLIC_URL = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, ''); // strip trailing /
+
+const R2_CONFIGURED = !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET_NAME && R2_PUBLIC_URL);
+
+let r2Client = null;
+if (R2_CONFIGURED) {
+  try {
+    const { S3Client } = require('@aws-sdk/client-s3');
+    r2Client = new S3Client({
+      region: 'auto',
+      endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: { accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY }
+    });
+    console.log('✓ Cloudflare R2 client initialized for bucket:', R2_BUCKET_NAME);
+  } catch (e) {
+    console.error('R2 init failed:', e.message);
+  }
+}
+
 async function sendEmail({ to, subject, html, attachments }) {
   const body = {
     from: 'HVAC Portal <noreply@coldbreezellc.com>',
@@ -673,6 +697,68 @@ app.get('/api/slack/status', (req, res) => {
     bot_token_configured: !!SLACK_BOT_TOKEN,
     allowed_channels: SLACK_ALLOWED_CHANNELS,
     trigger_keywords: SLACK_TRIGGER_KEYWORDS
+  });
+});
+
+// ═══════════════════════════════════════════
+// ── CLOUDFLARE R2 PHOTO STORAGE ──
+// ═══════════════════════════════════════════
+// Uploads photos to R2 if configured, else echoes back the data URL (fallback).
+// Client sends: { dataUrl, folder?, filename? }
+// Server returns: { url, uploaded } — url is either R2 https URL or the original data URL
+
+app.post('/api/upload-photo', async (req, res) => {
+  const { dataUrl, folder, filename } = req.body || {};
+  if (!dataUrl || typeof dataUrl !== 'string') {
+    return res.status(400).json({ error: 'Missing dataUrl' });
+  }
+
+  // If R2 not configured, return the data URL unchanged (graceful fallback)
+  if (!R2_CONFIGURED || !r2Client) {
+    return res.json({ url: dataUrl, uploaded: false, reason: 'R2 not configured' });
+  }
+
+  try {
+    // Parse data URL: data:image/jpeg;base64,<...>
+    const match = dataUrl.match(/^data:image\/([\w+]+);base64,(.+)$/);
+    if (!match) return res.status(400).json({ error: 'Invalid data URL format' });
+    const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+    const buf = Buffer.from(match[2], 'base64');
+
+    // Generate unique key
+    const safeFolder = (folder || 'photos').replace(/[^a-zA-Z0-9/_-]/g, '');
+    const ts = Date.now();
+    const rand = Math.random().toString(36).slice(2, 10);
+    const safeFilename = (filename || '').replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 40);
+    const key = `${safeFolder}/${ts}-${rand}${safeFilename ? '-' + safeFilename : ''}.${ext}`;
+
+    const { PutObjectCommand } = require('@aws-sdk/client-s3');
+    await r2Client.send(new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      Body: buf,
+      ContentType: `image/${match[1]}`,
+      CacheControl: 'public, max-age=31536000, immutable'
+    }));
+
+    const url = `${R2_PUBLIC_URL}/${key}`;
+    res.json({ url, uploaded: true, key, sizeBytes: buf.length });
+  } catch (e) {
+    console.error('R2 upload error:', e);
+    // Fall back to data URL so the user doesn't lose their photo
+    res.json({ url: dataUrl, uploaded: false, reason: 'Upload failed: ' + e.message });
+  }
+});
+
+// R2 status endpoint — for diagnostics
+app.get('/api/r2-status', (req, res) => {
+  res.json({
+    configured: R2_CONFIGURED,
+    account_id_set: !!R2_ACCOUNT_ID,
+    access_key_set: !!R2_ACCESS_KEY_ID,
+    secret_key_set: !!R2_SECRET_ACCESS_KEY,
+    bucket_name: R2_BUCKET_NAME || null,
+    public_url: R2_PUBLIC_URL || null
   });
 });
 
