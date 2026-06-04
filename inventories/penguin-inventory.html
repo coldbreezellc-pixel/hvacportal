@@ -736,7 +736,17 @@ function App() {
         }
         if (foundUser) {
           setCurrentUser(foundUser);
-          setView(foundUser.mustResetPw ? "profile" : "dashboard");
+          // Allow opening directly to a specific view via ?view=users/logs/profile/dashboard
+          const urlView = new URLSearchParams(window.location.search).get('view');
+          const allowed = ['dashboard', 'inventory', 'users', 'logs', 'profile'];
+          const isAdmin = foundUser.role === 'admin';
+          let initialView = foundUser.mustResetPw ? 'profile' : 'dashboard';
+          if (urlView && allowed.includes(urlView)) {
+            // Restrict admin-only views
+            if ((urlView === 'users' || urlView === 'logs') && !isAdmin) initialView = 'dashboard';
+            else initialView = urlView;
+          }
+          setView(initialView);
         }
       } catch {}
       setReady(true);
