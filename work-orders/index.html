@@ -203,11 +203,27 @@ function compressImage(file, maxW, quality) {
   });
 }
 
+async function uploadPhoto(dataUrl, folder, filename) {
+  try {
+    const res = await fetch('/api/upload-photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataUrl, folder, filename })
+    });
+    const result = await res.json();
+    return result.url || dataUrl;
+  } catch (e) {
+    console.warn('Upload failed, keeping local:', e);
+    return dataUrl;
+  }
+}
+
 async function handleWoPhotos(input) {
   for (const file of input.files) {
     try {
       const dataUrl = await compressImage(file, 1400, 0.8);
-      woPhotos.push(dataUrl);
+      const url = await uploadPhoto(dataUrl, 'work-orders', file.name);
+      woPhotos.push(url);
     } catch (e) { console.log('Photo error:', e); }
   }
   input.value = '';
@@ -228,7 +244,8 @@ async function handleVisitPhotos(input) {
   for (const file of input.files) {
     try {
       const dataUrl = await compressImage(file, 1400, 0.8);
-      visitPhotos.push(dataUrl);
+      const url = await uploadPhoto(dataUrl, 'visits', file.name);
+      visitPhotos.push(url);
     } catch (e) { console.log('Photo error:', e); }
   }
   input.value = '';
