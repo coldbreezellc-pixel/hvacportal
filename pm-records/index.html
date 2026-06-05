@@ -248,8 +248,12 @@ async function viewPM(year, month, file) {
       html += '<div class="detail-section"><div class="detail-header" style="background:#E65100;">📸 Photos</div><div class="detail-body">';
       pm.lotoPhotos.forEach(photo => {
         html += '<div style="margin:10px 0;">';
-        if (photo.image) {
-          html += '<img src="data:image/jpeg;base64,' + photo.image + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" />';
+        let imgSrc = '';
+        if (photo.url) imgSrc = photo.url; // R2 URL
+        else if (photo.dataUrl) imgSrc = photo.dataUrl;
+        else if (photo.image) imgSrc = photo.image.startsWith('data:') ? photo.image : ('data:image/jpeg;base64,' + photo.image);
+        if (imgSrc) {
+          html += '<img src="' + imgSrc + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" />';
         }
         html += '<div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + (photo.caption || 'Photo') + '</div></div>';
       });
@@ -458,7 +462,7 @@ async function buildPDFFromRecord(pm) {
     // Pre-fetch any HTTPS URLs and convert to data URLs (jsPDF needs base64)
     const photosForPdf = [];
     for (const p of pm.lotoPhotos) {
-      let src = p.image || p.dataUrl || '';
+      let src = p.url || p.image || p.dataUrl || '';
       if (!src) continue;
       if (/^https?:\/\//i.test(src)) {
         try {
@@ -529,19 +533,32 @@ async function resendRecord() {
     const pdfFilename = 'PM_' + equipShort + '_' + (pm.frequency || 'PM') + '_' + (pm.dateFormatted || 'no-date').replace(/\//g, '-') + '.pdf';
     const pdfAttachment = { filename: pdfFilename, content: pdfBase64, contentType: 'application/pdf' };
 
-    // Build photo attachments from archived lotoPhotos
+    // Build photo attachments from archived lotoPhotos (handles R2 URLs and base64)
     const attachments = [pdfAttachment];
     if (pm.lotoPhotos && pm.lotoPhotos.length) {
-      pm.lotoPhotos.forEach((p, i) => {
-        if (p.image) {
-          const b64 = p.image.startsWith('data:') ? p.image.split(',')[1] : p.image;
+      for (let i = 0; i < pm.lotoPhotos.length; i++) {
+        const p = pm.lotoPhotos[i];
+        let b64 = '';
+        if (p.url) {
+          // R2 URL — fetch via proxy to get base64
+          try {
+            const proxyResp = await fetch('/api/fetch-photo?url=' + encodeURIComponent(p.url));
+            const proxyData = await proxyResp.json();
+            if (proxyData.dataUrl) b64 = proxyData.dataUrl.split(',')[1];
+          } catch (e) { console.log('Attach fetch failed:', e); }
+        } else if (p.dataUrl) {
+          b64 = p.dataUrl.startsWith('data:') ? p.dataUrl.split(',')[1] : p.dataUrl;
+        } else if (p.image) {
+          b64 = p.image.startsWith('data:') ? p.image.split(',')[1] : p.image;
+        }
+        if (b64) {
           attachments.push({
             filename: 'Photo_' + (i + 1) + '_' + (p.caption || 'photo').replace(/[^a-zA-Z0-9]/g, '_') + '.jpg',
             content: b64,
             contentType: 'image/jpeg'
           });
         }
-      });
+      }
     }
 
     btn.textContent = 'Sending…';
