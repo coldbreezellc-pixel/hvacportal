@@ -234,7 +234,7 @@
     <div class="section-header safety-hdr"><span class="icon">🦺</span> HVAC Safety Checklist</div>
     <div class="section-body">
       <div class="safety-sub-header">Personal Protective Equipment (PPE)</div>
-      <table class="safety-table" id="ppeTable"><tr><th>PPE Item</th><th>Condition</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      <table class="safety-table" id="ppeTable"><tr><th>PPE Item</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
       <div class="safety-sub-header">Pre-Job Safety Checklist</div>
       <table class="safety-table" id="preJobTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
       <div class="safety-sub-header">Electrical Safety</div>
@@ -657,7 +657,7 @@ const PREJOB_TASKS=['Review job order for specific hazards','Inspect work area f
 const ELECTRICAL_TASKS=['Ensure power is disconnected before starting work','Use appropriate lockout/tagout procedures','Inspect electrical cords and tools for damage','Test for live wires using a non-contact voltage tester'];
 const GAS_TASKS=['Check for gas leaks using a gas detector','Ensure proper ventilation in the work area','Use refrigerant handling equipment according to EPA guidelines','Store chemicals and gases according to manufacturer\'s instructions'];
 const POSTJOB_TASKS=['Clean work area and remove all debris','Put away all tools','Inspect installation or repair area','Test Equipment operation','Send Email Regarding Findings and completion'];
-function buildPPETable(){const tb=document.getElementById('ppeTable');PPE_ITEMS.forEach(item=>{scUid++;const dId='sd_'+scUid,nId='sn_'+scUid;const tr=document.createElement('tr');tr.innerHTML='<td>'+item+'</td><td><select class="condition-select"><option value="" disabled selected>Select…</option><option>Good</option><option>Fair</option><option>Replace</option><option>N/A</option></select></td><td class="td-action"><div class="safety-check done-check" id="'+dId+'" onclick="scToggle(\''+dId+'\',\''+nId+'\')">✓</div></td><td class="td-action"><div class="safety-check na-check" id="'+nId+'" onclick="scToggleNA(\''+dId+'\',\''+nId+'\')">N/A</div></td>';tb.appendChild(tr)})}
+function buildPPETable(){const tb=document.getElementById('ppeTable');PPE_ITEMS.forEach(item=>{scUid++;const dId='sd_'+scUid,nId='sn_'+scUid;const tr=document.createElement('tr');tr.innerHTML='<td>'+item+'</td><td class="td-action"><div class="safety-check done-check" id="'+dId+'" onclick="scToggle(\''+dId+'\',\''+nId+'\')">✓</div></td><td class="td-action"><div class="safety-check na-check" id="'+nId+'" onclick="scToggleNA(\''+dId+'\',\''+nId+'\')">N/A</div></td>';tb.appendChild(tr)})}
 function buildCheckTable(tableId,tasks){const tb=document.getElementById(tableId);tasks.forEach(task=>{scUid++;const dId='sd_'+scUid,nId='sn_'+scUid;const tr=document.createElement('tr');tr.innerHTML='<td>'+task+'</td><td class="td-action"><div class="safety-check done-check" id="'+dId+'" onclick="scToggle(\''+dId+'\',\''+nId+'\')">✓</div></td><td class="td-action"><div class="safety-check na-check" id="'+nId+'" onclick="scToggleNA(\''+dId+'\',\''+nId+'\')">N/A</div></td>';tb.appendChild(tr)})}
 buildPPETable();buildCheckTable('preJobTable',PREJOB_TASKS);buildCheckTable('electricalTable',ELECTRICAL_TASKS);buildCheckTable('gasTable',GAS_TASKS);buildCheckTable('postJobTable',POSTJOB_TASKS);
 // Update button status when PPE conditions change
@@ -883,13 +883,6 @@ function isSafetyComplete() {
         unchecked.push(task);
       }
     });
-  });
-  // Check PPE condition selects
-  document.querySelectorAll('#ppeTable .condition-select').forEach((sel, idx) => {
-    if (!sel.value || sel.value === '') {
-      allChecked = false;
-      unchecked.push('PPE condition for ' + (PPE_ITEMS[idx] || 'item'));
-    }
   });
   return { complete: allChecked, unchecked };
 }
@@ -1555,7 +1548,7 @@ checklistData.forEach(cl => {
 });
 
 let safetyHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">Safety Checklist</div>';
-const safetyLabels = ['PPE Condition','Pre-Job Safety','Electrical Safety','Gas & Chemical Safety'];
+const safetyLabels = ['Personal Protective Equipment (PPE)','Pre-Job Safety','Electrical Safety','Gas & Chemical Safety'];
 safetyData.forEach((section, si) => {
   safetyHtml += '<div style="font-size:12px;font-weight:700;color:#64748b;margin:8px 0 4px;text-transform:uppercase;">' + (safetyLabels[si]||'Section') + '</div>';
   section.forEach(row => {
@@ -1741,7 +1734,7 @@ try {
   // Safety checklist
   if (safetyData && safetyData.length) {
     addSectionHeader('Safety Checklist');
-    const safetyLabels2 = ['PPE Condition', 'Pre-Job Safety', 'Electrical Safety', 'Gas & Chemical Safety'];
+    const safetyLabels2 = ['Personal Protective Equipment (PPE)', 'Pre-Job Safety', 'Electrical Safety', 'Gas & Chemical Safety'];
     safetyData.forEach((section, si) => {
       checkPage(8);
       addLine(safetyLabels2[si] || 'Section', { size: 9, bold: true, color: [100, 116, 139] });
