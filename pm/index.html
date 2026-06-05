@@ -423,7 +423,12 @@ function loadDraft() {
 function restoreDraft(d) {
   // Basic fields
   if (d.date) document.getElementById('wo_date').value = d.date;
-  if (d.facility) document.getElementById('facility').value = d.facility;
+  if (d.facility) {
+    const facEl = document.getElementById('facility');
+    facEl.value = d.facility;
+    // Fire change so the equipment chips for this facility get built
+    facEl.dispatchEvent(new Event('change'));
+  }
   if (d.techNames && d.techNames.length) {
     d.techNames.forEach(n => addTechName(n));
   }
