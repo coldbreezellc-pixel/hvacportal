@@ -710,11 +710,11 @@ function handleLotoPhoto(id, input) {
       renderLotoPhotos();
       saveDraft();
       checkAllSafetySigned();
-      // Upload to R2 in background (replaces dataUrl with URL on success)
+      // Upload to R2 in background — keep base64 in dataUrl, store R2 URL in .url
       uploadPhotoToServer(dataUrl, 'loto', file.name).then(url => {
         if (url && url !== dataUrl) {
           const pp = lotoPhotos.find(x => x.id === id);
-          if (pp) { pp.dataUrl = url; saveDraft(); }
+          if (pp) { pp.url = url; saveDraft(); }
         }
       }).catch(()=>{});
     };
@@ -1402,7 +1402,7 @@ function mkBlock(){const d=document.createElement('div');d.className='pm-checkli
 
 const _today=new Date();document.getElementById('wo_date').value=_today.getFullYear()+'-'+String(_today.getMonth()+1).padStart(2,'0')+'-'+String(_today.getDate()).padStart(2,'0');
 let photoCount=0;function addPhotoSlot(){photoCount++;const n=photoCount;const w=document.createElement('div');w.innerHTML='<div class="photo-slot" id="ps'+n+'" onclick="document.getElementById(\'pi'+n+'\').click()"><div class="slot-badge">'+n+'</div><div class="placeholder"><span class="cam-icon">📷</span><div class="tap-text">Tap to Add Photo</div><div class="sub-text">Camera or Gallery</div></div><input type="file" id="pi'+n+'" accept="image/*" onchange="handlePhoto(this,'+n+')"><button class="remove-btn" onclick="removePhoto(event,'+n+')">✕</button></div><div class="photo-caption"><input type="text" placeholder="Caption…"></div>';document.getElementById('photoGrid').appendChild(w)}for(let i=0;i<4;i++)addPhotoSlot();
-function handlePhoto(inp,n){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){const s=document.getElementById('ps'+n);const o=s.querySelector('img');if(o)o.remove();const img=document.createElement('img');img.src=e.target.result;s.appendChild(img);s.classList.add('has-photo');uploadPhotoToServer(e.target.result,'pm-photos',f.name).then(url=>{if(url&&url!==e.target.result){img.src=url}}).catch(()=>{})};r.readAsDataURL(f)}function removePhoto(e,n){e.stopPropagation();const s=document.getElementById('ps'+n);const img=s.querySelector('img');if(img)img.remove();s.classList.remove('has-photo');document.getElementById('pi'+n).value=''}
+function handlePhoto(inp,n){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){const s=document.getElementById('ps'+n);const o=s.querySelector('img');if(o)o.remove();const img=document.createElement('img');img.src=e.target.result;s.appendChild(img);s.classList.add('has-photo');uploadPhotoToServer(e.target.result,'pm-photos',f.name).then(url=>{if(url&&url!==e.target.result){img.dataset.r2url=url}}).catch(()=>{})};r.readAsDataURL(f)}function removePhoto(e,n){e.stopPropagation();const s=document.getElementById('ps'+n);const img=s.querySelector('img');if(img)img.remove();s.classList.remove('has-photo');document.getElementById('pi'+n).value=''}
 
 function formatDate(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return(d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear()}
 async function saveAndEmail(){
@@ -1509,27 +1509,31 @@ const lotoAttachments = [];
 const lotoInlineHtml = [];
 const lotoArchiveData = [];
 lotoPhotos.filter(p => p.dataUrl).forEach((p, i) => {
-  const b64 = p.dataUrl.split(',')[1];
+  const isUrl = /^https?:\/\//i.test(p.dataUrl);
+  const b64 = (!isUrl && p.dataUrl.startsWith('data:')) ? p.dataUrl.split(',')[1] : null;
   const caption = p.caption || 'LOTO Photo ' + (i+1);
-  const dataUri = p.dataUrl;
-  if(b64) {
-    lotoAttachments.push({ filename: 'LOTO_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg' });
-    lotoInlineHtml.push('<div style="margin:8px 0;"><img src="' + dataUri + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
-    lotoArchiveData.push({ caption: caption, image: b64 });
-  }
+  // Email inline — works with both R2 URL and data URL
+  lotoInlineHtml.push('<div style="margin:8px 0;"><img src="' + p.dataUrl + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
+  // Attachment — only possible from base64
+  if (b64) lotoAttachments.push({ filename: 'LOTO_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg' });
+  // Archive — prefer R2 URL (tiny), else base64
+  if (isUrl) lotoArchiveData.push({ caption: caption, url: p.dataUrl });
+  else if (b64) lotoArchiveData.push({ caption: caption, image: b64 });
 });
 
 // Gather regular photos
 document.querySelectorAll('.photo-slot.has-photo img').forEach((img, i) => {
-  if(img.src && img.src.startsWith('data:')) {
-    const b64 = img.src.split(',')[1];
-    const caption = img.closest('.photo-slot')?.parentElement?.querySelector('.photo-caption input')?.value || 'Photo ' + (i+1);
-    if(b64) {
-      lotoAttachments.push({ filename: 'Photo_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg' });
-      lotoInlineHtml.push('<div style="margin:8px 0;"><img src="' + img.src + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
-      lotoArchiveData.push({ caption: caption, image: b64 });
-    }
-  }
+  const src = img.src || '';
+  if (!src) return;
+  const isUrl = /^https?:\/\//i.test(src);
+  const b64 = (!isUrl && src.startsWith('data:')) ? src.split(',')[1] : null;
+  const caption = img.closest('.photo-slot')?.parentElement?.querySelector('.photo-caption input')?.value || 'Photo ' + (i+1);
+  if (!isUrl && !b64) return;
+  // Email inline
+  lotoInlineHtml.push('<div style="margin:8px 0;"><img src="' + src + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
+  if (b64) lotoAttachments.push({ filename: 'Photo_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg' });
+  if (isUrl) lotoArchiveData.push({ caption: caption, url: src });
+  else if (b64) lotoArchiveData.push({ caption: caption, image: b64 });
 });
 
 const photosHtml = lotoInlineHtml.length > 0 ? '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">📸 Photos</div>' + lotoInlineHtml.join('') + '</div>' : '';
@@ -1781,7 +1785,7 @@ try {
   const photosForPdf = lotoPhotos.filter(p => p.dataUrl);
   const regPhotosForPdf = [];
   document.querySelectorAll('.photo-slot.has-photo img').forEach(img => {
-    if (img.src && img.src.startsWith('data:')) {
+    if (img.src && (img.src.startsWith('data:') || /^https?:\/\//i.test(img.src))) {
       const cap = img.closest('.photo-slot')?.parentElement?.querySelector('.photo-caption input')?.value || '';
       regPhotosForPdf.push({ dataUrl: img.src, caption: cap });
     }
