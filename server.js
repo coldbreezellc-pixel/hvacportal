@@ -762,6 +762,28 @@ app.get('/api/r2-status', (req, res) => {
   });
 });
 
+// Photo proxy — fetches an image URL server-side and returns it as a base64 data URL.
+// Needed because R2 public URLs don't send CORS headers, so the browser can't fetch
+// them directly when building PDFs. Only allows fetching from the configured R2 bucket.
+app.get('/api/fetch-photo', async (req, res) => {
+  try {
+    const url = req.query.url;
+    if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Missing url' });
+    // Security: only proxy images from our own R2 public URL
+    if (R2_PUBLIC_URL && !url.startsWith(R2_PUBLIC_URL)) {
+      return res.status(403).json({ error: 'URL not allowed' });
+    }
+    const resp = await fetch(url);
+    if (!resp.ok) return res.status(502).json({ error: 'Fetch failed: ' + resp.status });
+    const contentType = resp.headers.get('content-type') || 'image/jpeg';
+    const arrayBuf = await resp.arrayBuffer();
+    const base64 = Buffer.from(arrayBuf).toString('base64');
+    res.json({ dataUrl: `data:${contentType};base64,${base64}` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Serve static files — no cache for HTML to always get latest
 app.use((req, res, next) => {
   if (req.path.endsWith('.html') || req.path.endsWith('/') || !req.path.includes('.')) {
