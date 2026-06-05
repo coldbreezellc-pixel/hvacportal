@@ -1638,7 +1638,15 @@ try {
   function checkPage(needed) {
     if (y + needed > pageH - margin) { pdf.addPage(); y = margin; }
   }
+  // Remove emoji and other non-Latin1 characters jsPDF's core fonts can't render
+  function pdfClean(s) {
+    return String(s == null ? '' : s)
+      .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\uFE0F\u200D]/gu, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
   function addLine(text, opts = {}) {
+    text = pdfClean(text);
     const size = opts.size || 10;
     const bold = opts.bold || false;
     const color = opts.color || [30, 41, 59];
@@ -1653,6 +1661,7 @@ try {
     });
   }
   function addSectionHeader(text, color = [27, 58, 92]) {
+    text = pdfClean(text);
     checkPage(12);
     y += 3;
     pdf.setFillColor(...color);
@@ -1784,14 +1793,10 @@ try {
     for (const p of allPhotos) {
       if (p.dataUrl && /^https?:\/\//i.test(p.dataUrl)) {
         try {
-          const resp = await fetch(p.dataUrl);
-          const blob = await resp.blob();
-          p.dataUrl = await new Promise((res, rej) => {
-            const fr = new FileReader();
-            fr.onload = () => res(fr.result);
-            fr.onerror = rej;
-            fr.readAsDataURL(blob);
-          });
+          // Use server proxy — R2 public URLs block direct browser fetch (no CORS)
+          const proxyResp = await fetch('/api/fetch-photo?url=' + encodeURIComponent(p.dataUrl));
+          const proxyData = await proxyResp.json();
+          if (proxyData.dataUrl) p.dataUrl = proxyData.dataUrl;
         } catch (e) { console.log('Photo fetch failed:', e); }
       }
     }
