@@ -11,7 +11,17 @@
     "woNumber": "WO-2026-0004",
     "id": "WO-2026-0004",
     "createdAt": "2026-07-06T14:54:58.814Z",
-    "visits": []
+    "visits": [
+      {
+        "date": "2026-07-06",
+        "tech": "Christian Dell'Andrino",
+        "hours": 1,
+        "notes": "Repaired",
+        "photos": [],
+        "loggedAt": "2026-07-06T14:56:10.207Z"
+      }
+    ],
+    "updatedAt": "2026-07-06T14:56:10.698Z"
   },
   {
     "title": "pre-action drain smell 2nd floor noc",
