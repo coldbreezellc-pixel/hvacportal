@@ -11,9 +11,10 @@
     "notes": "",
     "id": "TO-2026-0003",
     "days": 1,
-    "status": "Pending",
+    "status": "Approved",
     "coveringTech": "",
-    "createdAt": "2026-07-13T12:07:21.767Z"
+    "createdAt": "2026-07-13T12:07:21.767Z",
+    "updatedAt": "2026-07-13T12:07:28.760Z"
   },
   {
     "employee": "Ray Sinnott",
