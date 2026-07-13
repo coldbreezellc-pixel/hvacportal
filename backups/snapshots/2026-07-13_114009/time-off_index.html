@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Time Off &amp; Coverage — HVAC Engineering</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1B3A5C;--navy-light:#2A5280;--accent:#2979FF;--bg:#F3F6FA;--card:#FFFFFF;--border:#D4DCE8;--text:#1E2A3A;--text-mid:#5A6A7E;--text-light:#8A96A8;--success:#2E7D32;--danger:#C62828;--warn:#E65100;--teal:#00897B;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(27,58,92,0.08)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+  .header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);color:#fff;padding:16px 20px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(27,58,92,.25);display:flex;align-items:center;gap:12px}
+  .header h1{font-size:17px;font-weight:700;letter-spacing:.5px;flex:1}
+  .back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+  .container{padding:16px;max-width:680px;margin:0 auto;padding-bottom:50px}
+  .tabs{display:flex;gap:6px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;border:1px solid var(--border)}
+  .tab{flex:1;padding:9px 6px;border:none;border-radius:7px;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--text-mid);cursor:pointer;text-transform:uppercase;letter-spacing:.4px}
+  .tab.active{background:var(--navy);color:#fff}
+  .tab .cnt{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;padding:0 5px;font-size:10px;margin-left:3px}
+  .panel{display:none}
+  .panel.active{display:block}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:12px;overflow:hidden}
+  .card-head{padding:12px 14px;background:var(--navy);color:#fff;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+  .card-body{padding:14px}
+  label{display:block;font-size:11px;font-weight:600;color:var(--text-mid);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;margin-top:12px}
+  label:first-child{margin-top:0}
+  input[type="text"],input[type="date"],input[type="number"],select,textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);background:#FAFBFD;-webkit-appearance:none;appearance:none}
+  select{background:#FAFBFD url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235A6A7E' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 10px center/16px}
+  textarea{min-height:70px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{width:100%;padding:13px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.5}
+  .btn-sm{padding:7px 12px;font-size:12px;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;margin:0}
+  .btn-approve{background:var(--success);color:#fff}
+  .btn-deny{background:var(--danger);color:#fff}
+  .btn-ghost{background:#fff;color:var(--text-mid);border:1.5px solid var(--border)}
+  .days-preview{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;font-size:13px;color:#1E40AF;font-weight:600;margin-top:12px;text-align:center}
+  .days-preview.over{background:#FEE2E2;border-color:#FCA5A5;color:#991B1B}
+  /* Balance cards */
+  .bal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .bal-box{background:#F8FAFC;border:1.5px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center}
+  .bal-box .bal-num{font-size:24px;font-weight:800;color:var(--navy);line-height:1}
+  .bal-box .bal-lbl{font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.4px;margin-top:5px;line-height:1.3}
+  .bal-box .bal-sub{font-size:10px;color:var(--text-light);margin-top:3px}
+  .bal-box.low .bal-num{color:var(--danger)}
+  .person-bal{border-bottom:1px solid #F1F5F9;padding:12px 0}
+  .person-bal:last-child{border-bottom:none}
+  .person-bal .pname{font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+  /* Request rows */
+  .req{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:9px;background:#fff}
+  .req-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .req-emp{font-size:15px;font-weight:700;color:var(--text)}
+  .req-meta{font-size:12px;color:var(--text-mid);margin-top:3px;line-height:1.5}
+  .req-notes{font-size:12px;color:var(--text-mid);margin-top:6px;font-style:italic;background:#F8FAFC;padding:6px 8px;border-radius:6px}
+  .badge{display:inline-block;padding:3px 9px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+  .b-pending{background:#FEF3C7;color:#92400E}
+  .b-approved{background:#D1FAE5;color:#065F46}
+  .b-denied{background:#FEE2E2;color:#991B1B}
+  .t-sick{background:#FEE2E2;color:#991B1B}
+  .t-personal{background:#EDE9FE;color:#5B21B6}
+  .t-vacation{background:#DBEAFE;color:#1E40AF}
+  .t-floating{background:#D1FAE5;color:#065F46}
+  .s-1st{background:#FEF9C3;color:#854D0E}
+  .s-2nd{background:#FFE4E6;color:#9F1239}
+  .s-3rd{background:#E0E7FF;color:#3730A3}
+  /* Coverage: shift grouping */
+  .shift-grp{border:1.5px solid var(--border);border-radius:9px;padding:9px 11px;margin-bottom:7px;background:#FAFBFD}
+  .shift-grp.uncovered{border-color:#FCA5A5;background:#FEF2F2}
+  .shift-grp-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .shift-grp-hd .st{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+  .shift-grp-hd .sh{font-size:10px;color:var(--text-light);font-weight:600}
+  .gap-warn{background:#FEE2E2;color:#991B1B;font-size:11px;font-weight:700;padding:5px 8px;border-radius:6px;margin-top:6px;text-align:center}
+  .req-actions{display:flex;gap:7px;margin-top:11px}
+  .req-actions .btn-sm{flex:1}
+  .cover-row{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
+  .cover-row label{margin:0 0 5px}
+  .cover-row select{font-size:14px;padding:8px 10px}
+  .cover-tag{font-size:12px;color:var(--teal);font-weight:700;margin-top:6px}
+  /* Coverage calendar */
+  .cal-day{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:9px;background:#fff}
+  .cal-date{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+  .cal-out{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F8FAFC;font-size:13px}
+  .cal-out:last-child{border-bottom:none}
+  .cal-out .who{font-weight:600}
+  .cal-cover{font-size:11px;color:var(--teal);font-weight:700}
+  .cal-nocover{font-size:11px;color:var(--warn);font-weight:700}
+  .empty{text-align:center;padding:44px 20px;color:var(--text-light)}
+  .empty .ic{font-size:44px;display:block;margin-bottom:10px;opacity:.4}
+  .loading{text-align:center;padding:40px;color:var(--text-light);font-size:14px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--navy);color:#fff;padding:13px 22px;border-radius:10px;font-size:14px;font-weight:600;z-index:400;transition:transform .3s;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--danger)}
+  .filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .fchip{padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;background:#fff;font-size:12px;font-weight:600;color:var(--text-mid);cursor:pointer}
+  .fchip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .admin-only{display:none}
+  .is-admin .admin-only{display:block}
+  .allot-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:6px;align-items:end;margin-bottom:9px}
+  .allot-row input{padding:8px;font-size:14px;text-align:center}
+  .allot-row .nm{font-size:13px;font-weight:700;color:var(--text);padding-bottom:9px}
+  .allot-hdr{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:6px;font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;margin-bottom:6px;text-align:center}
+  .allot-hdr span:first-child{text-align:left}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="/" class="back-btn">← Back</a>
+  <h1>🌴 Time Off &amp; Coverage</h1>
+</div>
+
+<div class="container" id="root">
+  <div class="tabs">
+    <button class="tab active" data-tab="my" onclick="switchTab('my')">My Time Off</button>
+    <button class="tab" data-tab="requests" onclick="switchTab('requests')">Requests<span class="cnt" id="pendCnt" style="display:none;">0</span></button>
+    <button class="tab" data-tab="coverage" onclick="switchTab('coverage')">Coverage</button>
+    <button class="tab admin-only" data-tab="balances" onclick="switchTab('balances')" style="display:none;">Balances</button>
+  </div>
+
+  <!-- MY TIME OFF -->
+  <div class="panel active" id="panel-my">
+    <div class="card">
+      <div class="card-head">My Balance — <span id="balYear"></span></div>
+      <div class="card-body">
+        <div class="bal-grid" id="myBalances">
+          <div class="loading" style="grid-column:1/-1;padding:20px;">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Request Time Off</div>
+      <div class="card-body">
+        <label>Type</label>
+        <select id="f_type" onchange="updatePreview()">
+          <option value="Vacation">Vacation</option>
+          <option value="Sick">Sick</option>
+          <option value="Personal">Personal</option>
+          <option value="Floating Holiday">Floating Holiday</option>
+        </select>
+        <label>Shift You're Taking Off</label>
+        <select id="f_shift">
+          <option value="1st">1st Shift — 6:00 AM to 2:00 PM</option>
+          <option value="2nd">2nd Shift — 2:00 PM to 10:00 PM</option>
+          <option value="3rd">3rd Shift — 10:00 PM to 6:00 AM</option>
+        </select>
+        <div class="row2">
+          <div>
+            <label>Start Date</label>
+            <input type="date" id="f_start" onchange="onStartChange()">
+          </div>
+          <div>
+            <label>End Date</label>
+            <input type="date" id="f_end" onchange="updatePreview()">
+          </div>
+        </div>
+        <label>Reason / Notes (optional)</label>
+        <textarea id="f_notes" placeholder="Anything the chief should know…"></textarea>
+        <div class="days-preview" id="preview">Select dates to see how many days this uses</div>
+        <button class="btn" id="submitBtn" onclick="submitRequest()">Submit Request</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">My Requests</div>
+      <div class="card-body" id="myRequests"><div class="loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ALL REQUESTS -->
+  <div class="panel" id="panel-requests">
+    <div class="filter-row">
+      <div class="fchip active" data-f="Pending" onclick="setFilter(this,'Pending')">Pending</div>
+      <div class="fchip" data-f="Approved" onclick="setFilter(this,'Approved')">Approved</div>
+      <div class="fchip" data-f="Denied" onclick="setFilter(this,'Denied')">Denied</div>
+      <div class="fchip" data-f="all" onclick="setFilter(this,'all')">All</div>
+    </div>
+    <div id="allRequests"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- COVERAGE -->
+  <div class="panel" id="panel-coverage">
+    <div id="coverageSummary"></div>
+    <div class="card">
+      <div class="card-head">Who's Out — Next 60 Days</div>
+      <div class="card-body" id="coverageList"><div class="loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- BALANCES (admin) -->
+  <div class="panel" id="panel-balances">
+    <div class="card">
+      <div class="card-head">Everyone's Balances</div>
+      <div class="card-body" id="allBalances"><div class="loading">Loading…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head">Set Annual Allotments</div>
+      <div class="card-body">
+        <div class="allot-hdr"><span>Employee</span><span>Sick/Pers</span><span>Vacation</span><span>Float</span><span></span></div>
+        <div id="allotEditor"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Session ──
+if (!localStorage.getItem('hvac_session')) window.location.href = '/';
+const _currentUser = JSON.parse(localStorage.getItem('hvac_session') || '{}');
+const isAdmin = _currentUser.role === 'admin';
+const myName = _currentUser.displayName || '';
+if (isAdmin) {
+  document.body.classList.add('is-admin');
+  document.querySelector('.tab[data-tab="balances"]').style.display = 'block';
+}
+
+const POOL_OF = { 'Sick':'sickPersonal', 'Personal':'sickPersonal', 'Vacation':'vacation', 'Floating Holiday':'floating' };
+const POOL_NAME = { sickPersonal:'Sick / Personal', vacation:'Vacation', floating:'Floating Holidays' };
+const TYPE_CLASS = { 'Sick':'t-sick', 'Personal':'t-personal', 'Vacation':'t-vacation', 'Floating Holiday':'t-floating' };
+const SHIFT_INFO = {
+  '1st': { label: '1st Shift', time: '6a–2p', cls: 's-1st' },
+  '2nd': { label: '2nd Shift', time: '2p–10p', cls: 's-2nd' },
+  '3rd': { label: '3rd Shift', time: '10p–6a', cls: 's-3rd' }
+};
+const SHIFT_ORDER = ['1st', '2nd', '3rd'];
+
+let DATA = { requests: [], balances: {}, allotments: {} };
+let allUsers = [];
+let curFilter = 'Pending';
+
+document.getElementById('balYear').textContent = new Date().getFullYear();
+
+function toast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(() => { t.className = 'toast'; }, 2800);
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+}
+function setFilter(el, f) {
+  document.querySelectorAll('.fchip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  curFilter = f;
+  renderAllRequests();
+}
+
+function countDays(start, end) {
+  const s = new Date(start + 'T00:00:00'), e = new Date(end + 'T00:00:00');
+  if (isNaN(s) || isNaN(e) || e < s) return 0;
+  return Math.round((e - s) / 86400000) + 1;
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const x = new Date(d + 'T00:00:00');
+  return x.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function fmtRange(a, b) {
+  return a === b ? fmtDate(a) : fmtDate(a) + ' – ' + fmtDate(b);
+}
+
+function onStartChange() {
+  const s = document.getElementById('f_start').value;
+  const e = document.getElementById('f_end');
+  if (s && (!e.value || e.value < s)) e.value = s;
+  updatePreview();
+}
+
+function updatePreview() {
+  const type = document.getElementById('f_type').value;
+  const s = document.getElementById('f_start').value;
+  const e = document.getElementById('f_end').value;
+  const box = document.getElementById('preview');
+  const btn = document.getElementById('submitBtn');
+  if (!s || !e) {
+    box.textContent = 'Select dates to see how many days this uses';
+    box.className = 'days-preview';
+    btn.disabled = false;
+    return;
+  }
+  const days = countDays(s, e);
+  if (days <= 0) {
+    box.textContent = 'End date must be on or after start date';
+    box.className = 'days-preview over';
+    btn.disabled = true;
+    return;
+  }
+  const pool = POOL_OF[type];
+  const bal = DATA.balances[myName];
+  const remaining = bal ? bal.remaining[pool] : null;
+  let txt = days + (days === 1 ? ' day' : ' days') + ' from ' + POOL_NAME[pool];
+  let over = false;
+  if (remaining !== null && remaining !== undefined) {
+    const after = remaining - days;
+    txt += ' — you would have ' + after + ' left';
+    if (after < 0) { over = true; txt = days + ' days requested, but only ' + remaining + ' left in ' + POOL_NAME[pool]; }
+  }
+  box.textContent = txt;
+  box.className = 'days-preview' + (over ? ' over' : '');
+  btn.disabled = over;
+}
+
+async function load() {
+  try {
+    const [toRes, usersRes] = await Promise.all([
+      fetch('/api/time-off').then(r => r.json()),
+      fetch('/api/data/pm_users').then(r => r.json()).catch(() => ({}))
+    ]);
+    DATA = toRes;
+    const u = usersRes.value || usersRes.data || usersRes;
+    allUsers = Array.isArray(u) ? u : (u && Array.isArray(u.users) ? u.users : []);
+    renderMyBalances();
+    renderMyRequests();
+    renderAllRequests();
+    renderCoverage();
+    if (isAdmin) { renderAllBalances(); renderAllotEditor(); }
+    updatePendingCount();
+    updatePreview();
+  } catch (e) {
+    toast('Failed to load: ' + e.message, true);
+  }
+}
+
+function updatePendingCount() {
+  const n = DATA.requests.filter(r => r.status === 'Pending').length;
+  const el = document.getElementById('pendCnt');
+  el.textContent = n;
+  el.style.display = n ? 'inline-block' : 'none';
+}
+
+function renderMyBalances() {
+  const bal = DATA.balances[myName];
+  const box = document.getElementById('myBalances');
+  if (!bal) {
+    box.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:20px;">No allotment set yet. Ask an admin to set your days.</div>';
+    return;
+  }
+  box.innerHTML = ['sickPersonal', 'vacation', 'floating'].map(p => {
+    const rem = bal.remaining[p], tot = bal.allotment[p], pend = bal.pending[p];
+    const low = rem <= 1;
+    return '<div class="bal-box' + (low ? ' low' : '') + '">' +
+      '<div class="bal-num">' + rem + '</div>' +
+      '<div class="bal-lbl">' + POOL_NAME[p] + '</div>' +
+      '<div class="bal-sub">of ' + tot + (pend ? ' · ' + pend + ' pending' : '') + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function reqCard(r, showActions) {
+  const tcls = TYPE_CLASS[r.type] || '';
+  const scls = 'b-' + (r.status || 'Pending').toLowerCase();
+  const sh = SHIFT_INFO[r.shift];
+  let h = '<div class="req">';
+  h += '<div class="req-top"><div>';
+  h += '<div class="req-emp">' + esc(r.employee) + '</div>';
+  h += '<div class="req-meta"><span class="badge ' + tcls + '">' + esc(r.type) + '</span> ' +
+       (sh ? '<span class="badge ' + sh.cls + '">' + sh.label + ' · ' + sh.time + '</span>' : '') +
+       '<br>' + fmtRange(r.startDate, r.endDate) + ' · <b>' + r.days + (r.days === 1 ? ' day' : ' days') + '</b></div>';
+  h += '</div><span class="badge ' + scls + '">' + esc(r.status) + '</span></div>';
+  if (r.notes) h += '<div class="req-notes">' + esc(r.notes) + '</div>';
+  if (r.status === 'Approved') {
+    if (r.coveringTech) {
+      h += '<div class="cover-tag">🛡 ' + (sh ? sh.label : 'Shift') + ' covered by ' + esc(r.coveringTech) + '</div>';
+    } else {
+      h += '<div class="gap-warn">⚠ ' + (sh ? sh.label : 'Shift') + ' has no coverage assigned</div>';
+    }
+  }
+  if (showActions && isAdmin) {
+    if (r.status === 'Pending') {
+      h += '<div class="req-actions">' +
+        '<button class="btn-sm btn-approve" onclick="decide(\'' + r.id + '\',\'Approved\')">✓ Approve</button>' +
+        '<button class="btn-sm btn-deny" onclick="decide(\'' + r.id + '\',\'Denied\')">✕ Deny</button>' +
+        '</div>';
+    }
+    if (r.status === 'Approved') {
+      h += '<div class="cover-row"><label>Who covers ' + (sh ? sh.label + ' (' + sh.time + ')' : 'this shift') + '?</label>' +
+        '<select onchange="setCover(\'' + r.id + '\', this.value)">' +
+        '<option value="">— No coverage assigned —</option>' +
+        allUsers.filter(u => u.displayName !== r.employee).map(u =>
+          '<option value="' + esc(u.displayName) + '"' + (r.coveringTech === u.displayName ? ' selected' : '') + '>' + esc(u.displayName) + '</option>'
+        ).join('') +
+        '</select></div>';
+      h += '<div class="req-actions"><button class="btn-sm btn-ghost" onclick="decide(\'' + r.id + '\',\'Denied\')">Revoke</button></div>';
+    }
+  }
+  h += '</div>';
+  return h;
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function renderMyRequests() {
+  const mine = DATA.requests.filter(r => r.employee === myName);
+  const box = document.getElementById('myRequests');
+  if (!mine.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">📭</span>No requests yet</div>';
+    return;
+  }
+  box.innerHTML = mine.map(r => reqCard(r, false)).join('');
+}
+
+function renderAllRequests() {
+  const list = curFilter === 'all' ? DATA.requests : DATA.requests.filter(r => r.status === curFilter);
+  const box = document.getElementById('allRequests');
+  if (!list.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">📭</span>No ' + (curFilter === 'all' ? '' : curFilter.toLowerCase() + ' ') + 'requests</div>';
+    return;
+  }
+  box.innerHTML = list.map(r => reqCard(r, true)).join('');
+}
+
+function renderCoverage() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const horizon = new Date(today); horizon.setDate(horizon.getDate() + 60);
+  // date → shift → [requests]
+  const byDay = {};
+  DATA.requests.filter(r => r.status === 'Approved').forEach(r => {
+    let d = new Date(r.startDate + 'T00:00:00');
+    const end = new Date(r.endDate + 'T00:00:00');
+    while (d <= end) {
+      if (d >= today && d <= horizon) {
+        const key = d.toISOString().slice(0, 10);
+        const sh = r.shift || '1st';
+        if (!byDay[key]) byDay[key] = {};
+        if (!byDay[key][sh]) byDay[key][sh] = [];
+        byDay[key][sh].push(r);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  });
+  const keys = Object.keys(byDay).sort();
+  const box = document.getElementById('coverageList');
+  const sumBox = document.getElementById('coverageSummary');
+
+  // Summary banner — how many approved absences still lack a covering tech
+  const openGaps = DATA.requests.filter(r => r.status === 'Approved' && !r.coveringTech).length;
+  if (openGaps) {
+    sumBox.innerHTML = '<div class="card" style="border-color:#FCA5A5;"><div class="card-body" style="background:#FEF2F2;text-align:center;">' +
+      '<div style="font-size:26px;font-weight:800;color:#991B1B;">' + openGaps + '</div>' +
+      '<div style="font-size:12px;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;">' +
+      (openGaps === 1 ? 'Shift needs' : 'Shifts need') + ' coverage</div>' +
+      '<div style="font-size:11px;color:var(--text-mid);margin-top:5px;">Assign a covering tech under the Requests tab</div>' +
+      '</div></div>';
+  } else {
+    sumBox.innerHTML = '<div class="card" style="border-color:#86EFAC;"><div class="card-body" style="background:#F0FDF4;text-align:center;">' +
+      '<div style="font-size:13px;font-weight:700;color:#065F46;">✅ Every approved shift is covered</div>' +
+      '</div></div>';
+  }
+
+  if (!keys.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">✅</span>Nobody scheduled off in the next 60 days</div>';
+    return;
+  }
+  box.innerHTML = keys.map(k => {
+    const dt = new Date(k + 'T00:00:00');
+    const label = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const shiftBlocks = SHIFT_ORDER.filter(s => byDay[k][s]).map(s => {
+      const info = SHIFT_INFO[s];
+      const reqs = byDay[k][s];
+      const uncovered = reqs.filter(r => !r.coveringTech).length;
+      const rows = reqs.map(r =>
+        '<div class="cal-out"><span class="who">' + esc(r.employee) +
+        ' <span class="badge ' + (TYPE_CLASS[r.type]||'') + '">' + esc(r.type) + '</span></span>' +
+        (r.coveringTech
+          ? '<span class="cal-cover">🛡 ' + esc(r.coveringTech) + '</span>'
+          : '<span class="cal-nocover">⚠ Needs coverage</span>') +
+        '</div>'
+      ).join('');
+      return '<div class="shift-grp' + (uncovered ? ' uncovered' : '') + '">' +
+        '<div class="shift-grp-hd">' +
+          '<span class="badge ' + info.cls + ' st">' + info.label + '</span>' +
+          '<span class="sh">' + info.time + '</span>' +
+        '</div>' + rows +
+        (uncovered ? '<div class="gap-warn">⚠ ' + uncovered + ' shift' + (uncovered > 1 ? 's' : '') + ' still need coverage</div>' : '') +
+        '</div>';
+    }).join('');
+    return '<div class="cal-day"><div class="cal-date">' + label + '</div>' + shiftBlocks + '</div>';
+  }).join('');
+}
+
+function renderAllBalances() {
+  const names = Object.keys(DATA.balances).sort();
+  const box = document.getElementById('allBalances');
+  if (!names.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">👥</span>No allotments set yet</div>';
+    return;
+  }
+  box.innerHTML = names.map(n => {
+    const b = DATA.balances[n];
+    return '<div class="person-bal"><div class="pname">' + esc(n) + '</div><div class="bal-grid">' +
+      ['sickPersonal','vacation','floating'].map(p => {
+        const rem = b.remaining[p];
+        return '<div class="bal-box' + (rem <= 1 ? ' low' : '') + '">' +
+          '<div class="bal-num">' + rem + '</div>' +
+          '<div class="bal-lbl">' + POOL_NAME[p] + '</div>' +
+          '<div class="bal-sub">of ' + b.allotment[p] + '</div></div>';
+      }).join('') + '</div></div>';
+  }).join('');
+}
+
+function renderAllotEditor() {
+  const box = document.getElementById('allotEditor');
+  if (!allUsers.length) {
+    box.innerHTML = '<div class="empty" style="padding:20px;">No users found</div>';
+    return;
+  }
+  box.innerHTML = allUsers.map((u, i) => {
+    const n = u.displayName;
+    const a = (DATA.allotments && DATA.allotments[n]) || (DATA.balances[n] && DATA.balances[n].allotment) || DATA.defaults || { sickPersonal:12, vacation:10, floating:3 };
+    return '<div class="allot-row">' +
+      '<div class="nm">' + esc(n) + '</div>' +
+      '<input type="number" min="0" id="a_sp_' + i + '" value="' + a.sickPersonal + '">' +
+      '<input type="number" min="0" id="a_va_' + i + '" value="' + a.vacation + '">' +
+      '<input type="number" min="0" id="a_fl_' + i + '" value="' + a.floating + '">' +
+      '<button class="btn-sm btn-approve" onclick="saveAllot(' + i + ')">Save</button>' +
+      '</div>';
+  }).join('');
+}
+
+async function saveAllot(i) {
+  const name = allUsers[i] && allUsers[i].displayName;
+  if (!name) return;
+  try {
+    const body = {
+      employee: name,
+      sickPersonal: document.getElementById('a_sp_' + i).value,
+      vacation: document.getElementById('a_va_' + i).value,
+      floating: document.getElementById('a_fl_' + i).value
+    };
+    const r = await fetch('/api/time-off-allotments', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error('Save failed');
+    toast('Saved ' + name + "'s allotment");
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function submitRequest() {
+  const type = document.getElementById('f_type').value;
+  const shift = document.getElementById('f_shift').value;
+  const startDate = document.getElementById('f_start').value;
+  const endDate = document.getElementById('f_end').value;
+  const notes = document.getElementById('f_notes').value.trim();
+  if (!startDate || !endDate) return toast('Pick your dates', true);
+  if (!shift) return toast('Pick which shift you are taking off', true);
+  if (countDays(startDate, endDate) <= 0) return toast('End date must be on or after start', true);
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    const r = await fetch('/api/time-off', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee: myName, type, shift, startDate, endDate, notes })
+    });
+    if (!r.ok) throw new Error('Submit failed');
+    document.getElementById('f_start').value = '';
+    document.getElementById('f_end').value = '';
+    document.getElementById('f_notes').value = '';
+    toast('Request submitted — pending approval');
+    await load();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Submit Request';
+  }
+}
+
+async function decide(id, status) {
+  if (!isAdmin) return;
+  try {
+    const r = await fetch('/api/time-off/' + id, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, decidedBy: myName })
+    });
+    if (!r.ok) throw new Error('Update failed');
+    toast('Request ' + status.toLowerCase());
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function setCover(id, tech) {
+  if (!isAdmin) return;
+  try {
+    const r = await fetch('/api/time-off/' + id, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coveringTech: tech })
+    });
+    if (!r.ok) throw new Error('Update failed');
+    toast(tech ? 'Coverage assigned to ' + tech : 'Coverage cleared');
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+// Default start date = today
+const t = new Date();
+document.getElementById('f_start').value = t.toISOString().slice(0, 10);
+document.getElementById('f_end').value = t.toISOString().slice(0, 10);
+
+load();
+</script>
+</body>
+</html>
