@@ -45,44 +45,44 @@
   },
   "Ray Mursch": {
     "shifts": {
+      "0": "2nd",
       "3": "2nd",
       "4": "2nd",
       "5": "2nd",
-      "6": "2nd",
-      "0": "2nd"
+      "6": "2nd"
     },
     "coverageExempt": false,
     "private": false
   },
   "Tyler Dellorusso": {
     "shifts": {
+      "0": "3rd",
       "1": "3rd",
       "2": "3rd",
       "3": "3rd",
-      "6": "3rd",
-      "0": "3rd"
+      "6": "3rd"
     },
     "coverageExempt": false,
     "private": false
   },
   "Robert Roszkowski": {
     "shifts": {
+      "0": "3rd",
       "1": "3rd",
       "2": "3rd",
       "3": "3rd",
-      "6": "3rd",
-      "0": "3rd"
+      "6": "3rd"
     },
     "coverageExempt": false,
     "private": false
   },
   "Matthew Gallo": {
     "shifts": {
+      "0": "1st",
       "1": "2nd",
       "2": "2nd",
       "4": "3rd",
-      "5": "3rd",
-      "0": "1st"
+      "5": "3rd"
     },
     "coverageExempt": false,
     "private": false
