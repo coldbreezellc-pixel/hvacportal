@@ -938,6 +938,18 @@ function escapeHtml(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Admins (the chiefs) approve everyone else — so nobody approves them.
+// Their own time off is recorded straight away rather than sitting Pending.
+async function roleForEmployee(displayName) {
+  try {
+    const d = await ghGet('data/pm_users.json');
+    if (!d || !d.content) return null;
+    const users = JSON.parse(d.content);
+    const u = (Array.isArray(users) ? users : []).find(x => x.displayName === displayName);
+    return u ? (u.role || 'crew') : null;
+  } catch { return null; }
+}
+
 // Look up an employee's email from the user list
 async function emailForEmployee(displayName) {
   try {
@@ -1107,6 +1119,11 @@ app.post('/api/time-off', async (req, res) => {
     // pre-approved — there's nobody left to approve it.
     const adminEntry = !!r.adminEntry;
 
+    // A chief's own time off skips the approval queue for the same reason
+    const employeeRole = await roleForEmployee(r.employee);
+    const selfApproved = employeeRole === 'admin';
+    const preApproved = adminEntry || selfApproved;
+
     let saved = null;
     await ghUpdateJson('data/time_off.json', (requests) => {
       const year = new Date().getFullYear();
@@ -1122,7 +1139,7 @@ app.post('/api/time-off', async (req, res) => {
         notes: r.notes || '',
         id: `TO-${year}-${String(next).padStart(4, '0')}`,
         days: range.length,
-        status: adminEntry ? 'Approved' : 'Pending',
+        status: preApproved ? 'Approved' : 'Pending',
         coveringTech: r.coveringTech || '',
         createdAt: new Date().toISOString()
       };
@@ -1130,12 +1147,12 @@ app.post('/api/time-off', async (req, res) => {
         saved.enteredBy = r.enteredBy || 'Admin';
         saved.adminEntry = true;
       }
+      if (selfApproved && !adminEntry) saved.selfApproved = true;
       return [saved, ...requests];
-    }, `Time off ${adminEntry ? 'logged' : 'request'} — ${r.employee} (${r.shift} shift, ${range.length}d)`);
+    }, `Time off ${preApproved ? 'logged' : 'request'} — ${r.employee} (${r.shift} shift, ${range.length}d)`);
 
-    // Notify admins on crew-submitted requests only — no point emailing an
-    // admin about an entry they just made themselves
-    if (RESEND_API_KEY && saved && !adminEntry) {
+    // Only crew requests need an approver, so only those raise an email
+    if (RESEND_API_KEY && saved && !preApproved) {
       try {
         const [allRequests, allotments] = await Promise.all([getTimeOff(), getAllotments()]);
         const balances = computeBalances(allRequests, allotments, null);
