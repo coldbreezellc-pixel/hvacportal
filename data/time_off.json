@@ -33,23 +33,6 @@
     "selfApproved": true
   },
   {
-    "employee": "Mateusz Targosz",
-    "type": "Personal",
-    "dayTypes": {
-      "2026-09-21": "Personal"
-    },
-    "shift": "1st",
-    "startDate": "2026-09-21",
-    "endDate": "2026-09-21",
-    "notes": "",
-    "id": "TO-2026-0100",
-    "days": 1,
-    "status": "Approved",
-    "coveringTech": "",
-    "createdAt": "2026-07-13T15:20:53.534Z",
-    "selfApproved": true
-  },
-  {
     "employee": "Sean Fanning",
     "type": "Vacation",
     "dayTypes": {
