@@ -302,6 +302,12 @@
   .who-cov{background:#CCFBF1;color:#0F766E}
   .cs-need{background:#DC2626;color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;line-height:13px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
   .cs-x{display:none}
+  .cov-sec-hd{font-size:12px;font-weight:800;padding:9px 11px;border-radius:8px;margin:0 0 9px;text-transform:uppercase;letter-spacing:.4px}
+  .cov-sec-hd.act{background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5}
+  .cov-sec-hd.ok{background:#F0FDF4;color:#065F46;border:1px solid #86EFAC}
+  .cov-sec-hd.rost{background:#F1F5F9;color:var(--text-mid);border:1px solid var(--border);cursor:pointer;margin-top:14px;display:flex;gap:6px;align-items:center}
+  .cov-note{font-size:11px;color:var(--text-mid);background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:9px;line-height:1.5}
+  .cov-shift.nobody{border-color:#DC2626;border-width:2px;background:#FEF2F2}
   .cal-hint{font-size:11px;color:var(--text-light);text-align:center;margin-bottom:7px}
   /* Month list view */
   .cal-list{display:flex;flex-direction:column;gap:7px}
@@ -896,10 +902,11 @@ function otOffOn(name, ds) {
 function otEntryFor(name, ds) {
   return OT.entries.find(e => e.employee === name && e.date === ds) || null;
 }
+// Order comes from the server, which breaks ties on hours by SENIORITY.
 function otRotation() {
   return Object.entries(OT.totals)
     .filter(([, t]) => !t.excluded)
-    .sort((a, b) => a[1].total - b[1].total || a[0].localeCompare(b[0]));
+    .sort((a, b) => (a[1].rank || 99) - (b[1].rank || 99));
 }
 
 function renderOt() {
@@ -955,11 +962,12 @@ function renderOt() {
     return '<div class="callrow' + (i === 0 ? ' top' : '') + '">' +
       '<div class="cr-rk">' + t.rank + '</div>' +
       '<div class="cr-nm">' + esc(name) + '<div class="cr-sub">' + t.worked + ' worked &middot; ' +
-      t.declined + ' declined' + (t.noshow ? ' &middot; ' + t.noshow + ' no-show' : '') + '</div></div>' +
+      t.declined + ' declined' + (t.noshow ? ' &middot; ' + t.noshow + ' no-show' : '') +
+      (t.hireDate ? ' &middot; since ' + t.hireDate.slice(0, 4) : '') + '</div></div>' +
       (off ? '<span class="cr-off">OFF TODAY</span>' : '') +
       '<div class="cr-hrs">' + t.total + ' hrs</div></div>';
   }).join('') +
-  '<div class="ot-hint">Fewest hours goes first.</div>';
+  '<div class="ot-hint">Fewest hours goes first. Level on hours &rarr; the senior man goes first.</div>';
 }
 
 // ── Log / edit OT ──
@@ -1686,16 +1694,24 @@ function renderCoverage() {
     d.setDate(d.getDate() + 1);
   }
 
-  const fromTimeOff = shorts.filter(x => x.st.off.length > 0).length;
-  const structural = shorts.length - fromTimeOff;
+  // Two very different problems, and they were drowning each other out:
+  //   NEEDS ACTION — somebody is off, so a normally-covered shift is now thin.
+  //   ROSTER GAPS  — that shift is simply never staffed 2-deep. Nobody's fault,
+  //                  nothing to chase today; it's a rota question.
+  const action = shorts.filter(x => x.st.off.length > 0);
+  const roster = shorts.filter(x => x.st.off.length === 0);
+  const fromTimeOff = action.length;
+  const structural = roster.length;
 
   if (shorts.length) {
-    sumBox.innerHTML = '<div class="card" style="border-color:#FCA5A5;"><div class="card-body" style="background:#FEF2F2;text-align:center;">' +
-      '<div style="font-size:26px;font-weight:800;color:#991B1B;">' + shorts.length + '</div>' +
-      '<div style="font-size:12px;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;">' +
-      (shorts.length === 1 ? 'Shift below' : 'Shifts below') + ' minimum</div>' +
-      '<div style="font-size:11px;color:var(--text-mid);margin-top:5px;">' +
-        fromTimeOff + ' caused by time off &middot; ' + structural + ' short-staffed anyway &middot; next 60 days' +
+    const ok = fromTimeOff === 0;
+    sumBox.innerHTML = '<div class="card" style="border-color:' + (ok ? '#86EFAC' : '#FCA5A5') + ';">' +
+      '<div class="card-body" style="background:' + (ok ? '#F0FDF4' : '#FEF2F2') + ';text-align:center;">' +
+      '<div style="font-size:26px;font-weight:800;color:' + (ok ? '#065F46' : '#991B1B') + ';">' + fromTimeOff + '</div>' +
+      '<div style="font-size:12px;font-weight:700;color:' + (ok ? '#065F46' : '#991B1B') + ';text-transform:uppercase;letter-spacing:.5px;margin-top:3px;">' +
+        (ok ? 'Nothing to chase' : (fromTimeOff === 1 ? 'Gap needs covering' : 'Gaps need covering')) + '</div>' +
+      '<div style="font-size:11px;color:var(--text-mid);margin-top:5px;">caused by time off &middot; next 60 days<br>' +
+        '<span style="color:var(--text-light);">plus ' + structural + ' shifts never staffed 2-deep &mdash; a rota question, not a call-out</span>' +
       '</div></div></div>';
   } else {
     sumBox.innerHTML = '<div class="card" style="border-color:#86EFAC;"><div class="card-body" style="background:#F0FDF4;text-align:center;">' +
@@ -1708,29 +1724,63 @@ function renderCoverage() {
     return;
   }
 
-  const byDate = {};
-  shorts.forEach(x => { (byDate[x.date] = byDate[x.date] || []).push(x); });
+  function daysHtml(list) {
+    const byDate = {};
+    list.forEach(x => { (byDate[x.date] = byDate[x.date] || []).push(x); });
+    return Object.keys(byDate).sort().map(function (ds) {
+      const dt = new Date(ds + 'T00:00:00');
+      const label = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      return '<div class="cov-day"><div class="cov-date">' + label + '</div>' +
+        byDate[ds].map(function (x) {
+          const info = SHIFT_INFO[x.shift];
+          const st = x.st;
+          const why = st.off.length
+            ? st.off.map(esc).join(', ') + ' off'
+            : 'Only ' + st.scheduled.length + ' rostered on this shift';
+          const nobody = st.onDuty.length + st.covering.length === 0;
+          return '<div class="cov-shift' + (nobody ? ' nobody' : '') + '" onclick="switchTab(\'month\');selectDay(\'' + ds + '\')">' +
+            '<div class="cov-top">' +
+              '<span class="badge ' + info.cls + '">' + info.label + ' &middot; ' + info.time + '</span>' +
+              '<span class="cov-short">' + (nobody ? 'NOBODY ON' : 'Need ' + st.short) + '</span>' +
+            '</div>' +
+            '<div class="cov-why">' + why +
+              (st.covering.length ? ' &middot; &#128737; ' + st.covering.map(esc).join(', ') : '') +
+            '</div></div>';
+        }).join('') + '</div>';
+    }).join('');
+  }
 
-  listBox.innerHTML = Object.keys(byDate).sort().map(function (ds) {
-    const dt = new Date(ds + 'T00:00:00');
-    const label = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    return '<div class="cov-day"><div class="cov-date">' + label + '</div>' +
-      byDate[ds].map(function (x) {
-        const info = SHIFT_INFO[x.shift];
-        const st = x.st;
-        const why = st.off.length
-          ? st.off.map(esc).join(', ') + ' off'
-          : 'Only ' + st.scheduled.length + ' rostered';
-        return '<div class="cov-shift">' +
-          '<div class="cov-top">' +
-            '<span class="badge ' + info.cls + '">' + info.label + ' &middot; ' + info.time + '</span>' +
-            '<span class="cov-short">Short ' + st.short + '</span>' +
-          '</div>' +
-          '<div class="cov-why">' + why +
-            (st.covering.length ? ' &middot; &#128737; ' + st.covering.map(esc).join(', ') : '') +
-          '</div></div>';
-      }).join('') + '</div>';
-  }).join('');
+  let out = '';
+  if (action.length) {
+    out += '<div class="cov-sec-hd act">&#9888; Needs action &mdash; ' + action.length +
+           ' shift' + (action.length === 1 ? '' : 's') + ' thin because someone is off</div>' +
+           daysHtml(action);
+  } else {
+    out += '<div class="cov-sec-hd ok">&#10003; No gaps caused by time off in the next 60 days</div>';
+  }
+
+  if (roster.length) {
+    out += '<div class="cov-sec-hd rost" onclick="toggleRoster()">' +
+             '<span id="rostCaret">&#9656;</span> Roster gaps &mdash; ' + roster.length +
+             ' shifts never staffed 2-deep' +
+           '</div>' +
+           '<div id="rosterList" style="display:' + (rosterOpen ? 'block' : 'none') + ';">' +
+             '<div class="cov-note">These are short every week regardless of time off &mdash; ' +
+             'the rota simply doesn\'t put 2 engineers on them. Nothing to chase today; ' +
+             'it needs a schedule change or standing OT.</div>' +
+             daysHtml(roster) +
+           '</div>';
+  }
+  listBox.innerHTML = out;
+}
+
+let rosterOpen = false;
+function toggleRoster() {
+  rosterOpen = !rosterOpen;
+  const el = document.getElementById('rosterList');
+  const c = document.getElementById('rostCaret');
+  if (el) el.style.display = rosterOpen ? 'block' : 'none';
+  if (c) c.innerHTML = rosterOpen ? '&#9662;' : '&#9656;';
 }
 
 function renderAllBalances() {
