@@ -13,6 +13,8 @@
   .header h1{font-size:17px;font-weight:700;letter-spacing:.5px;flex:1}
   .back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
   .container{padding:16px;max-width:680px;margin:0 auto;padding-bottom:50px}
+  #panel-month{margin:0 -8px}
+  @media(min-width:520px){#panel-month{margin:0}}
   .tabs{display:flex;gap:6px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;border:1px solid var(--border)}
   .tab{flex:1;padding:9px 6px;border:none;border-radius:7px;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--text-mid);cursor:pointer;text-transform:uppercase;letter-spacing:.4px}
   .tab.active{background:var(--navy);color:#fff}
@@ -201,30 +203,67 @@
   .day-row select{padding:7px 9px;font-size:13px}
   .day-editor-box{border:1.5px solid var(--border);border-radius:9px;padding:10px 12px;background:#FAFBFD;max-height:270px;overflow-y:auto}
   /* Month calendar */
-  .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-  .mn-btn{width:34px;height:34px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:19px;font-weight:700;color:var(--navy);cursor:pointer;line-height:1}
+  .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+  .mn-btn{width:36px;height:36px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:20px;font-weight:700;color:var(--navy);cursor:pointer;line-height:1}
   .mn-title{font-size:15px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px}
-  .month-legend{display:flex;justify-content:center;gap:11px;margin-bottom:10px;font-size:10px;color:var(--text-mid);font-weight:600}
+  .mv-toggle{display:flex;gap:0;background:#F1F5F9;border-radius:8px;padding:3px;margin-bottom:9px}
+  .mv-btn{flex:1;border:none;background:none;padding:7px;font-size:12px;font-weight:700;color:var(--text-mid);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif}
+  .mv-btn.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .month-legend{display:flex;justify-content:center;gap:10px;margin-bottom:9px;font-size:9px;color:var(--text-mid);font-weight:700}
   .month-legend span{display:flex;align-items:center;gap:3px}
   .lg{width:9px;height:9px;border-radius:2px;display:inline-block}
-  .lg.s-1st{background:#FEF9C3;border:1px solid #854D0E}
-  .lg.s-2nd{background:#FFE4E6;border:1px solid #9F1239}
-  .lg.s-3rd{background:#E0E7FF;border:1px solid #3730A3}
-  .lg.lg-gap{background:#FCA5A5;border:1px solid #991B1B}
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-  .cal-hd{text-align:center;font-size:10px;font-weight:800;color:var(--text-light);text-transform:uppercase;padding:3px 0}
-  .cal-cell{aspect-ratio:1;border:1px solid var(--border);border-radius:6px;background:#fff;padding:3px;display:flex;flex-direction:column;align-items:center;cursor:pointer;position:relative;min-height:40px}
-  .cal-cell.pad{background:#F8FAFC;border-color:#F1F5F9;cursor:default}
+  .lg-on{background:#DCFCE7;border:1px solid #16A34A}
+  .lg-off{background:#FEF3C7;border:1px solid #D97706}
+  .lg-cov{background:#CCFBF1;border:1px solid #0D9488}
+  .lg-gap{background:#FECACA;border:1px solid #DC2626}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .cal-hd{text-align:center;font-size:9px;font-weight:800;color:var(--text-light);text-transform:uppercase;padding:3px 0}
+  .cal-cell{min-height:82px;border:1px solid var(--border);border-radius:5px;background:#fff;padding:2px;display:flex;flex-direction:column;cursor:pointer;position:relative;overflow:hidden}
+  .cal-cell.pad{background:#F8FAFC;border-color:#F1F5F9;cursor:default;min-height:82px}
   .cal-cell.today{border-color:var(--accent);border-width:2px}
   .cal-cell.sel{background:#EFF6FF;border-color:var(--accent);border-width:2px}
-  .cal-cell .dn{font-size:11px;font-weight:700;color:var(--text);line-height:1.4}
+  .cal-cell.short{background:#FFF8F8;border-color:#FCA5A5}
+  .cal-top{display:flex;justify-content:space-between;align-items:center;min-height:14px}
+  .cal-cell .dn{font-size:11px;font-weight:800;color:var(--text);line-height:1.2;padding-left:2px}
   .cal-cell.pad .dn{color:var(--text-light);font-weight:400}
-  .cal-dots{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;margin-top:1px}
-  .dot{width:6px;height:6px;border-radius:50%}
-  .dot.d-1st{background:#EAB308}
-  .dot.d-2nd{background:#F43F5E}
-  .dot.d-3rd{background:#6366F1}
-  .dot.d-gap{background:#DC2626;box-shadow:0 0 0 1.5px #FEE2E2}
+  .cell-add{width:14px;height:14px;border:none;border-radius:3px;background:#E8EEF6;color:var(--navy);font-size:11px;font-weight:800;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;opacity:.6}
+  .cell-add:active{background:var(--accent);color:#fff;opacity:1}
+  .cal-cell.sel .cell-add,.cal-cell.today .cell-add{opacity:1;background:var(--accent);color:#fff}
+  /* Per-shift staffing rows inside a cell */
+  .cs-list{display:flex;flex-direction:column;gap:1px;margin-top:2px}
+  .cs-row{display:flex;align-items:center;gap:2px;background:#F8FAFC;border-radius:3px;padding:1px 2px;min-height:15px}
+  .cs-row.short{background:#FEE2E2}
+  .cs-row.chief{background:#F1F5F9}
+  .cs-n{font-size:8px;font-weight:800;color:#fff;width:11px;height:11px;border-radius:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .cs-n.s1{background:#EAB308}.cs-n.s2{background:#F43F5E}.cs-n.s3{background:#6366F1}
+  .cs-n.sC{background:none;font-size:8px}
+  .cs-who{display:flex;flex-wrap:wrap;gap:1px;flex:1;min-width:0}
+  .cs-who i{font-style:normal;font-size:8px;font-weight:800;padding:0 2px;border-radius:2px;line-height:12px}
+  .who-on{background:#DCFCE7;color:#15803D}
+  .who-off{background:#FEF3C7;color:#B45309;text-decoration:line-through}
+  .who-cov{background:#CCFBF1;color:#0F766E}
+  .cs-x{font-size:9px;font-weight:800;color:#DC2626;flex-shrink:0}
+  /* Month list view */
+  .cal-list{display:flex;flex-direction:column;gap:7px}
+  .ml-day{border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;background:#fff}
+  .ml-day.today{border-color:var(--accent);border-width:2px}
+  .ml-day.short{border-color:#FCA5A5;background:#FFFAFA}
+  .ml-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer}
+  .ml-date{font-size:13px;color:var(--text-mid);font-weight:600}
+  .ml-date b{font-size:16px;color:var(--navy);font-weight:800;margin-right:2px}
+  .ml-flag{font-size:9px;font-weight:800;color:#991B1B;background:#FEE2E2;padding:2px 6px;border-radius:4px;text-transform:uppercase}
+  .ml-add{margin-left:auto;width:24px;height:24px;border:none;border-radius:6px;background:#E8EEF6;color:var(--navy);font-size:15px;font-weight:800;cursor:pointer;line-height:1;flex-shrink:0}
+  .ml-shift{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-top:1px solid #F1F5F9}
+  .ml-shift.short{background:#FEF2F2;margin:0 -10px;padding:5px 10px;border-radius:4px}
+  .ml-who{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
+  .ml-who span{font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap}
+  .nm-on{background:#DCFCE7;color:#15803D}
+  .nm-off{background:#FEF3C7;color:#B45309}
+  .nm-cov{background:#CCFBF1;color:#0F766E}
+  .nm-none{background:#F1F5F9;color:var(--text-light);font-style:italic}
+  .ml-cnt{font-size:11px;font-weight:800;color:var(--success);flex-shrink:0;padding-top:2px}
+  .ml-cnt.bad{color:#991B1B}
+  .b-chief{background:#E2E8F0;color:#334155}
   /* Gap rows */
   .gap-row{display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border:1.5px solid #FCA5A5;background:#FEF2F2;border-radius:8px;margin-bottom:7px}
   .gap-row .gtxt{font-size:13px;font-weight:700;color:#991B1B}
@@ -331,20 +370,25 @@
   <!-- MONTH VIEW -->
   <div class="panel" id="panel-month">
     <div class="card">
-      <div class="card-body" style="padding:12px;">
+      <div class="card-body" style="padding:10px;">
         <div class="month-nav">
-          <button class="mn-btn" onclick="shiftMonth(-1)">‹</button>
+          <button class="mn-btn" onclick="shiftMonth(-1)">&lsaquo;</button>
           <div class="mn-title" id="monthTitle"></div>
-          <button class="mn-btn" onclick="shiftMonth(1)">›</button>
+          <button class="mn-btn" onclick="shiftMonth(1)">&rsaquo;</button>
+        </div>
+        <div class="mv-toggle">
+          <button class="mv-btn on" data-v="grid" onclick="setMonthView('grid')">Grid</button>
+          <button class="mv-btn" data-v="list" onclick="setMonthView('list')">List</button>
         </div>
         <div class="month-legend">
-          <span><i class="lg s-1st"></i>1st</span>
-          <span><i class="lg s-2nd"></i>2nd</span>
-          <span><i class="lg s-3rd"></i>3rd</span>
-          <span><i class="lg lg-gap"></i>Uncovered</span>
+          <span><i class="lg lg-on"></i>On duty</span>
+          <span><i class="lg lg-off"></i>Off</span>
+          <span><i class="lg lg-cov"></i>Covering</span>
+          <span><i class="lg lg-gap"></i>Short</span>
         </div>
         <div class="cal-grid" id="calGrid"></div>
-        <div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:9px;">Tap a day for details</div>
+        <div class="cal-list" id="calList" style="display:none;"></div>
+        <div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:9px;">Tap a day for full detail</div>
       </div>
     </div>
     <div id="dayDetail"></div>
@@ -980,38 +1024,140 @@ function dayAbsences(dateStr) {
   );
 }
 
+// Two initials, e.g. Christian Dell'Andrino → CD
+function initials(name) {
+  const p = String(name).trim().split(/\s+/);
+  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+  return (p[0][0] + p[p.length - 1][0]).toUpperCase();
+}
+
+let monthView = 'grid';   // 'grid' | 'list'
+
+function setMonthView(v) {
+  monthView = v;
+  document.querySelectorAll('.mv-btn').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  renderMonth();
+}
+
 function renderMonth() {
   const first = new Date(calYear, calMonth, 1);
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const startWd = first.getDay();
   document.getElementById('monthTitle').textContent =
     first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
+  const gridBox = document.getElementById('calGrid');
+  const listBox = document.getElementById('calList');
+
+  if (monthView === 'list') {
+    gridBox.style.display = 'none';
+    listBox.style.display = 'block';
+    renderMonthList(daysInMonth);
+  } else {
+    gridBox.style.display = 'grid';
+    listBox.style.display = 'none';
+    renderMonthGrid(first, daysInMonth);
+  }
+  renderDayDetail();
+}
+
+// Big grid — each cell shows every shift and who's on it
+function renderMonthGrid(first, daysInMonth) {
+  const startWd = first.getDay();
   const todayStr = new Date().toISOString().slice(0, 10);
-  let html = ['S','M','T','W','T','F','S'].map(d => '<div class="cal-hd">' + d + '</div>').join('');
+  let html = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+    .map(d => '<div class="cal-hd">' + d + '</div>').join('');
   for (let i = 0; i < startWd; i++) html += '<div class="cal-cell pad"></div>';
 
   for (let day = 1; day <= daysInMonth; day++) {
     const ds = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-    const absences = dayAbsences(ds);
     const staff = dayStaffing(ds);
-    const dots = [];
-    absences.forEach(a => dots.push('<span class="dot d-' + (a.shift || '1st') + '"></span>'));
-    // One red dot per shift that's below minimum
-    let shortTotal = 0;
+    const absences = dayAbsences(ds);
+
+    let rows = '', anyShort = false;
     ['1st','2nd','3rd'].forEach(sh => {
-      if (staff[sh].short > 0) { shortTotal += staff[sh].short; dots.push('<span class="dot d-gap"></span>'); }
+      const st = staff[sh];
+      if (!st.applies) return;
+      const short = st.short > 0;
+      if (short) anyShort = true;
+      const on = st.onDuty.map(n => '<i class="who-on">' + initials(n) + '</i>').join('');
+      const off = st.off.map(n => '<i class="who-off">' + initials(n) + '</i>').join('');
+      const cov = st.covering.map(n => '<i class="who-cov">' + initials(n) + '</i>').join('');
+      rows += '<div class="cs-row' + (short ? ' short' : '') + '">' +
+        '<span class="cs-n s' + sh.charAt(0) + '">' + sh.charAt(0) + '</span>' +
+        '<span class="cs-who">' + on + cov + off + '</span>' +
+        (short ? '<span class="cs-x">!</span>' : '') +
+        '</div>';
     });
+
+    // Chiefs off (admin only) — no coverage impact
+    const chiefs = absences.filter(a => isExempt(a.employee));
+    if (chiefs.length && isAdmin) {
+      rows += '<div class="cs-row chief"><span class="cs-n sC">🔒</span><span class="cs-who">' +
+        chiefs.map(a => '<i class="who-off">' + initials(a.employee) + '</i>').join('') +
+        '</span></div>';
+    }
+
     const cls = 'cal-cell' + (ds === todayStr ? ' today' : '') + (ds === selectedDay ? ' sel' : '') +
-                (shortTotal ? ' short' : '');
+                (anyShort ? ' short' : '');
     html += '<div class="' + cls + '" onclick="selectDay(\'' + ds + '\')">' +
-      (isAdmin ? '<button class="cell-add" onclick="event.stopPropagation();openAddOff(\'' + ds + '\')" title="Log someone off">+</button>' : '') +
-      '<span class="dn">' + day + '</span>' +
-      '<div class="cal-dots">' + dots.slice(0, 6).join('') + '</div>' +
+      '<div class="cal-top"><span class="dn">' + day + '</span>' +
+        (isAdmin ? '<button class="cell-add" onclick="event.stopPropagation();openAddOff(\'' + ds + '\')">+</button>' : '') +
+      '</div>' +
+      '<div class="cs-list">' + rows + '</div>' +
       '</div>';
   }
   document.getElementById('calGrid').innerHTML = html;
-  renderDayDetail();
+}
+
+// List view — full names, day by day
+function renderMonthList(daysInMonth) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let html = '';
+  for (let day = 1; day <= daysInMonth; day++) {
+    const ds = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    const staff = dayStaffing(ds);
+    const absences = dayAbsences(ds);
+    const dt = new Date(ds + 'T00:00:00');
+    const wd = dt.toLocaleDateString('en-US', { weekday: 'short' });
+
+    let rows = '', anyShort = false;
+    ['1st','2nd','3rd'].forEach(sh => {
+      const st = staff[sh];
+      if (!st.applies) return;
+      const short = st.short > 0;
+      if (short) anyShort = true;
+      const info = SHIFT_INFO[sh];
+      let who = st.onDuty.map(n => '<span class="nm-on">' + esc(n) + '</span>').join('');
+      who += st.covering.map(n => '<span class="nm-cov">🛡 ' + esc(n) + '</span>').join('');
+      st.off.forEach(n => {
+        const a = absences.find(x => x.employee === n);
+        const t = a ? ((a.dayTypes && a.dayTypes[ds]) || a.type) : 'Off';
+        who += '<span class="nm-off">' + esc(n) + ' · ' + esc(t) + '</span>';
+      });
+      rows += '<div class="ml-shift' + (short ? ' short' : '') + '">' +
+        '<span class="badge ' + info.cls + ' st">' + info.label + '</span>' +
+        '<span class="ml-who">' + (who || '<span class="nm-none">nobody</span>') + '</span>' +
+        '<span class="ml-cnt' + (short ? ' bad' : '') + '">' + st.staffed + '/' + MIN_STAFF + '</span>' +
+        '</div>';
+    });
+
+    const chiefs = absences.filter(a => isExempt(a.employee));
+    if (chiefs.length && isAdmin) {
+      rows += '<div class="ml-shift chief"><span class="badge b-chief st">🔒</span>' +
+        '<span class="ml-who">' + chiefs.map(a => {
+          const t = (a.dayTypes && a.dayTypes[ds]) || a.type;
+          return '<span class="nm-off">' + esc(a.employee) + ' · ' + esc(t) + '</span>';
+        }).join('') + '</span><span class="ml-cnt">—</span></div>';
+    }
+
+    html += '<div class="ml-day' + (ds === todayStr ? ' today' : '') + (anyShort ? ' short' : '') + '">' +
+      '<div class="ml-hd" onclick="selectDay(\'' + ds + '\')">' +
+        '<span class="ml-date"><b>' + day + '</b> ' + wd + '</span>' +
+        (anyShort ? '<span class="ml-flag">Needs coverage</span>' : '') +
+        (isAdmin ? '<button class="ml-add" onclick="event.stopPropagation();openAddOff(\'' + ds + '\')">+</button>' : '') +
+      '</div>' + rows + '</div>';
+  }
+  document.getElementById('calList').innerHTML = html;
 }
 
 function selectDay(ds) {
