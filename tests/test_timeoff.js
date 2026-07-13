@@ -39,12 +39,13 @@ function check(name, cond, detail) {
 
   // OT: real baseline off the live server + a realistic week of entries
   const otLive = await get('/api/ot');
+  // Brian, Sean, Tyler and Matthew all sit on 448 — a genuine 4-way tie, which
+  // is exactly the case seniority has to resolve.
   const otEntries = [
     { id:'OT-1', employee:'Ray Sinnott', date:'2026-07-14', hours:8, status:'worked', note:'' },
-    { id:'OT-2', employee:'Brian Scudder', date:'2026-07-17', hours:8, status:'worked', note:'' },
     { id:'OT-3', employee:'Sean Fanning', date:'2026-07-18', hours:8, status:'declined', note:'Called 6:15am, said no' },
     { id:'OT-4', employee:'Ray Mursch', date:'2026-07-19', hours:8, status:'noshow', note:'No call no show' },
-    { id:'OT-5', employee:'Tyler Dellorusso', date:'2026-07-18', hours:16, status:'worked', note:'Double' },
+    { id:'OT-5', employee:'Tyler Dellorusso', date:'2026-07-18', hours:8, status:'worked', note:'Double' },
   ];
   // Build totals from the BASELINE + our own entries only, so the test doesn't
   // drift when real OT gets logged on the live server.
@@ -57,10 +58,18 @@ function check(name, cond, detail) {
     const t = otTotals[e.employee];
     t[e.status] += e.hours; t.total += e.hours; t.logged += e.hours;
   });
+  // Rank exactly as the server does: hours first, then SENIORITY.
+  // Hire dates come from the live allotments so the test is real even before
+  // the server change ships (otherwise the tie-break check passes vacuously).
+  const allots = (await get('/api/time-off')).allotments || {};
+  const hireDates = {};
+  Object.entries(allots).forEach(([n, a]) => { if (a && a.hireDate) hireDates[n] = a.hireDate; });
+  Object.assign(hireDates, otLive.hireDates || {});
+  const sen = n => hireDates[n] || '9999-12-31';
   Object.entries(otTotals).filter(([,t])=>!t.excluded)
-    .sort((a,b)=>a[1].total-b[1].total||a[0].localeCompare(b[0]))
-    .forEach(([n],i)=>{ otTotals[n].rank = i+1; });
-  const otPayload = { entries: otEntries, baseline: otLive.baseline, totals: otTotals };
+    .sort((a,b)=> a[1].total-b[1].total || sen(a[0]).localeCompare(sen(b[0])) || a[0].localeCompare(b[0]))
+    .forEach(([n],i)=>{ otTotals[n].rank = i+1; otTotals[n].hireDate = hireDates[n] || null; });
+  const otPayload = { entries: otEntries, baseline: otLive.baseline, hireDates, totals: otTotals };
 
   const dom = new JSDOM(fs.readFileSync(HTML, 'utf8'), {
     runScripts: 'dangerously',
@@ -212,7 +221,8 @@ function check(name, cond, detail) {
   check('OT grid rendered', og.length > 0);
   check('OT grid has all 10 engineers', (og.match(/ot-nm/g) || []).length === 10,
         `${(og.match(/ot-nm/g) || []).length} rows`);
-  check('OT: black "worked" cells', (og.match(/ot-cell worked/g) || []).length === 3);
+  check('OT: black "worked" cells', (og.match(/ot-cell worked/g) || []).length === 2,
+        `${(og.match(/ot-cell worked/g) || []).length} worked cells`);
   check('OT: red "said no" cells', (og.match(/ot-cell declined/g) || []).length === 1);
   check('OT: blue "no call/show" cells', (og.match(/ot-cell noshow/g) || []).length === 1);
   check('OT: OFF cells come from THIS page\'s time off', (og.match(/ot-cell off/g) || []).length > 0,
@@ -223,6 +233,24 @@ function check(name, cond, detail) {
   check('OT: Mateusz excluded from rotation', !rot.includes('Mateusz Targosz'));
   check('OT: declining charged (Sean 448→456)', ev("OT.totals['Sean Fanning'].total") === 456);
   check('OT: no-show charged (Mursch 456→464)', ev("OT.totals['Ray Mursch'].total") === 464, 'got ' + ev("JSON.stringify(OT.totals['Ray Mursch'])"));
+  // Guard: the seniority check is meaningless without an actual tie + hire dates
+  const tied = ev('otRotation().filter(x=>x[1].total===456)') || [];
+  check('OT: hire dates present (so the tie-break is testable)',
+        Object.keys(hireDates).length >= 9, `${Object.keys(hireDates).length} hire dates`);
+  check('OT: a real tie exists to break', tied.length >= 2, `${tied.length} men level on 456`);
+
+  // Ties on hours must fall in seniority order, not alphabetical
+  const seniorityOK = (() => {
+    const rot = ev('otRotation()') || [];
+    for (let i = 1; i < rot.length; i++) {
+      const [nA, tA] = rot[i-1], [nB, tB] = rot[i];
+      if (tA.total === tB.total && tA.hireDate && tB.hireDate && tA.hireDate > tB.hireDate) return false;
+    }
+    return true;
+  })();
+  check('OT: ties broken by SENIORITY (not alphabetical)', seniorityOK,
+        (ev('otRotation().filter(x=>x[1].total===456).map(x=>x[0]+" ("+(x[1].hireDate||"?").slice(0,4)+")")') || []).join(' → '));
+
   check('OT: week nav works', (() => {
     const a = txt('otWkTitle'); ev('shiftOtWeek(1)');
     const b = txt('otWkTitle'); ev('shiftOtWeek(-1)');
@@ -246,6 +274,19 @@ function check(name, cond, detail) {
     check('OT crew: cannot log OT', !d.getElementById('otModal').classList.contains('show'));
     check('OT crew: can still see the grid', (og.match(/ot-nm/g) || []).length === 10);
   }
+  ev("switchTab('my')");
+
+  // ── Coverage split: real gaps vs permanent roster holes ──
+  ev("switchTab('coverage')");
+  const cov2 = html('coverageList');
+  check('Coverage: has a "Needs action" section', /Needs action|No gaps caused by time off/i.test(cov2));
+  check('Coverage: has a collapsible "Roster gaps" section', /Roster gaps/i.test(cov2));
+  check('Coverage: roster gaps collapsed by default', ev('rosterOpen') === false);
+  check('Coverage: roster section can open', (() => { ev('toggleRoster()'); const o = ev('rosterOpen'); ev('toggleRoster()'); return o === true; })());
+  check('Coverage: flags a shift with NOBODY on it', /NOBODY ON/.test(cov2),
+        (cov2.match(/NOBODY ON/g) || []).length + ' shifts with nobody');
+  const sumTxt = txt('coverageSummary');
+  check('Coverage: summary leads with the actionable count', /need|chase/i.test(sumTxt), sumTxt.slice(0, 60));
   ev("switchTab('my')");
 
   // ── Report ──
