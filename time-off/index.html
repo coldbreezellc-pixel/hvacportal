@@ -172,6 +172,58 @@
   .tier-next{font-size:11px;color:#1E40AF;margin-top:3px;font-weight:600}
   .bal-box .bal-tier{font-size:9px;color:var(--accent);font-weight:700;margin-top:3px}
   .bump-note{background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1E40AF;font-size:11px;padding:9px 11px;border-radius:8px;margin-top:11px;line-height:1.5;text-align:center}
+  /* ── OT ── */
+  .wk-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .wk-btn{width:36px;height:36px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:20px;font-weight:700;color:var(--navy);cursor:pointer;line-height:1}
+  .wk-title{font-size:14px;font-weight:800;color:var(--navy);text-align:center;line-height:1.3}
+  .wk-title small{display:block;font-size:10px;color:var(--text-light);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .ot-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ot-grid{border-collapse:separate;border-spacing:2px;width:100%;min-width:640px}
+  .ot-grid th{font-size:9px;font-weight:800;color:var(--text-light);text-transform:uppercase;padding:4px 2px;text-align:center;white-space:nowrap}
+  .ot-grid th.nm{text-align:left;padding-left:6px;min-width:118px}
+  .ot-grid td{padding:0;text-align:center}
+  .ot-nm{text-align:left;font-size:12px;font-weight:700;color:var(--text);padding:6px;background:#F8FAFC;border-radius:5px;white-space:nowrap}
+  .ot-nm .rk{display:inline-block;font-size:9px;font-weight:800;color:#fff;background:var(--text-light);border-radius:3px;padding:1px 4px;margin-right:5px;min-width:15px;text-align:center}
+  .ot-nm.next .rk{background:var(--success)}
+  .ot-nm.excl{opacity:.5}
+  .ot-nm.excl .rk{background:#CBD5E1;color:var(--text-mid)}
+  .ot-cell{width:100%;min-height:32px;border:1px solid var(--border);border-radius:5px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;position:relative;padding:6px 2px}
+  .ot-cell.worked{background:#F1F5F9;color:#111827;border-color:#94A3B8}
+  .ot-cell.declined{background:#FEE2E2;color:#DC2626;border-color:#FCA5A5}
+  .ot-cell.noshow{background:#DBEAFE;color:#2563EB;border-color:#93C5FD}
+  .ot-cell.off{background:#FEF3C7;color:#B45309;border-color:#FCD34D;font-size:9px;font-weight:700}
+  .ot-cell .cm{position:absolute;top:1px;right:2px;font-size:8px}
+  .ot-tot{font-size:12px;font-weight:800;color:var(--navy);padding:6px 3px;background:#F8FAFC;border-radius:5px}
+  .ot-tot.ytd{background:#EFF6FF;color:#1E40AF}
+  .ot-hint{font-size:11px;color:var(--text-light);text-align:center;margin-top:8px}
+  .legend{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin-top:10px;font-size:10px;color:var(--text-mid);font-weight:600}
+  .legend span{display:flex;align-items:center;gap:4px}
+  .lg{width:16px;height:14px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+  .lg.w{background:#F1F5F9;color:#111827;border:1px solid #94A3B8}
+  .lg.d{background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5}
+  .lg.n{background:#DBEAFE;color:#2563EB;border:1px solid #93C5FD}
+  .lg.o{background:#FEF3C7;border:1px solid #FCD34D}
+  .callrow{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:6px;background:#fff}
+  .callrow.top{border-color:#86EFAC;background:#F0FDF4}
+  .cr-rk{width:24px;height:24px;border-radius:6px;background:var(--text-light);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .callrow.top .cr-rk{background:var(--success)}
+  .cr-nm{font-size:13px;font-weight:700;flex:1}
+  .cr-sub{font-size:10px;color:var(--text-light);font-weight:600}
+  .cr-hrs{font-size:12px;font-weight:800;color:var(--navy)}
+  .cr-off{font-size:9px;font-weight:800;color:#B45309;background:#FEF3C7;padding:2px 6px;border-radius:4px}
+  .st-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .st-btn{padding:11px 4px;border:2px solid var(--border);border-radius:9px;background:#fff;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--text-mid);text-align:center;line-height:1.3}
+  .st-btn .em{display:block;font-size:15px;margin-bottom:2px}
+  .st-btn.on[data-s="worked"]{border-color:#475569;background:#F1F5F9;color:#111827}
+  .st-btn.on[data-s="declined"]{border-color:#DC2626;background:#FEE2E2;color:#DC2626}
+  .st-btn.on[data-s="noshow"]{border-color:#2563EB;background:#DBEAFE;color:#2563EB}
+  .hr-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .hr-btn{padding:10px;border:2px solid var(--border);border-radius:9px;background:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--text-mid)}
+  .hr-btn.on{border-color:var(--accent);background:#EFF6FF;color:var(--accent)}
+  .off-warn{background:#FEF3C7;border:1.5px solid #FCD34D;color:#92400E;font-size:12px;font-weight:600;padding:9px 11px;border-radius:8px;margin-top:12px;line-height:1.4}
+  .btn-del{background:#fff;border:1.5px solid #FCA5A5;color:#991B1B;flex:0 0 auto;width:auto;padding:14px 18px}
+  .btn-row{display:flex;gap:8px;margin-top:14px}
+  .btn-row .btn{margin-top:0}
   .self-note{background:#F1F5F9;border:1px solid #CBD5E1;color:var(--text-mid);font-size:11px;padding:8px 10px;border-radius:7px;margin-top:9px;line-height:1.4;text-align:center}
   .entry-tag{font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;margin-top:5px}
   .hire-tag{font-size:10px;font-weight:700;color:var(--text-mid);background:#F1F5F9;padding:2px 7px;border-radius:4px;text-transform:uppercase;white-space:nowrap}
@@ -289,6 +341,7 @@
     <button class="tab" data-tab="month" onclick="switchTab('month')">Month</button>
     <button class="tab" data-tab="requests" onclick="switchTab('requests')">Requests<span class="cnt" id="pendCnt" style="display:none;">0</span></button>
     <button class="tab" data-tab="coverage" onclick="switchTab('coverage')">Coverage</button>
+    <button class="tab" data-tab="ot" onclick="switchTab('ot')">OT</button>
     <button class="tab admin-only" data-tab="balances" onclick="switchTab('balances')" style="display:none;">Admin</button>
   </div>
 
@@ -407,6 +460,34 @@
   </div>
 
   <!-- ADMIN -->
+  <div class="panel" id="panel-ot">
+
+    <div class="card">
+      <div class="card-head">Next Up For OT</div>
+      <div class="card-body" id="callList"><div class="loading">Loading&hellip;</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="wk-nav">
+          <button class="wk-btn" onclick="shiftOtWeek(-1)">&lsaquo;</button>
+          <div class="wk-title" id="otWkTitle"></div>
+          <button class="wk-btn" onclick="shiftOtWeek(1)">&rsaquo;</button>
+        </div>
+        <div class="ot-wrap"><table class="ot-grid" id="otGrid"></table></div>
+        <div class="legend">
+          <span><i class="lg w">8</i>Worked</span>
+          <span><i class="lg d">8</i>Said no</span>
+          <span><i class="lg n">8</i>No call/show</span>
+          <span><i class="lg o"></i>Off</span>
+          <span>&#128172; comment</span>
+        </div>
+        <div class="ot-hint" id="otHint"></div>
+      </div>
+    </div>
+
+  </div>
+
   <div class="panel" id="panel-balances">
     <div class="card">
       <div class="card-head">Add an Engineer</div>
@@ -479,6 +560,48 @@
           Sick/Personal and Floating reset each Jan 1.
         </div>
         <div id="allotEditor"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal" id="otModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <div class="mh-sub" id="otmSub"></div>
+        <div class="mh-title" id="otmTitle"></div>
+      </div>
+      <button class="mh-x" onclick="closeOtModal()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="otOffWarn"></div>
+      <label>What happened?</label>
+      <div class="st-pick">
+        <button class="st-btn" data-s="worked" onclick="pickStatus('worked')"><span class="em">&#9989;</span>Worked</button>
+        <button class="st-btn" data-s="declined" onclick="pickStatus('declined')"><span class="em">&#10060;</span>Said no</button>
+        <button class="st-btn" data-s="noshow" onclick="pickStatus('noshow')"><span class="em">&#128280;</span>No call/show</button>
+      </div>
+      <label>Hours</label>
+      <div class="hr-pick">
+        <button class="hr-btn" data-h="8" onclick="pickHours(8)">8</button>
+        <button class="hr-btn" data-h="16" onclick="pickHours(16)">16</button>
+        <button class="hr-btn" data-h="4" onclick="pickHours(4)">4</button>
+      </div>
+      <input type="number" id="otm_hours" min="1" step="1" style="margin-top:6px;" oninput="syncHourBtns()">
+      <label>Shift (optional)</label>
+      <select id="otm_shift">
+        <option value="">&mdash; Not specified &mdash;</option>
+        <option value="1st">1st &mdash; 6a to 2p</option>
+        <option value="2nd">2nd &mdash; 2p to 10p</option>
+        <option value="3rd">3rd &mdash; 10p to 6a</option>
+      </select>
+      <label>Comment</label>
+      <textarea id="otm_note" placeholder="e.g. called at 6am, said no &mdash; kid sick"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-del" id="otDelBtn" onclick="deleteOtEntry()" style="display:none;">Delete</button>
+        <button class="btn" id="otSaveBtn" onclick="saveOtEntry()">Log OT</button>
       </div>
     </div>
   </div>
@@ -739,12 +862,179 @@ function updatePreview() {
   btn.disabled = false;
 }
 
+
+// ═══════════════════ OVERTIME (same page, OT tab) ═══════════════════
+// Fewest hours goes first. Saying no still charges the hours — that's what
+// keeps the rotation honest.
+let OT = { entries: [], baseline: {}, totals: {} };
+const OT_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+function mondayOf(d) {
+  const x = new Date(d);
+  const day = x.getDay();
+  x.setDate(x.getDate() + (day === 0 ? -6 : 1 - day));
+  x.setHours(0,0,0,0);
+  return x;
+}
+let otWeek = mondayOf(new Date());
+const otYmd = d => d.toISOString().slice(0,10);
+
+function shiftOtWeek(n) { otWeek.setDate(otWeek.getDate() + n * 7); renderOt(); }
+
+// Uses the SAME approved time off this page already has — no separate source
+function otOffOn(name, ds) {
+  return (DATA.requests || []).some(r =>
+    r.employee === name && r.status === 'Approved' && ds >= r.startDate && ds <= r.endDate);
+}
+function otEntryFor(name, ds) {
+  return OT.entries.find(e => e.employee === name && e.date === ds) || null;
+}
+function otRotation() {
+  return Object.entries(OT.totals)
+    .filter(([, t]) => !t.excluded)
+    .sort((a, b) => a[1].total - b[1].total || a[0].localeCompare(b[0]));
+}
+
+function renderOt() {
+  if (!OT.totals || !Object.keys(OT.totals).length) {
+    document.getElementById('otGrid').innerHTML = '';
+    document.getElementById('callList').innerHTML =
+      '<div class="empty"><span class="ic">&#128203;</span>OT list not set up yet</div>';
+    return;
+  }
+  const end = new Date(otWeek); end.setDate(end.getDate() + 6);
+  const o = { month:'short', day:'numeric' };
+  document.getElementById('otWkTitle').innerHTML =
+    otWeek.toLocaleDateString('en-US', o) + ' &ndash; ' + end.toLocaleDateString('en-US', o) +
+    '<small>Week ending ' + end.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'2-digit'}) + '</small>';
+
+  const rows = otRotation().concat(Object.entries(OT.totals).filter(([, t]) => t.excluded));
+
+  let h = '<tr><th class="nm">Engineer</th>';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(otWeek); d.setDate(d.getDate() + i);
+    h += '<th>' + OT_DAYS[i] + '<br>' + (d.getMonth()+1) + '/' + d.getDate() + '</th>';
+  }
+  h += '<th>Week</th><th>Total</th></tr>';
+
+  rows.forEach(([name, t]) => {
+    h += '<tr><td><div class="ot-nm' + (!t.excluded && t.rank === 1 ? ' next' : '') +
+         (t.excluded ? ' excl' : '') + '"><span class="rk">' +
+         (t.excluded ? '&ndash;' : t.rank) + '</span>' + esc(name) + '</div></td>';
+    let wk = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(otWeek); d.setDate(d.getDate() + i);
+      const ds = otYmd(d);
+      const e = otEntryFor(name, ds);
+      let cls = '', txt = '';
+      if (e) { cls = e.status; txt = e.hours; wk += Number(e.hours) || 0; }
+      else if (otOffOn(name, ds)) { cls = 'off'; txt = 'OFF'; }
+      h += '<td><div class="ot-cell ' + cls + '" onclick="openOtCell(\'' + esc(name) + '\',\'' + ds + '\')">' +
+           txt + (e && e.note ? '<span class="cm">&#128172;</span>' : '') + '</div></td>';
+    }
+    h += '<td><div class="ot-tot">' + wk + '</div></td>' +
+         '<td><div class="ot-tot ytd">' + t.total + '</div></td></tr>';
+  });
+  document.getElementById('otGrid').innerHTML = h;
+  document.getElementById('otHint').textContent = isAdmin
+    ? 'Tap any cell to log OT. Turning it down still charges the hours.'
+    : 'Turning OT down still charges the hours — that keeps the list fair.';
+
+  // Call list
+  const today = otYmd(new Date());
+  const order = otRotation();
+  document.getElementById('callList').innerHTML = order.slice(0, 6).map(([name, t], i) => {
+    const off = otOffOn(name, today);
+    return '<div class="callrow' + (i === 0 ? ' top' : '') + '">' +
+      '<div class="cr-rk">' + t.rank + '</div>' +
+      '<div class="cr-nm">' + esc(name) + '<div class="cr-sub">' + t.worked + ' worked &middot; ' +
+      t.declined + ' declined' + (t.noshow ? ' &middot; ' + t.noshow + ' no-show' : '') + '</div></div>' +
+      (off ? '<span class="cr-off">OFF TODAY</span>' : '') +
+      '<div class="cr-hrs">' + t.total + ' hrs</div></div>';
+  }).join('') +
+  '<div class="ot-hint">Fewest hours goes first.</div>';
+}
+
+// ── Log / edit OT ──
+let otEmp = null, otDate = null, otEntry = null, mStatus = 'worked', mHours = 8;
+
+function openOtCell(name, ds) {
+  if (!isAdmin) return toast('Only a chief can log OT', true);
+  otEmp = name; otDate = ds; otEntry = otEntryFor(name, ds);
+  const d = new Date(ds + 'T00:00:00');
+  document.getElementById('otmSub').textContent = name;
+  document.getElementById('otmTitle').textContent =
+    d.toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
+  mStatus = otEntry ? otEntry.status : 'worked';
+  mHours = otEntry ? Number(otEntry.hours) : 8;
+  document.getElementById('otm_hours').value = mHours;
+  document.getElementById('otm_note').value = otEntry ? (otEntry.note || '') : '';
+  document.getElementById('otm_shift').value = otEntry ? (otEntry.shift || '') : '';
+  pickStatus(mStatus); syncHourBtns();
+  document.getElementById('otDelBtn').style.display = otEntry ? 'block' : 'none';
+  document.getElementById('otSaveBtn').textContent = otEntry ? 'Update' : 'Log OT';
+  document.getElementById('otOffWarn').innerHTML = otOffOn(name, ds)
+    ? '<div class="off-warn">&#9888; ' + esc(name.split(' ')[0]) + ' is on approved time off this day.</div>' : '';
+  document.getElementById('otModal').classList.add('show');
+}
+function closeOtModal() {
+  document.getElementById('otModal').classList.remove('show');
+  otEmp = otDate = otEntry = null;
+}
+function pickStatus(s) {
+  mStatus = s;
+  document.querySelectorAll('.st-btn').forEach(b => b.classList.toggle('on', b.dataset.s === s));
+}
+function pickHours(h) { mHours = h; document.getElementById('otm_hours').value = h; syncHourBtns(); }
+function syncHourBtns() {
+  const v = Number(document.getElementById('otm_hours').value);
+  mHours = v;
+  document.querySelectorAll('.hr-btn').forEach(b => b.classList.toggle('on', Number(b.dataset.h) === v));
+}
+
+async function saveOtEntry() {
+  const hours = Number(document.getElementById('otm_hours').value);
+  if (!(hours > 0)) return toast('Hours must be more than 0', true);
+  const note = document.getElementById('otm_note').value.trim();
+  const shift = document.getElementById('otm_shift').value;
+  const btn = document.getElementById('otSaveBtn');
+  const label = otEntry ? 'Update' : 'Log OT';
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const r = otEntry
+      ? await fetch('/api/ot/' + otEntry.id, { method:'PUT', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ hours, status:mStatus, note, shift }) })
+      : await fetch('/api/ot', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ employee:otEmp, date:otDate, hours, status:mStatus, note, shift, enteredBy:myName }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Save failed');
+    toast('Saved');
+    closeOtModal();
+    await load();
+  } catch (e) { toast(e.message, true); }
+  finally { btn.disabled = false; btn.textContent = label; }
+}
+
+async function deleteOtEntry() {
+  if (!otEntry) return;
+  if (!confirm('Delete this OT entry? The hours come back off their total.')) return;
+  try {
+    const r = await fetch('/api/ot/' + otEntry.id, { method:'DELETE' });
+    if (!r.ok) throw new Error('Delete failed');
+    toast('Deleted');
+    closeOtModal();
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
 async function load() {
   try {
-    const [toRes, usersRes] = await Promise.all([
+    const [toRes, usersRes, otRes] = await Promise.all([
       fetch('/api/time-off').then(r => r.json()),
-      fetch('/api/data/pm_users').then(r => r.json()).catch(() => ({}))
+      fetch('/api/data/pm_users').then(r => r.json()).catch(() => ({})),
+      fetch('/api/ot').then(r => r.json()).catch(() => ({ entries: [], baseline: {}, totals: {} }))
     ]);
+    OT = otRes || { entries: [], baseline: {}, totals: {} };
     DATA = toRes;
 
     // /api/data/:key hands back `value` as a JSON *string*, not a parsed array
@@ -765,6 +1055,7 @@ async function load() {
     renderAllRequests();
     renderCoverage();
     renderMonth();
+    renderOt();
     if (isAdmin) { renderAllBalances(); renderAllotEditor(); renderBaseline(); renderSchedEditor(); }
     updatePendingCount();
     updatePreview();
