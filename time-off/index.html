@@ -354,6 +354,19 @@
   .cs-undo{width:20px;height:20px;border:none;border-radius:5px;background:rgba(0,0,0,.08);color:var(--text-mid);font-size:10px;font-weight:800;cursor:pointer;flex-shrink:0;padding:0}
   .cs-dbl{color:#B45309;font-weight:800}
   .cs-foot{font-size:10px;color:var(--text-light);text-align:center;margin-top:5px;line-height:1.4}
+  .cov-sum{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:6px}
+  .cov-sum-box{border:1.5px solid var(--border);border-radius:10px;padding:11px 8px;text-align:center;background:#fff}
+  .cov-sum-box.bad{background:#FEF2F2;border-color:#FCA5A5}
+  .cov-sum-box.good{background:#F0FDF4;border-color:#86EFAC}
+  .cov-sum-box.ot{background:#EFF6FF;border-color:#93C5FD}
+  .csb-n{font-size:24px;font-weight:800;line-height:1.1}
+  .cov-sum-box.bad .csb-n{color:#991B1B}
+  .cov-sum-box.good .csb-n{color:#065F46}
+  .cov-sum-box.ot .csb-n{color:#1E40AF}
+  .csb-l{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;margin-top:2px;color:var(--text)}
+  .csb-s{font-size:10px;color:var(--text-mid);margin-top:3px;line-height:1.3}
+  .cov-sum-note{font-size:11px;color:var(--text-light);text-align:center;margin-bottom:12px}
+  .cov-sec-hd.ot{background:#EFF6FF;color:#1E40AF;border:1px solid #93C5FD}
   .cov-sec-hd{font-size:12px;font-weight:800;padding:9px 11px;border-radius:8px;margin:0 0 9px;text-transform:uppercase;letter-spacing:.4px}
   .cov-sec-hd.act{background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5}
   .cov-sec-hd.ok{background:#F0FDF4;color:#065F46;border:1px solid #86EFAC}
@@ -1911,15 +1924,26 @@ function renderCoverage() {
   const structural = roster.length;
 
   if (shorts.length) {
-    const ok = fromTimeOff === 0;
-    sumBox.innerHTML = '<div class="card" style="border-color:' + (ok ? '#86EFAC' : '#FCA5A5') + ';">' +
-      '<div class="card-body" style="background:' + (ok ? '#F0FDF4' : '#FEF2F2') + ';text-align:center;">' +
-      '<div style="font-size:26px;font-weight:800;color:' + (ok ? '#065F46' : '#991B1B') + ';">' + fromTimeOff + '</div>' +
-      '<div style="font-size:12px;font-weight:700;color:' + (ok ? '#065F46' : '#991B1B') + ';text-transform:uppercase;letter-spacing:.5px;margin-top:3px;">' +
-        (ok ? 'Nothing to chase' : (fromTimeOff === 1 ? 'Gap needs covering' : 'Gaps need covering')) + '</div>' +
-      '<div style="font-size:11px;color:var(--text-mid);margin-top:5px;">caused by time off &middot; next 60 days<br>' +
-        '<span style="color:var(--text-light);">plus ' + structural + ' shifts never staffed 2-deep &mdash; a rota question, not a call-out</span>' +
-      '</div></div></div>';
+    // Two different jobs, both real:
+    //   time-off gaps  — somebody is away, ring round and fill it
+    //   standing OT    — the rota never puts 2 on that shift, so it's filled with OT every week
+    const unfilledAction = action.filter(x => x.st.covering.length === 0).length;
+    const unfilledStand  = roster.filter(x => x.st.covering.length === 0).length;
+    sumBox.innerHTML =
+      '<div class="cov-sum">' +
+        '<div class="cov-sum-box ' + (unfilledAction ? 'bad' : 'good') + '">' +
+          '<div class="csb-n">' + unfilledAction + '</div>' +
+          '<div class="csb-l">Time-off gaps</div>' +
+          '<div class="csb-s">' + (unfilledAction ? 'someone away — needs a call' : 'all covered') + '</div>' +
+        '</div>' +
+        '<div class="cov-sum-box ot">' +
+          '<div class="csb-n">' + unfilledStand + '</div>' +
+          '<div class="csb-l">Standing OT</div>' +
+          '<div class="csb-s">short every week — fill with OT</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="cov-sum-note">Next 60 days &middot; ' + (shorts.length - unfilledAction - unfilledStand) +
+      ' already filled</div>';
   } else {
     sumBox.innerHTML = '<div class="card" style="border-color:#86EFAC;"><div class="card-body" style="background:#F0FDF4;text-align:center;">' +
       '<div style="font-size:13px;font-weight:700;color:#065F46;">Every shift meets the 2-engineer minimum</div>' +
@@ -1943,7 +1967,7 @@ function renderCoverage() {
           const st = x.st;
           const why = st.off.length
             ? st.off.map(esc).join(', ') + ' off'
-            : 'Only ' + st.scheduled.length + ' rostered on this shift';
+            : 'Only ' + st.scheduled.length + ' rostered — standing OT shift';
           const nobody = st.onDuty.length + st.covering.length === 0;
           return '<div class="cov-shift' + (nobody ? ' nobody' : '') + '" onclick="switchTab(\'month\');selectDay(\'' + ds + '\')">' +
             '<div class="cov-top">' +
@@ -1967,16 +1991,29 @@ function renderCoverage() {
   }
 
   if (roster.length) {
-    out += '<div class="cov-sec-hd rost" onclick="toggleRoster()">' +
-             '<span id="rostCaret">&#9656;</span> Roster gaps &mdash; ' + roster.length +
-             ' shifts never staffed 2-deep' +
-           '</div>' +
-           '<div id="rosterList" style="display:' + (rosterOpen ? 'block' : 'none') + ';">' +
-             '<div class="cov-note">These are short every week regardless of time off &mdash; ' +
-             'the rota simply doesn\'t put 2 engineers on them. Nothing to chase today; ' +
-             'it needs a schedule change or standing OT.</div>' +
-             daysHtml(roster) +
-           '</div>';
+    // These get filled with overtime as a matter of course. Show the next two
+    // weeks up front so they can be staffed ahead, and tuck the rest away.
+    const cut = new Date(today); cut.setDate(cut.getDate() + 14);
+    const cutStr = cut.toISOString().slice(0, 10);
+    const soon = roster.filter(x => x.date <= cutStr);
+    const later = roster.filter(x => x.date > cutStr);
+    const soonOpen = soon.filter(x => x.st.covering.length === 0).length;
+
+    out += '<div class="cov-sec-hd ot">&#9201; Standing OT &mdash; ' + soonOpen +
+           ' to fill in the next 2 weeks</div>' +
+           '<div class="cov-note">These shifts are never rostered 2-deep, so they run on overtime. ' +
+           'Tap one to open the call sheet and offer it in OT order.</div>' +
+           (soon.length ? daysHtml(soon) : '<div class="cov-note">Nothing in the next 2 weeks.</div>');
+
+    if (later.length) {
+      out += '<div class="cov-sec-hd rost" onclick="toggleRoster()">' +
+               '<span id="rostCaret">' + (rosterOpen ? '&#9662;' : '&#9656;') + '</span> ' +
+               'Further out &mdash; ' + later.length + ' more standing-OT shifts' +
+             '</div>' +
+             '<div id="rosterList" style="display:' + (rosterOpen ? 'block' : 'none') + ';">' +
+               daysHtml(later) +
+             '</div>';
+    }
   }
   listBox.innerHTML = out;
 }
