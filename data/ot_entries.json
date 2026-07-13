@@ -1,5 +1,18 @@
 [
   {
+    "id": "OT-2",
+    "employee": "Ray Sinnott",
+    "date": "2026-07-14",
+    "hours": 8,
+    "status": "worked",
+    "note": "Covering 2nd shift",
+    "shift": "2nd",
+    "coverageKey": "2026-07-14|2nd",
+    "auto": true,
+    "enteredBy": "Coverage",
+    "createdAt": "2026-07-13T17:13:03.981Z"
+  },
+  {
     "id": "OT-1",
     "employee": "Ray Mursch",
     "date": "2026-07-13",
