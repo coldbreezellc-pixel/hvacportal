@@ -883,6 +883,10 @@ app.post('/api/time-off', async (req, res) => {
     const distinct = [...new Set(Object.values(dayTypes))];
     const summaryType = distinct.length === 1 ? distinct[0] : 'Mixed';
 
+    // Admin entering time off directly (e.g. logging from the calendar) lands
+    // pre-approved — there's nobody left to approve it.
+    const adminEntry = !!r.adminEntry;
+
     let saved = null;
     await ghUpdateJson('data/time_off.json', (requests) => {
       const year = new Date().getFullYear();
@@ -898,28 +902,30 @@ app.post('/api/time-off', async (req, res) => {
         notes: r.notes || '',
         id: `TO-${year}-${String(next).padStart(4, '0')}`,
         days: range.length,
-        status: 'Pending',
+        status: adminEntry ? 'Approved' : 'Pending',
         coveringTech: r.coveringTech || '',
         createdAt: new Date().toISOString()
       };
+      if (adminEntry) {
+        saved.enteredBy = r.enteredBy || 'Admin';
+        saved.adminEntry = true;
+      }
       return [saved, ...requests];
-    }, `Time off request — ${r.employee} (${r.shift} shift, ${range.length}d)`);
+    }, `Time off ${adminEntry ? 'logged' : 'request'} — ${r.employee} (${r.shift} shift, ${range.length}d)`);
 
-    // Notify admins — don't fail the request if the email bounces
-    if (RESEND_API_KEY && saved) {
+    // Notify admins on crew-submitted requests only — no point emailing an
+    // admin about an entry they just made themselves
+    if (RESEND_API_KEY && saved && !adminEntry) {
       try {
         const [allRequests, allotments] = await Promise.all([getTimeOff(), getAllotments()]);
         const balances = computeBalances(allRequests, allotments, null);
         const sh = SHIFTS[saved.shift] || {};
-        const dateLabel = saved.startDate === saved.endDate
-          ? fmtDateLong(saved.startDate)
-          : `${fmtDateLong(saved.startDate)} – ${fmtDateLong(saved.endDate)}`;
         await sendEmail({
           to: TIMEOFF_ADMIN_EMAILS,
           subject: `Time Off Request — ${saved.employee}, ${saved.days} day${saved.days === 1 ? '' : 's'} (${sh.label || saved.shift})`,
           html: timeOffEmailHtml(saved, balances)
         });
-        console.log(`Time off email sent to admins for ${saved.id} (${dateLabel})`);
+        console.log(`Time off email sent to admins for ${saved.id}`);
       } catch (e) {
         console.error('Time off notification email failed:', e.message);
       }
