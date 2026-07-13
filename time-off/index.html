@@ -159,6 +159,9 @@
   .cov-short{font-size:10px;font-weight:800;color:#991B1B;background:#FECACA;padding:2px 7px;border-radius:4px;white-space:nowrap}
   .cov-why{font-size:11px;color:var(--text-mid);margin-top:4px;font-weight:600}
   .cal-cell.short{background:#FFF5F5}
+  .bal-box.locked{background:#F1F5F9;border-color:#CBD5E1}
+  .bal-box .bal-num.lock{font-size:20px;line-height:1.6}
+  .anniv-alert{background:#FEF3C7;border:1.5px solid #FCD34D;color:#92400E;font-size:12px;padding:10px 12px;border-radius:8px;margin-bottom:12px;line-height:1.5}
   .hire-tag{font-size:10px;font-weight:700;color:var(--text-mid);background:#F1F5F9;padding:2px 7px;border-radius:4px;text-transform:uppercase;white-space:nowrap}
   .hire-tag.warn{color:#991B1B;background:#FEE2E2}
   .person-bal .pname{align-items:center}
@@ -555,11 +558,28 @@ function datesInRange(start, end) {
 
 let dayTypes = {}; // date → type
 
+// Day types this person can actually pick — vacation is hidden until year one
+function availableTypes() {
+  const bal = DATA.balances[myName];
+  if (bal && bal.vacationEligible === false) {
+    return DAY_TYPES.filter(t => t !== 'Vacation');
+  }
+  return DAY_TYPES;
+}
+
 function renderDayEditor() {
   const s = document.getElementById('f_start').value;
   const e = document.getElementById('f_end').value;
   const range = datesInRange(s, e);
   const box = document.getElementById('dayEditor');
+  // Strip Vacation from the bulk picker if this person hasn't earned it yet
+  const bulkEl = document.getElementById('f_bulk');
+  const allowed = availableTypes();
+  if (bulkEl && bulkEl.options.length !== allowed.length) {
+    const keep = bulkEl.value;
+    bulkEl.innerHTML = allowed.map(t => '<option value="' + t + '">' + t + '</option>').join('');
+    bulkEl.value = allowed.includes(keep) ? keep : allowed[0];
+  }
   if (!range.length) {
     box.innerHTML = '';
     updatePreview();
@@ -571,12 +591,13 @@ function renderDayEditor() {
   range.forEach(d => { next[d] = dayTypes[d] || fallback; });
   dayTypes = next;
 
+  const types = availableTypes();
   box.innerHTML = '<div class="day-editor-box">' + range.map(d => {
     const dt = new Date(d + 'T00:00:00');
     const lbl = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     return '<div class="day-row"><span class="dl">' + lbl + '</span>' +
       '<select onchange="setDayType(\'' + d + '\', this.value)">' +
-      DAY_TYPES.map(t =>
+      types.map(t =>
         '<option value="' + t + '"' + (dayTypes[d] === t ? ' selected' : '') + '>' + t + '</option>'
       ).join('') +
       '</select></div>';
@@ -732,6 +753,7 @@ function renderMyBalances() {
   // Use-it-or-lose-it nudge
   const notes = [];
   POOL_KEYS.forEach(p => {
+    if (p === 'vacation' && bal.vacationEligible === false) return;
     const rem = bal.remaining[p];
     const win = bal.windows ? bal.windows[p] : null;
     const left = daysLeftIn(win);
@@ -1222,7 +1244,19 @@ function renderAllBalances() {
     box.innerHTML = '<div class="empty"><span class="ic">👥</span>No allotments set yet</div>';
     return;
   }
-  box.innerHTML = names.map(n => {
+
+  // Anyone past their first anniversary who still has no vacation on the books
+  const due = names.filter(n => {
+    const b = DATA.balances[n];
+    return b.hireDate && b.vacationEligible !== false && b.allotment.vacation === 0;
+  });
+  const alert = due.length
+    ? '<div class="anniv-alert">🎉 <b>' + due.map(esc).join(', ') + '</b> ' +
+      (due.length === 1 ? 'has' : 'have') + ' passed the 1-year mark with no vacation days set. ' +
+      'Set their entitlement below.</div>'
+    : '';
+
+  box.innerHTML = alert + names.map(n => {
     const b = DATA.balances[n];
     const vacWin = b.windows ? b.windows.vacation : null;
     const vacLeft = daysLeftIn(vacWin);
@@ -1238,6 +1272,13 @@ function renderAllBalances() {
         '</div>' : '') +
       '<div class="bal-grid">' +
       POOL_KEYS.map(p => {
+        if (p === 'vacation' && b.vacationEligible === false) {
+          return '<div class="bal-box locked">' +
+            '<div class="bal-num lock">🔒</div>' +
+            '<div class="bal-lbl">' + POOL_NAME[p] + '</div>' +
+            '<div class="bal-sub">' + fmtDate(b.vacationEligibleFrom) + ' ' +
+              new Date(b.vacationEligibleFrom + 'T00:00:00').getFullYear() + '</div></div>';
+        }
         const rem = b.remaining[p];
         return '<div class="bal-box' + (rem <= 1 ? ' low' : '') + '">' +
           '<div class="bal-num">' + rem + '</div>' +
