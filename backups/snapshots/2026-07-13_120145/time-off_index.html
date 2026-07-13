@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Time Off &amp; Coverage — HVAC Engineering</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1B3A5C;--navy-light:#2A5280;--accent:#2979FF;--bg:#F3F6FA;--card:#FFFFFF;--border:#D4DCE8;--text:#1E2A3A;--text-mid:#5A6A7E;--text-light:#8A96A8;--success:#2E7D32;--danger:#C62828;--warn:#E65100;--teal:#00897B;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(27,58,92,0.08)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+  .header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);color:#fff;padding:16px 20px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(27,58,92,.25);display:flex;align-items:center;gap:12px}
+  .header h1{font-size:17px;font-weight:700;letter-spacing:.5px;flex:1}
+  .back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
+  .container{padding:16px;max-width:680px;margin:0 auto;padding-bottom:50px}
+  .tabs{display:flex;gap:6px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;border:1px solid var(--border)}
+  .tab{flex:1;padding:9px 6px;border:none;border-radius:7px;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--text-mid);cursor:pointer;text-transform:uppercase;letter-spacing:.4px}
+  .tab.active{background:var(--navy);color:#fff}
+  .tab .cnt{display:inline-block;background:var(--danger);color:#fff;border-radius:9px;padding:0 5px;font-size:10px;margin-left:3px}
+  .panel{display:none}
+  .panel.active{display:block}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:12px;overflow:hidden}
+  .card-head{padding:12px 14px;background:var(--navy);color:#fff;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+  .card-body{padding:14px}
+  label{display:block;font-size:11px;font-weight:600;color:var(--text-mid);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;margin-top:12px}
+  label:first-child{margin-top:0}
+  input[type="text"],input[type="date"],input[type="number"],select,textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);background:#FAFBFD;-webkit-appearance:none;appearance:none}
+  select{background:#FAFBFD url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235A6A7E' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 10px center/16px}
+  textarea{min-height:70px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{width:100%;padding:13px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.5}
+  .btn-sm{padding:7px 12px;font-size:12px;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;margin:0}
+  .btn-approve{background:var(--success);color:#fff}
+  .btn-deny{background:var(--danger);color:#fff}
+  .btn-ghost{background:#fff;color:var(--text-mid);border:1.5px solid var(--border)}
+  .days-preview{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;font-size:13px;color:#1E40AF;font-weight:600;margin-top:12px;text-align:center}
+  .days-preview.over{background:#FEE2E2;border-color:#FCA5A5;color:#991B1B}
+  /* Balance cards */
+  .bal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .bal-box{background:#F8FAFC;border:1.5px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center}
+  .bal-box .bal-num{font-size:24px;font-weight:800;color:var(--navy);line-height:1}
+  .bal-box .bal-lbl{font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.4px;margin-top:5px;line-height:1.3}
+  .bal-box .bal-sub{font-size:10px;color:var(--text-light);margin-top:3px}
+  .bal-box.low .bal-num{color:var(--danger)}
+  .person-bal{border-bottom:1px solid #F1F5F9;padding:12px 0}
+  .person-bal:last-child{border-bottom:none}
+  .person-bal .pname{font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+  /* Request rows */
+  .req{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:9px;background:#fff}
+  .req-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .req-emp{font-size:15px;font-weight:700;color:var(--text)}
+  .req-meta{font-size:12px;color:var(--text-mid);margin-top:3px;line-height:1.5}
+  .req-notes{font-size:12px;color:var(--text-mid);margin-top:6px;font-style:italic;background:#F8FAFC;padding:6px 8px;border-radius:6px}
+  .badge{display:inline-block;padding:3px 9px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+  .b-pending{background:#FEF3C7;color:#92400E}
+  .b-approved{background:#D1FAE5;color:#065F46}
+  .b-denied{background:#FEE2E2;color:#991B1B}
+  .t-sick{background:#FEE2E2;color:#991B1B}
+  .t-personal{background:#EDE9FE;color:#5B21B6}
+  .t-vacation{background:#DBEAFE;color:#1E40AF}
+  .t-floating{background:#D1FAE5;color:#065F46}
+  .s-1st{background:#FEF9C3;color:#854D0E}
+  .s-2nd{background:#FFE4E6;color:#9F1239}
+  .s-3rd{background:#E0E7FF;color:#3730A3}
+  /* Coverage: shift grouping */
+  .shift-grp{border:1.5px solid var(--border);border-radius:9px;padding:9px 11px;margin-bottom:7px;background:#FAFBFD}
+  .shift-grp.uncovered{border-color:#FCA5A5;background:#FEF2F2}
+  .shift-grp-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .shift-grp-hd .st{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+  .shift-grp-hd .sh{font-size:10px;color:var(--text-light);font-weight:600}
+  .gap-warn{background:#FEE2E2;color:#991B1B;font-size:11px;font-weight:700;padding:5px 8px;border-radius:6px;margin-top:6px;text-align:center}
+  .req-actions{display:flex;gap:7px;margin-top:11px}
+  .req-actions .btn-sm{flex:1}
+  .cover-row{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
+  .cover-row label{margin:0 0 5px}
+  .cover-row select{font-size:14px;padding:8px 10px}
+  .cover-tag{font-size:12px;color:var(--teal);font-weight:700;margin-top:6px}
+  /* Coverage calendar */
+  .cal-day{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:9px;background:#fff}
+  .cal-date{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+  .cal-out{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F8FAFC;font-size:13px}
+  .cal-out:last-child{border-bottom:none}
+  .cal-out .who{font-weight:600}
+  .cal-cover{font-size:11px;color:var(--teal);font-weight:700}
+  .cal-nocover{font-size:11px;color:var(--warn);font-weight:700}
+  .empty{text-align:center;padding:44px 20px;color:var(--text-light)}
+  .empty .ic{font-size:44px;display:block;margin-bottom:10px;opacity:.4}
+  .loading{text-align:center;padding:40px;color:var(--text-light);font-size:14px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--navy);color:#fff;padding:13px 22px;border-radius:10px;font-size:14px;font-weight:600;z-index:400;transition:transform .3s;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--danger)}
+  .filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .fchip{padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;background:#fff;font-size:12px;font-weight:600;color:var(--text-mid);cursor:pointer}
+  .fchip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .admin-only{display:none}
+  .is-admin .admin-only{display:block}
+  .allot-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:6px;align-items:end;margin-bottom:9px}
+  .allot-row input{padding:8px;font-size:14px;text-align:center}
+  .allot-row .nm{font-size:13px;font-weight:700;color:var(--text);padding-bottom:9px}
+  .allot-hdr{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:6px;font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;margin-bottom:6px;text-align:center}
+  .allot-hdr span:first-child{text-align:left}
+  /* Per-day type editor */
+  .day-row{display:grid;grid-template-columns:1fr 1.3fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #F1F5F9}
+  .day-row:last-child{border-bottom:none}
+  .day-row .dl{font-size:13px;font-weight:600;color:var(--text)}
+  .day-row select{padding:7px 9px;font-size:13px}
+  .day-editor-box{border:1.5px solid var(--border);border-radius:9px;padding:10px 12px;background:#FAFBFD;max-height:270px;overflow-y:auto}
+  /* Month calendar */
+  .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .mn-btn{width:34px;height:34px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:19px;font-weight:700;color:var(--navy);cursor:pointer;line-height:1}
+  .mn-title{font-size:15px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px}
+  .month-legend{display:flex;justify-content:center;gap:11px;margin-bottom:10px;font-size:10px;color:var(--text-mid);font-weight:600}
+  .month-legend span{display:flex;align-items:center;gap:3px}
+  .lg{width:9px;height:9px;border-radius:2px;display:inline-block}
+  .lg.s-1st{background:#FEF9C3;border:1px solid #854D0E}
+  .lg.s-2nd{background:#FFE4E6;border:1px solid #9F1239}
+  .lg.s-3rd{background:#E0E7FF;border:1px solid #3730A3}
+  .lg.lg-gap{background:#FCA5A5;border:1px solid #991B1B}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .cal-hd{text-align:center;font-size:10px;font-weight:800;color:var(--text-light);text-transform:uppercase;padding:3px 0}
+  .cal-cell{aspect-ratio:1;border:1px solid var(--border);border-radius:6px;background:#fff;padding:3px;display:flex;flex-direction:column;align-items:center;cursor:pointer;position:relative;min-height:40px}
+  .cal-cell.pad{background:#F8FAFC;border-color:#F1F5F9;cursor:default}
+  .cal-cell.today{border-color:var(--accent);border-width:2px}
+  .cal-cell.sel{background:#EFF6FF;border-color:var(--accent);border-width:2px}
+  .cal-cell .dn{font-size:11px;font-weight:700;color:var(--text);line-height:1.4}
+  .cal-cell.pad .dn{color:var(--text-light);font-weight:400}
+  .cal-dots{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;margin-top:1px}
+  .dot{width:6px;height:6px;border-radius:50%}
+  .dot.d-1st{background:#EAB308}
+  .dot.d-2nd{background:#F43F5E}
+  .dot.d-3rd{background:#6366F1}
+  .dot.d-gap{background:#DC2626;box-shadow:0 0 0 1.5px #FEE2E2}
+  /* Gap rows */
+  .gap-row{display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border:1.5px solid #FCA5A5;background:#FEF2F2;border-radius:8px;margin-bottom:7px}
+  .gap-row .gtxt{font-size:13px;font-weight:700;color:#991B1B}
+  .gap-row .gnote{font-size:11px;color:var(--text-mid);font-weight:500;margin-top:2px}
+  .gap-row .rm{background:none;border:none;color:#991B1B;font-size:16px;cursor:pointer;font-weight:700;padding:0 4px}
+  .gap-occ{border:1.5px solid #FCA5A5;background:#FEF2F2;border-radius:8px;padding:10px;margin-bottom:7px}
+  .gap-occ.covered{border-color:#86EFAC;background:#F0FDF4}
+  .gap-occ-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .gap-occ select{font-size:13px;padding:7px 9px}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="/" class="back-btn">← Back</a>
+  <h1>🌴 Time Off &amp; Coverage</h1>
+</div>
+
+<div class="container" id="root">
+  <div class="tabs">
+    <button class="tab active" data-tab="my" onclick="switchTab('my')">Mine</button>
+    <button class="tab" data-tab="month" onclick="switchTab('month')">Month</button>
+    <button class="tab" data-tab="requests" onclick="switchTab('requests')">Requests<span class="cnt" id="pendCnt" style="display:none;">0</span></button>
+    <button class="tab" data-tab="coverage" onclick="switchTab('coverage')">Coverage</button>
+    <button class="tab admin-only" data-tab="balances" onclick="switchTab('balances')" style="display:none;">Admin</button>
+  </div>
+
+  <!-- MY TIME OFF -->
+  <div class="panel active" id="panel-my">
+    <div class="card">
+      <div class="card-head">My Balance — <span id="balYear"></span></div>
+      <div class="card-body">
+        <div class="bal-grid" id="myBalances">
+          <div class="loading" style="grid-column:1/-1;padding:20px;">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Request Time Off</div>
+      <div class="card-body">
+        <label>Shift You're Taking Off</label>
+        <select id="f_shift">
+          <option value="1st">1st Shift — 6:00 AM to 2:00 PM</option>
+          <option value="2nd">2nd Shift — 2:00 PM to 10:00 PM</option>
+          <option value="3rd">3rd Shift — 10:00 PM to 6:00 AM</option>
+        </select>
+        <div class="row2">
+          <div>
+            <label>Start Date</label>
+            <input type="date" id="f_start" onchange="onDatesChange()">
+          </div>
+          <div>
+            <label>End Date</label>
+            <input type="date" id="f_end" onchange="onDatesChange()">
+          </div>
+        </div>
+
+        <label>Day Types <span style="text-transform:none;font-weight:500;color:var(--text-light);">— mix them to extend a stretch</span></label>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <select id="f_bulk" style="flex:1;font-size:13px;padding:8px;">
+            <option value="Vacation">Vacation</option>
+            <option value="Sick">Sick</option>
+            <option value="Personal">Personal</option>
+            <option value="Floating Holiday">Floating Holiday</option>
+          </select>
+          <button class="btn-sm btn-ghost" style="white-space:nowrap;padding:8px 12px;" onclick="applyBulkType()">Set all days</button>
+        </div>
+        <div id="dayEditor"></div>
+
+        <label>Reason / Notes (optional)</label>
+        <textarea id="f_notes" placeholder="Anything the chief should know…"></textarea>
+        <div class="days-preview" id="preview">Pick your dates</div>
+        <button class="btn" id="submitBtn" onclick="submitRequest()">Submit Request</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">My Requests</div>
+      <div class="card-body" id="myRequests"><div class="loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ALL REQUESTS -->
+  <div class="panel" id="panel-requests">
+    <div class="filter-row">
+      <div class="fchip active" data-f="Pending" onclick="setFilter(this,'Pending')">Pending</div>
+      <div class="fchip" data-f="Approved" onclick="setFilter(this,'Approved')">Approved</div>
+      <div class="fchip" data-f="Denied" onclick="setFilter(this,'Denied')">Denied</div>
+      <div class="fchip" data-f="all" onclick="setFilter(this,'all')">All</div>
+    </div>
+    <div id="allRequests"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- MONTH VIEW -->
+  <div class="panel" id="panel-month">
+    <div class="card">
+      <div class="card-body" style="padding:12px;">
+        <div class="month-nav">
+          <button class="mn-btn" onclick="shiftMonth(-1)">‹</button>
+          <div class="mn-title" id="monthTitle"></div>
+          <button class="mn-btn" onclick="shiftMonth(1)">›</button>
+        </div>
+        <div class="month-legend">
+          <span><i class="lg s-1st"></i>1st</span>
+          <span><i class="lg s-2nd"></i>2nd</span>
+          <span><i class="lg s-3rd"></i>3rd</span>
+          <span><i class="lg lg-gap"></i>Uncovered</span>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:9px;">Tap a day for details</div>
+      </div>
+    </div>
+    <div id="dayDetail"></div>
+  </div>
+
+  <!-- COVERAGE -->
+  <div class="panel" id="panel-coverage">
+    <div id="coverageSummary"></div>
+    <div class="card">
+      <div class="card-head">Who's Out — Next 60 Days</div>
+      <div class="card-body" id="coverageList"><div class="loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="panel" id="panel-balances">
+    <div class="card">
+      <div class="card-head">Standing Weekly Coverage Gaps</div>
+      <div class="card-body">
+        <div style="font-size:12px;color:var(--text-mid);margin-bottom:12px;line-height:1.5;">
+          Shifts that are short <b>every week</b> because there aren't enough guys on site — separate from time off. These show up on the calendar and in Coverage so you can assign someone each week.
+        </div>
+        <div id="gapList"></div>
+        <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
+          <label>Add a Standing Gap</label>
+          <div class="row2">
+            <select id="g_weekday">
+              <option value="0">Sunday</option>
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+            </select>
+            <select id="g_shift">
+              <option value="1st">1st Shift</option>
+              <option value="2nd">2nd Shift</option>
+              <option value="3rd">3rd Shift</option>
+            </select>
+          </div>
+          <input type="text" id="g_note" placeholder="Note (optional) — e.g. short-staffed" style="margin-top:8px;">
+          <button class="btn" style="margin-top:10px;" onclick="addGap()">+ Add Standing Gap</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">Everyone's Balances</div>
+      <div class="card-body" id="allBalances"><div class="loading">Loading…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head">Set Annual Allotments</div>
+      <div class="card-body">
+        <div class="allot-hdr"><span>Employee</span><span>Sick/Pers</span><span>Vacation</span><span>Float</span><span></span></div>
+        <div id="allotEditor"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Session ──
+if (!localStorage.getItem('hvac_session')) window.location.href = '/';
+const _currentUser = JSON.parse(localStorage.getItem('hvac_session') || '{}');
+const isAdmin = _currentUser.role === 'admin';
+const myName = _currentUser.displayName || '';
+if (isAdmin) {
+  document.body.classList.add('is-admin');
+  document.querySelector('.tab[data-tab="balances"]').style.display = 'block';
+}
+
+const POOL_OF = { 'Sick':'sickPersonal', 'Personal':'sickPersonal', 'Vacation':'vacation', 'Floating Holiday':'floating' };
+const POOL_NAME = { sickPersonal:'Sick / Personal', vacation:'Vacation', floating:'Floating Holidays' };
+const TYPE_CLASS = { 'Sick':'t-sick', 'Personal':'t-personal', 'Vacation':'t-vacation', 'Floating Holiday':'t-floating' };
+const SHIFT_INFO = {
+  '1st': { label: '1st Shift', time: '6a–2p', cls: 's-1st' },
+  '2nd': { label: '2nd Shift', time: '2p–10p', cls: 's-2nd' },
+  '3rd': { label: '3rd Shift', time: '10p–6a', cls: 's-3rd' }
+};
+const SHIFT_ORDER = ['1st', '2nd', '3rd'];
+
+let DATA = { requests: [], balances: {}, allotments: {} };
+let allUsers = [];
+let curFilter = 'Pending';
+
+document.getElementById('balYear').textContent = new Date().getFullYear();
+
+function toast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(() => { t.className = 'toast'; }, 2800);
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+}
+function setFilter(el, f) {
+  document.querySelectorAll('.fchip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  curFilter = f;
+  renderAllRequests();
+}
+
+function countDays(start, end) {
+  const s = new Date(start + 'T00:00:00'), e = new Date(end + 'T00:00:00');
+  if (isNaN(s) || isNaN(e) || e < s) return 0;
+  return Math.round((e - s) / 86400000) + 1;
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const x = new Date(d + 'T00:00:00');
+  return x.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function fmtRange(a, b) {
+  return a === b ? fmtDate(a) : fmtDate(a) + ' – ' + fmtDate(b);
+}
+
+function onDatesChange() {
+  const s = document.getElementById('f_start').value;
+  const e = document.getElementById('f_end');
+  if (s && (!e.value || e.value < s)) e.value = s;
+  renderDayEditor();
+}
+
+// Every date between start and end, as YYYY-MM-DD
+function datesInRange(start, end) {
+  const out = [];
+  if (!start || !end) return out;
+  let d = new Date(start + 'T00:00:00');
+  const last = new Date(end + 'T00:00:00');
+  if (isNaN(d) || isNaN(last) || last < d) return out;
+  while (d <= last) { out.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 1); }
+  return out;
+}
+
+let dayTypes = {}; // date → type
+
+function renderDayEditor() {
+  const s = document.getElementById('f_start').value;
+  const e = document.getElementById('f_end').value;
+  const range = datesInRange(s, e);
+  const box = document.getElementById('dayEditor');
+  if (!range.length) {
+    box.innerHTML = '';
+    updatePreview();
+    return;
+  }
+  const fallback = document.getElementById('f_bulk').value;
+  // Keep existing picks, default new days to the bulk type
+  const next = {};
+  range.forEach(d => { next[d] = dayTypes[d] || fallback; });
+  dayTypes = next;
+
+  box.innerHTML = '<div class="day-editor-box">' + range.map(d => {
+    const dt = new Date(d + 'T00:00:00');
+    const lbl = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return '<div class="day-row"><span class="dl">' + lbl + '</span>' +
+      '<select onchange="setDayType(\'' + d + '\', this.value)">' +
+      ['Vacation','Sick','Personal','Floating Holiday'].map(t =>
+        '<option value="' + t + '"' + (dayTypes[d] === t ? ' selected' : '') + '>' + t + '</option>'
+      ).join('') +
+      '</select></div>';
+  }).join('') + '</div>';
+  updatePreview();
+}
+
+function setDayType(date, type) {
+  dayTypes[date] = type;
+  updatePreview();
+}
+
+function applyBulkType() {
+  const t = document.getElementById('f_bulk').value;
+  Object.keys(dayTypes).forEach(d => { dayTypes[d] = t; });
+  renderDayEditor();
+}
+
+// Days drawn per pool for the current form state
+function formPoolUsage() {
+  const use = { sickPersonal: 0, vacation: 0, floating: 0 };
+  Object.values(dayTypes).forEach(t => {
+    const p = POOL_OF[t];
+    if (p) use[p] += 1;
+  });
+  return use;
+}
+
+function updatePreview() {
+  const box = document.getElementById('preview');
+  const btn = document.getElementById('submitBtn');
+  const total = Object.keys(dayTypes).length;
+  if (!total) {
+    box.textContent = 'Pick your dates';
+    box.className = 'days-preview';
+    btn.disabled = false;
+    return;
+  }
+  const use = formPoolUsage();
+  const bal = DATA.balances[myName];
+  const parts = [], shorts = [];
+  ['sickPersonal','vacation','floating'].forEach(p => {
+    if (!use[p]) return;
+    const rem = bal ? bal.remaining[p] : null;
+    let s = use[p] + ' ' + POOL_NAME[p];
+    if (rem !== null && rem !== undefined) {
+      const after = rem - use[p];
+      s += ' (' + after + ' left)';
+      if (after < 0) shorts.push(POOL_NAME[p] + ': need ' + use[p] + ', have ' + rem);
+    }
+    parts.push(s);
+  });
+  if (shorts.length) {
+    box.textContent = '⚠ ' + shorts.join(' · ');
+    box.className = 'days-preview over';
+    btn.disabled = true;
+    return;
+  }
+  box.textContent = total + (total === 1 ? ' day off' : ' days off') + ' — ' + parts.join(' + ');
+  box.className = 'days-preview';
+  btn.disabled = false;
+}
+
+async function load() {
+  try {
+    const [toRes, usersRes] = await Promise.all([
+      fetch('/api/time-off').then(r => r.json()),
+      fetch('/api/data/pm_users').then(r => r.json()).catch(() => ({}))
+    ]);
+    DATA = toRes;
+    const u = usersRes.value || usersRes.data || usersRes;
+    allUsers = Array.isArray(u) ? u : (u && Array.isArray(u.users) ? u.users : []);
+    renderMyBalances();
+    renderMyRequests();
+    renderAllRequests();
+    renderCoverage();
+    renderMonth();
+    if (isAdmin) { renderAllBalances(); renderAllotEditor(); renderGaps(); }
+    updatePendingCount();
+    updatePreview();
+  } catch (e) {
+    toast('Failed to load: ' + e.message, true);
+  }
+}
+
+function updatePendingCount() {
+  const n = DATA.requests.filter(r => r.status === 'Pending').length;
+  const el = document.getElementById('pendCnt');
+  el.textContent = n;
+  el.style.display = n ? 'inline-block' : 'none';
+}
+
+function renderMyBalances() {
+  const bal = DATA.balances[myName];
+  const box = document.getElementById('myBalances');
+  if (!bal) {
+    box.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:20px;">No allotment set yet. Ask an admin to set your days.</div>';
+    return;
+  }
+  box.innerHTML = ['sickPersonal', 'vacation', 'floating'].map(p => {
+    const rem = bal.remaining[p], tot = bal.allotment[p], pend = bal.pending[p];
+    const low = rem <= 1;
+    return '<div class="bal-box' + (low ? ' low' : '') + '">' +
+      '<div class="bal-num">' + rem + '</div>' +
+      '<div class="bal-lbl">' + POOL_NAME[p] + '</div>' +
+      '<div class="bal-sub">of ' + tot + (pend ? ' · ' + pend + ' pending' : '') + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+// Human summary of a request's day types, e.g. "3 Vacation + 1 Floating Holiday"
+function typeSummary(r) {
+  const dt = r.dayTypes && Object.keys(r.dayTypes).length ? r.dayTypes : null;
+  if (!dt) return null;
+  const counts = {};
+  Object.values(dt).forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+  const keys = Object.keys(counts);
+  if (keys.length <= 1) return null; // single type — the badge already says it
+  return keys.map(t => counts[t] + ' ' + t).join(' + ');
+}
+
+function reqCard(r, showActions) {
+  const tcls = TYPE_CLASS[r.type] || '';
+  const scls = 'b-' + (r.status || 'Pending').toLowerCase();
+  const sh = SHIFT_INFO[r.shift];
+  const mix = typeSummary(r);
+  let h = '<div class="req">';
+  h += '<div class="req-top"><div>';
+  h += '<div class="req-emp">' + esc(r.employee) + '</div>';
+  h += '<div class="req-meta"><span class="badge ' + tcls + '">' + esc(r.type) + '</span> ' +
+       (sh ? '<span class="badge ' + sh.cls + '">' + sh.label + ' · ' + sh.time + '</span>' : '') +
+       '<br>' + fmtRange(r.startDate, r.endDate) + ' · <b>' + r.days + (r.days === 1 ? ' day' : ' days') + '</b>' +
+       (mix ? '<br><span style="color:var(--text-light);">' + esc(mix) + '</span>' : '') +
+       '</div>';
+  h += '</div><span class="badge ' + scls + '">' + esc(r.status) + '</span></div>';
+  if (r.notes) h += '<div class="req-notes">' + esc(r.notes) + '</div>';
+  if (r.status === 'Approved') {
+    if (r.coveringTech) {
+      h += '<div class="cover-tag">🛡 ' + (sh ? sh.label : 'Shift') + ' covered by ' + esc(r.coveringTech) + '</div>';
+    } else {
+      h += '<div class="gap-warn">⚠ ' + (sh ? sh.label : 'Shift') + ' has no coverage assigned</div>';
+    }
+  }
+  if (showActions && isAdmin) {
+    if (r.status === 'Pending') {
+      h += '<div class="req-actions">' +
+        '<button class="btn-sm btn-approve" onclick="decide(\'' + r.id + '\',\'Approved\')">✓ Approve</button>' +
+        '<button class="btn-sm btn-deny" onclick="decide(\'' + r.id + '\',\'Denied\')">✕ Deny</button>' +
+        '</div>';
+    }
+    if (r.status === 'Approved') {
+      h += '<div class="cover-row"><label>Who covers ' + (sh ? sh.label + ' (' + sh.time + ')' : 'this shift') + '?</label>' +
+        '<select onchange="setCover(\'' + r.id + '\', this.value)">' +
+        '<option value="">— No coverage assigned —</option>' +
+        allUsers.filter(u => u.displayName !== r.employee).map(u =>
+          '<option value="' + esc(u.displayName) + '"' + (r.coveringTech === u.displayName ? ' selected' : '') + '>' + esc(u.displayName) + '</option>'
+        ).join('') +
+        '</select></div>';
+      h += '<div class="req-actions"><button class="btn-sm btn-ghost" onclick="decide(\'' + r.id + '\',\'Denied\')">Revoke</button></div>';
+    }
+  }
+  h += '</div>';
+  return h;
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function renderMyRequests() {
+  const mine = DATA.requests.filter(r => r.employee === myName);
+  const box = document.getElementById('myRequests');
+  if (!mine.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">📭</span>No requests yet</div>';
+    return;
+  }
+  box.innerHTML = mine.map(r => reqCard(r, false)).join('');
+}
+
+function renderAllRequests() {
+  const list = curFilter === 'all' ? DATA.requests : DATA.requests.filter(r => r.status === curFilter);
+  const box = document.getElementById('allRequests');
+  if (!list.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">📭</span>No ' + (curFilter === 'all' ? '' : curFilter.toLowerCase() + ' ') + 'requests</div>';
+    return;
+  }
+  box.innerHTML = list.map(r => reqCard(r, true)).join('');
+}
+
+// ═══ MONTH VIEW ═══
+let calMonth = new Date().getMonth();
+let calYear = new Date().getFullYear();
+let selectedDay = null;
+const WD_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function shiftMonth(delta) {
+  calMonth += delta;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  selectedDay = null;
+  renderMonth();
+}
+
+// Everything happening on one date: approved absences + standing gaps
+function dayActivity(dateStr) {
+  const absences = DATA.requests.filter(r =>
+    r.status === 'Approved' && dateStr >= r.startDate && dateStr <= r.endDate
+  );
+  const wd = new Date(dateStr + 'T00:00:00').getDay();
+  const gaps = (DATA.gaps || []).filter(g => g.weekday === wd);
+  return { absences, gaps };
+}
+
+function gapCovered(gapId, dateStr) {
+  return (DATA.gapAssignments || {})[gapId + '|' + dateStr] || '';
+}
+
+function renderMonth() {
+  const first = new Date(calYear, calMonth, 1);
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const startWd = first.getDay();
+  document.getElementById('monthTitle').textContent =
+    first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let html = ['S','M','T','W','T','F','S'].map(d => '<div class="cal-hd">' + d + '</div>').join('');
+  for (let i = 0; i < startWd; i++) html += '<div class="cal-cell pad"></div>';
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const ds = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    const act = dayActivity(ds);
+    const dots = [];
+    act.absences.forEach(a => dots.push('<span class="dot d-' + (a.shift || '1st') + '"></span>'));
+    act.gaps.forEach(g => { if (!gapCovered(g.id, ds)) dots.push('<span class="dot d-gap"></span>'); });
+    const cls = 'cal-cell' + (ds === todayStr ? ' today' : '') + (ds === selectedDay ? ' sel' : '');
+    html += '<div class="' + cls + '" onclick="selectDay(\'' + ds + '\')">' +
+      '<span class="dn">' + day + '</span>' +
+      '<div class="cal-dots">' + dots.slice(0, 6).join('') + '</div>' +
+      '</div>';
+  }
+  document.getElementById('calGrid').innerHTML = html;
+  renderDayDetail();
+}
+
+function selectDay(ds) {
+  selectedDay = (selectedDay === ds) ? null : ds;
+  renderMonth();
+}
+
+function renderDayDetail() {
+  const box = document.getElementById('dayDetail');
+  if (!selectedDay) { box.innerHTML = ''; return; }
+  const act = dayActivity(selectedDay);
+  const dt = new Date(selectedDay + 'T00:00:00');
+  const label = dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  let body = '';
+
+  // Standing gaps first — each needs a tech picked for this specific date
+  act.gaps.forEach(g => {
+    const info = SHIFT_INFO[g.shift];
+    const cov = gapCovered(g.id, selectedDay);
+    body += '<div class="gap-occ' + (cov ? ' covered' : '') + '">' +
+      '<div class="gap-occ-hd">' +
+        '<span class="badge ' + info.cls + '">' + info.label + ' · ' + info.time + '</span>' +
+        '<span style="font-size:10px;font-weight:700;color:' + (cov ? '#065F46' : '#991B1B') + ';">' +
+          (cov ? '✓ COVERED' : '⚠ SHORT-STAFFED') + '</span>' +
+      '</div>' +
+      (g.note ? '<div style="font-size:11px;color:var(--text-mid);margin-bottom:7px;">' + esc(g.note) + '</div>' : '') +
+      (isAdmin
+        ? '<select onchange="assignGap(\'' + g.id + '\',\'' + selectedDay + '\',this.value)">' +
+            '<option value="">— Nobody assigned —</option>' +
+            allUsers.map(u => '<option value="' + esc(u.displayName) + '"' + (cov === u.displayName ? ' selected' : '') + '>' + esc(u.displayName) + '</option>').join('') +
+          '</select>'
+        : '<div style="font-size:13px;font-weight:700;color:' + (cov ? 'var(--teal)' : 'var(--warn)') + ';">' +
+            (cov ? '🛡 ' + esc(cov) : 'Nobody assigned yet') + '</div>') +
+      '</div>';
+  });
+
+  // Then who's off
+  act.absences.forEach(a => {
+    const info = SHIFT_INFO[a.shift] || SHIFT_INFO['1st'];
+    const dayType = (a.dayTypes && a.dayTypes[selectedDay]) || a.type;
+    body += '<div class="shift-grp' + (a.coveringTech ? '' : ' uncovered') + '">' +
+      '<div class="shift-grp-hd">' +
+        '<span class="badge ' + info.cls + ' st">' + info.label + '</span>' +
+        '<span class="sh">' + info.time + '</span>' +
+      '</div>' +
+      '<div class="cal-out"><span class="who">' + esc(a.employee) +
+        ' <span class="badge ' + (TYPE_CLASS[dayType] || '') + '">' + esc(dayType) + '</span></span>' +
+        (a.coveringTech
+          ? '<span class="cal-cover">🛡 ' + esc(a.coveringTech) + '</span>'
+          : '<span class="cal-nocover">⚠ Needs coverage</span>') +
+      '</div></div>';
+  });
+
+  if (!body) body = '<div class="empty" style="padding:26px;"><span class="ic">✅</span>Fully staffed — nobody off</div>';
+  box.innerHTML = '<div class="card"><div class="card-head">' + label + '</div><div class="card-body">' + body + '</div></div>';
+}
+
+async function assignGap(gapId, date, tech) {
+  if (!isAdmin) return;
+  try {
+    const r = await fetch('/api/coverage-assign', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gapId, date, tech })
+    });
+    if (!r.ok) throw new Error('Assign failed');
+    toast(tech ? tech + ' assigned' : 'Coverage cleared');
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+// ═══ STANDING WEEKLY GAPS (admin) ═══
+function renderGaps() {
+  const box = document.getElementById('gapList');
+  if (!box) return;
+  const gaps = DATA.gaps || [];
+  if (!gaps.length) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--text-light);text-align:center;padding:14px;">No standing gaps — every shift is staffed</div>';
+    return;
+  }
+  box.innerHTML = gaps.slice()
+    .sort((a, b) => a.weekday - b.weekday || a.shift.localeCompare(b.shift))
+    .map(g => {
+      const info = SHIFT_INFO[g.shift];
+      return '<div class="gap-row"><div>' +
+        '<div class="gtxt">Every ' + WD_NAMES[g.weekday] + ' — ' + info.label + ' (' + info.time + ')</div>' +
+        (g.note ? '<div class="gnote">' + esc(g.note) + '</div>' : '') +
+        '</div><button class="rm" onclick="removeGap(\'' + g.id + '\')">✕</button></div>';
+    }).join('');
+}
+
+async function addGap() {
+  const weekday = document.getElementById('g_weekday').value;
+  const shift = document.getElementById('g_shift').value;
+  const note = document.getElementById('g_note').value.trim();
+  try {
+    const r = await fetch('/api/coverage-gaps', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weekday, shift, note })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Add failed');
+    document.getElementById('g_note').value = '';
+    toast('Standing gap added');
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function removeGap(id) {
+  if (!confirm('Remove this standing coverage gap? Any techs assigned to it will be cleared.')) return;
+  try {
+    const r = await fetch('/api/coverage-gaps/' + id, { method: 'DELETE' });
+    if (!r.ok) throw new Error('Remove failed');
+    toast('Standing gap removed');
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+function renderCoverage() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const horizon = new Date(today); horizon.setDate(horizon.getDate() + 60);
+  // date → shift → [requests]
+  const byDay = {};
+  DATA.requests.filter(r => r.status === 'Approved').forEach(r => {
+    let d = new Date(r.startDate + 'T00:00:00');
+    const end = new Date(r.endDate + 'T00:00:00');
+    while (d <= end) {
+      if (d >= today && d <= horizon) {
+        const key = d.toISOString().slice(0, 10);
+        const sh = r.shift || '1st';
+        if (!byDay[key]) byDay[key] = {};
+        if (!byDay[key][sh]) byDay[key][sh] = [];
+        byDay[key][sh].push(r);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  });
+  const keys = Object.keys(byDay).sort();
+  const box = document.getElementById('coverageList');
+  const sumBox = document.getElementById('coverageSummary');
+
+  // Summary banner — uncovered time-off shifts + uncovered standing gaps (next 60d)
+  const openTimeOff = DATA.requests.filter(r => r.status === 'Approved' && !r.coveringTech).length;
+  let openStanding = 0;
+  (DATA.gaps || []).forEach(g => {
+    let d = new Date(today);
+    while (d <= horizon) {
+      if (d.getDay() === g.weekday) {
+        const ds = d.toISOString().slice(0, 10);
+        if (!gapCovered(g.id, ds)) openStanding++;
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  });
+  const totalGaps = openTimeOff + openStanding;
+  if (totalGaps) {
+    sumBox.innerHTML = '<div class="card" style="border-color:#FCA5A5;"><div class="card-body" style="background:#FEF2F2;text-align:center;">' +
+      '<div style="font-size:26px;font-weight:800;color:#991B1B;">' + totalGaps + '</div>' +
+      '<div style="font-size:12px;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;">' +
+      (totalGaps === 1 ? 'Shift needs' : 'Shifts need') + ' coverage</div>' +
+      '<div style="font-size:11px;color:var(--text-mid);margin-top:5px;">' +
+        openTimeOff + ' from time off · ' + openStanding + ' standing (next 60d)' +
+      '</div></div></div>';
+  } else {
+    sumBox.innerHTML = '<div class="card" style="border-color:#86EFAC;"><div class="card-body" style="background:#F0FDF4;text-align:center;">' +
+      '<div style="font-size:13px;font-weight:700;color:#065F46;">✅ Every shift is covered</div>' +
+      '</div></div>';
+  }
+
+  if (!keys.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">✅</span>Nobody scheduled off in the next 60 days</div>';
+    return;
+  }
+  box.innerHTML = keys.map(k => {
+    const dt = new Date(k + 'T00:00:00');
+    const label = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const shiftBlocks = SHIFT_ORDER.filter(s => byDay[k][s]).map(s => {
+      const info = SHIFT_INFO[s];
+      const reqs = byDay[k][s];
+      const uncovered = reqs.filter(r => !r.coveringTech).length;
+      const rows = reqs.map(r =>
+        '<div class="cal-out"><span class="who">' + esc(r.employee) +
+        ' <span class="badge ' + (TYPE_CLASS[r.type]||'') + '">' + esc(r.type) + '</span></span>' +
+        (r.coveringTech
+          ? '<span class="cal-cover">🛡 ' + esc(r.coveringTech) + '</span>'
+          : '<span class="cal-nocover">⚠ Needs coverage</span>') +
+        '</div>'
+      ).join('');
+      return '<div class="shift-grp' + (uncovered ? ' uncovered' : '') + '">' +
+        '<div class="shift-grp-hd">' +
+          '<span class="badge ' + info.cls + ' st">' + info.label + '</span>' +
+          '<span class="sh">' + info.time + '</span>' +
+        '</div>' + rows +
+        (uncovered ? '<div class="gap-warn">⚠ ' + uncovered + ' shift' + (uncovered > 1 ? 's' : '') + ' still need coverage</div>' : '') +
+        '</div>';
+    }).join('');
+    return '<div class="cal-day"><div class="cal-date">' + label + '</div>' + shiftBlocks + '</div>';
+  }).join('');
+}
+
+function renderAllBalances() {
+  const names = Object.keys(DATA.balances).sort();
+  const box = document.getElementById('allBalances');
+  if (!names.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">👥</span>No allotments set yet</div>';
+    return;
+  }
+  box.innerHTML = names.map(n => {
+    const b = DATA.balances[n];
+    return '<div class="person-bal"><div class="pname">' + esc(n) + '</div><div class="bal-grid">' +
+      ['sickPersonal','vacation','floating'].map(p => {
+        const rem = b.remaining[p];
+        return '<div class="bal-box' + (rem <= 1 ? ' low' : '') + '">' +
+          '<div class="bal-num">' + rem + '</div>' +
+          '<div class="bal-lbl">' + POOL_NAME[p] + '</div>' +
+          '<div class="bal-sub">of ' + b.allotment[p] + '</div></div>';
+      }).join('') + '</div></div>';
+  }).join('');
+}
+
+function renderAllotEditor() {
+  const box = document.getElementById('allotEditor');
+  if (!allUsers.length) {
+    box.innerHTML = '<div class="empty" style="padding:20px;">No users found</div>';
+    return;
+  }
+  box.innerHTML = allUsers.map((u, i) => {
+    const n = u.displayName;
+    const a = (DATA.allotments && DATA.allotments[n]) || (DATA.balances[n] && DATA.balances[n].allotment) || DATA.defaults || { sickPersonal:12, vacation:10, floating:3 };
+    return '<div class="allot-row">' +
+      '<div class="nm">' + esc(n) + '</div>' +
+      '<input type="number" min="0" id="a_sp_' + i + '" value="' + a.sickPersonal + '">' +
+      '<input type="number" min="0" id="a_va_' + i + '" value="' + a.vacation + '">' +
+      '<input type="number" min="0" id="a_fl_' + i + '" value="' + a.floating + '">' +
+      '<button class="btn-sm btn-approve" onclick="saveAllot(' + i + ')">Save</button>' +
+      '</div>';
+  }).join('');
+}
+
+async function saveAllot(i) {
+  const name = allUsers[i] && allUsers[i].displayName;
+  if (!name) return;
+  try {
+    const body = {
+      employee: name,
+      sickPersonal: document.getElementById('a_sp_' + i).value,
+      vacation: document.getElementById('a_va_' + i).value,
+      floating: document.getElementById('a_fl_' + i).value
+    };
+    const r = await fetch('/api/time-off-allotments', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error('Save failed');
+    toast('Saved ' + name + "'s allotment");
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function submitRequest() {
+  const shift = document.getElementById('f_shift').value;
+  const startDate = document.getElementById('f_start').value;
+  const endDate = document.getElementById('f_end').value;
+  const notes = document.getElementById('f_notes').value.trim();
+  if (!startDate || !endDate) return toast('Pick your dates', true);
+  if (!Object.keys(dayTypes).length) return toast('Pick your dates', true);
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    const r = await fetch('/api/time-off', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee: myName, shift, startDate, endDate, notes, dayTypes })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Submit failed');
+    document.getElementById('f_start').value = '';
+    document.getElementById('f_end').value = '';
+    document.getElementById('f_notes').value = '';
+    dayTypes = {};
+    document.getElementById('dayEditor').innerHTML = '';
+    toast('Request submitted — pending approval');
+    await load();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Submit Request';
+  }
+}
+
+async function decide(id, status) {
+  if (!isAdmin) return;
+  try {
+    const r = await fetch('/api/time-off/' + id, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, decidedBy: myName })
+    });
+    if (!r.ok) throw new Error('Update failed');
+    toast('Request ' + status.toLowerCase());
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function setCover(id, tech) {
+  if (!isAdmin) return;
+  try {
+    const r = await fetch('/api/time-off/' + id, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coveringTech: tech })
+    });
+    if (!r.ok) throw new Error('Update failed');
+    toast(tech ? 'Coverage assigned to ' + tech : 'Coverage cleared');
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+// Default date range = today
+const _t = new Date().toISOString().slice(0, 10);
+document.getElementById('f_start').value = _t;
+document.getElementById('f_end').value = _t;
+renderDayEditor();
+
+load();
+</script>
+</body>
+</html>
