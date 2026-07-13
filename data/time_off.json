@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "employee": "Ray Sinnott",
+    "type": "Sick",
+    "startDate": "2026-09-01",
+    "endDate": "2026-09-02",
+    "id": "TO-2026-0001",
+    "days": 2,
+    "status": "Pending",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T11:14:35.435Z"
+  }
+]
