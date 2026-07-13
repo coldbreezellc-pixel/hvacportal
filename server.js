@@ -531,15 +531,21 @@ app.delete('/api/work-orders/:id', async (req, res) => {
 // ── TIME OFF & COVERAGE TRACKING ──
 // ═══════════════════════════════════════════
 // Pools: 'sickPersonal' (Sick + Personal share one balance), 'vacation', 'floating'
+// Types that draw down an annual bank of days
 const TIMEOFF_POOLS = {
   'Sick': 'sickPersonal',
   'Personal': 'sickPersonal',
   'Vacation': 'vacation',
-  'Floating Holiday': 'floating',
-  'Bereavement': 'bereavement'
+  'Floating Holiday': 'floating'
 };
-const POOL_KEYS = ['sickPersonal', 'vacation', 'floating', 'bereavement'];
-const DEFAULT_ALLOTMENT = { sickPersonal: 12, vacation: 10, floating: 3, bereavement: 5 };
+// Bereavement is NOT a pool — there's no annual entitlement. It's taken as it
+// happens (a death in the family) and simply recorded. It draws no balance.
+const NO_POOL_TYPES = ['Bereavement'];
+const TIMEOFF_TYPES = [...Object.keys(TIMEOFF_POOLS), ...NO_POOL_TYPES];
+const isValidType = (t) => TIMEOFF_TYPES.includes(t);
+
+const POOL_KEYS = ['sickPersonal', 'vacation', 'floating'];
+const DEFAULT_ALLOTMENT = { sickPersonal: 12, vacation: 10, floating: 3 };
 
 // Shifts — a day off is always tied to one shift, and that shift needs covering
 const SHIFTS = {
@@ -664,18 +670,29 @@ function computeBalances(requests, allotments, refDateStr) {
 
     const used = {}, pending = {};
     POOL_KEYS.forEach(k => { used[k] = 0; pending[k] = 0; });
+    // Bereavement has no bank — we just report how many days were taken
+    let bereavementDays = 0;
+    const bereavementDates = [];
 
     requests.filter(r => r.employee === name).forEach(r => {
       const bucket = r.status === 'Approved' ? used : (r.status === 'Pending' ? pending : null);
       if (!bucket) return;
-      // Count each DAY against the window that governs its pool
       Object.entries(requestDayTypes(r)).forEach(([date, type]) => {
+        if (type === 'Bereavement') {
+          // Reported on the calendar year, and only once approved
+          if (r.status === 'Approved' && date >= calWin.start && date <= calWin.end) {
+            bereavementDays += 1;
+            bereavementDates.push(date);
+          }
+          return;
+        }
         const pool = TIMEOFF_POOLS[type];
         if (!pool) return;
         const win = pool === 'vacation' ? vacWin : calWin;
         if (date >= win.start && date <= win.end) bucket[pool] += 1;
       });
     });
+    bereavementDates.sort();
 
     const remaining = {}, windows = {};
     POOL_KEYS.forEach(k => {
@@ -689,7 +706,9 @@ function computeBalances(requests, allotments, refDateStr) {
       used, pending, remaining,
       hireDate,
       windows,
-      vacationOnAnniversary: !!hireDate
+      vacationOnAnniversary: !!hireDate,
+      bereavementDays,
+      bereavementDates
     };
   });
   return out;
@@ -725,8 +744,7 @@ function timeOffEmailHtml(r, balances) {
     const rows = [
       ['Sick / Personal', bal.remaining.sickPersonal, bal.allotment.sickPersonal],
       ['Vacation', bal.remaining.vacation, bal.allotment.vacation],
-      ['Floating Holidays', bal.remaining.floating, bal.allotment.floating],
-      ['Bereavement', bal.remaining.bereavement, bal.allotment.bereavement]
+      ['Floating Holidays', bal.remaining.floating, bal.allotment.floating]
     ].map(([label, rem, tot]) =>
       `<tr><td style="padding:5px 10px;font-size:13px;color:#5A6A7E;">${label}</td>
        <td style="padding:5px 10px;font-size:13px;font-weight:700;color:${rem <= 1 ? '#C62828' : '#1B3A5C'};text-align:right;">${rem} of ${tot} left</td></tr>`
@@ -941,7 +959,8 @@ app.get('/api/time-off', async (req, res) => {
     res.json({
       requests, allotments, gaps, gapAssignments,
       balances: computeBalances(requests, allotments, asOf),
-      pools: TIMEOFF_POOLS, defaults: DEFAULT_ALLOTMENT, shifts: SHIFTS
+      pools: TIMEOFF_POOLS, defaults: DEFAULT_ALLOTMENT, shifts: SHIFTS,
+      types: TIMEOFF_TYPES, noPoolTypes: NO_POOL_TYPES
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -964,11 +983,11 @@ app.post('/api/time-off', async (req, res) => {
     if (r.dayTypes && Object.keys(r.dayTypes).length) {
       for (const d of range) {
         const t = r.dayTypes[d];
-        if (!t || !TIMEOFF_POOLS[t]) return res.status(400).json({ error: `Missing or invalid type for ${d}` });
+        if (!t || !isValidType(t)) return res.status(400).json({ error: `Missing or invalid type for ${d}` });
         dayTypes[d] = t;
       }
     } else {
-      if (!r.type || !TIMEOFF_POOLS[r.type]) return res.status(400).json({ error: 'Invalid type' });
+      if (!r.type || !isValidType(r.type)) return res.status(400).json({ error: 'Invalid type' });
       range.forEach(d => { dayTypes[d] = r.type; });
     }
     // Summary type label: single type, or "Mixed"
