@@ -656,6 +656,15 @@ function anniversaryWindow(hireDate, ref) {
   return { start: ymd(start), end: ymd(end) };
 }
 
+// New hires earn no vacation until their 1-year anniversary.
+function firstAnniversary(hireDate) {
+  const h = new Date(hireDate + 'T00:00:00');
+  if (isNaN(h)) return null;
+  const a = new Date(h.getFullYear() + 1, h.getMonth(), h.getDate());
+  if (a.getMonth() !== h.getMonth()) a.setDate(0); // Feb 29 hire in a non-leap year
+  return ymd(a);
+}
+
 function calendarWindow(ref) {
   const y = ref.getFullYear();
   return { start: `${y}-01-01`, end: `${y}-12-31` };
@@ -680,6 +689,10 @@ function computeBalances(requests, allotments, refDateStr) {
     const hireDate = cfg.hireDate || null;
     // No hire date on file → fall back to calendar year for vacation too
     const vacWin = hireDate ? (anniversaryWindow(hireDate, ref) || calWin) : calWin;
+
+    // Vacation doesn't start until the 1-year mark
+    const vacEligibleFrom = hireDate ? firstAnniversary(hireDate) : null;
+    const vacEligible = !vacEligibleFrom || ymd(ref) >= vacEligibleFrom;
 
     const used = {}, pending = {};
     POOL_KEYS.forEach(k => { used[k] = 0; pending[k] = 0; });
@@ -720,6 +733,8 @@ function computeBalances(requests, allotments, refDateStr) {
       hireDate,
       windows,
       vacationOnAnniversary: !!hireDate,
+      vacationEligible: vacEligible,
+      vacationEligibleFrom: vacEligibleFrom,
       bereavementDays,
       bereavementDates
     };
@@ -1004,6 +1019,21 @@ app.post('/api/time-off', async (req, res) => {
       if (!r.type || !isValidType(r.type)) return res.status(400).json({ error: 'Invalid type' });
       range.forEach(d => { dayTypes[d] = r.type; });
     }
+    // Nobody can take vacation before their 1-year anniversary
+    if (Object.values(dayTypes).includes('Vacation')) {
+      const allots = await getAllotments();
+      const cfg = allots[r.employee];
+      if (cfg && cfg.hireDate) {
+        const eligible = firstAnniversary(cfg.hireDate);
+        const firstVacDay = Object.keys(dayTypes).filter(d => dayTypes[d] === 'Vacation').sort()[0];
+        if (eligible && firstVacDay < eligible) {
+          return res.status(400).json({
+            error: `${r.employee} isn't eligible for vacation until ${fmtDateLong(eligible)} (1-year anniversary)`
+          });
+        }
+      }
+    }
+
     // Summary type label: single type, or "Mixed"
     const distinct = [...new Set(Object.values(dayTypes))];
     const summaryType = distinct.length === 1 ? distinct[0] : 'Mixed';
