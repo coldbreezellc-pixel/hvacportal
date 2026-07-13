@@ -1,17 +1,5 @@
 [
   {
-    "id": "OT-4",
-    "employee": "Sean Fanning",
-    "date": "2026-08-03",
-    "hours": 8,
-    "status": "declined",
-    "note": "Offered 1st shift — said no",
-    "shift": "1st",
-    "coverageKey": null,
-    "enteredBy": "Mateusz Targosz",
-    "createdAt": "2026-07-13T17:41:03.394Z"
-  },
-  {
     "id": "OT-2",
     "employee": "Ray Sinnott",
     "date": "2026-07-14",
