@@ -547,6 +547,10 @@ const isValidType = (t) => TIMEOFF_TYPES.includes(t);
 const POOL_KEYS = ['sickPersonal', 'vacation', 'floating'];
 const DEFAULT_ALLOTMENT = { sickPersonal: 12, vacation: 10, floating: 3 };
 
+// Every shift must have at least this many engineers on duty. If time off (or
+// the schedule itself) drops a shift below this, it's flagged as needing coverage.
+const MIN_STAFF = 2;
+
 // Shifts — a day off is always tied to one shift, and that shift needs covering
 const SHIFTS = {
   '1st': { label: '1st Shift', time: '6:00 AM – 2:00 PM' },
@@ -564,6 +568,15 @@ async function getAllotments() {
   if (d && d.content) { try { return JSON.parse(d.content); } catch (e) { return {}; } }
   return {};
 }
+// Each engineer's regular week: weekday (0=Sun..6=Sat) → shift, or absent if off.
+//   coverageExempt: their absence doesn't create a gap and they don't count toward MIN_STAFF
+//   private:        their time off is only visible to admins
+async function getSchedules() {
+  const d = await ghGet('data/schedules.json');
+  if (d && d.content) { try { return JSON.parse(d.content); } catch (e) { return {}; } }
+  return {};
+}
+
 // Recurring weekly coverage gaps — shifts with nobody on them, week after week
 async function getCoverageGaps() {
   const d = await ghGet('data/coverage_gaps.json');
@@ -951,16 +964,17 @@ app.delete('/api/engineers/:username', async (req, res) => {
 // List all requests + balances + recurring gaps + gap coverage assignments
 app.get('/api/time-off', async (req, res) => {
   try {
-    const [requests, allotments, gaps, gapAssignments] = await Promise.all([
-      getTimeOff(), getAllotments(), getCoverageGaps(), getGapAssignments()
+    const [requests, allotments, gaps, gapAssignments, schedules] = await Promise.all([
+      getTimeOff(), getAllotments(), getCoverageGaps(), getGapAssignments(), getSchedules()
     ]);
     // asOf lets you check balances at a given date; defaults to today
     const asOf = req.query.asOf || null;
     res.json({
-      requests, allotments, gaps, gapAssignments,
+      requests, allotments, gaps, gapAssignments, schedules,
       balances: computeBalances(requests, allotments, asOf),
       pools: TIMEOFF_POOLS, defaults: DEFAULT_ALLOTMENT, shifts: SHIFTS,
-      types: TIMEOFF_TYPES, noPoolTypes: NO_POOL_TYPES
+      types: TIMEOFF_TYPES, noPoolTypes: NO_POOL_TYPES,
+      minStaff: MIN_STAFF
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1172,16 +1186,44 @@ app.delete('/api/coverage-gaps/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Assign (or clear) who covers a recurring gap on a specific date
+// Set an engineer's regular weekly schedule
+// body: { employee, shifts: {"1":"1st","2":"1st",...}, coverageExempt, private }
+app.post('/api/schedules', async (req, res) => {
+  try {
+    const { employee, shifts, coverageExempt, isPrivate } = req.body;
+    if (!employee) return res.status(400).json({ error: 'Missing employee' });
+    const clean = {};
+    Object.entries(shifts || {}).forEach(([wd, sh]) => {
+      const w = Number(wd);
+      if (w >= 0 && w <= 6 && SHIFTS[sh]) clean[w] = sh;
+    });
+    let result = null;
+    await ghUpdateJson('data/schedules.json', (all) => {
+      all[employee] = {
+        shifts: clean,
+        coverageExempt: !!coverageExempt,
+        private: !!isPrivate
+      };
+      result = all[employee];
+      return all;
+    }, `Set work schedule for ${employee}`, {});
+    res.json({ success: true, schedule: result });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Assign who covers a short shift on a given date.
+// Key is "<YYYY-MM-DD>|<shift>", value is a list of covering techs.
 app.post('/api/coverage-assign', async (req, res) => {
   try {
-    const { gapId, date, tech } = req.body;
-    if (!gapId || !date) return res.status(400).json({ error: 'Missing gapId or date' });
-    const key = `${gapId}|${date}`;
+    const { date, shift, techs } = req.body;
+    if (!date || !shift) return res.status(400).json({ error: 'Missing date or shift' });
+    if (!SHIFTS[shift]) return res.status(400).json({ error: 'Invalid shift' });
+    const key = `${date}|${shift}`;
+    const list = (Array.isArray(techs) ? techs : [techs]).filter(Boolean);
     await ghUpdateJson('data/coverage_assignments.json', (assigns) => {
-      if (tech) assigns[key] = tech; else delete assigns[key];
+      if (list.length) assigns[key] = list; else delete assigns[key];
       return assigns;
-    }, tech ? `Assign ${tech} to ${key}` : `Clear coverage for ${key}`, {});
+    }, list.length ? `Coverage for ${key}: ${list.join(', ')}` : `Clear coverage for ${key}`, {});
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
