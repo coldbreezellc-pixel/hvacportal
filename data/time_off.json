@@ -44,7 +44,7 @@
       "2026-09-05": "Floating Holiday",
       "2026-09-06": "Floating Holiday"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-09-05",
     "endDate": "2026-09-06",
     "notes": "",
@@ -101,7 +101,7 @@
     "dayTypes": {
       "2026-08-28": "Vacation"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-08-28",
     "endDate": "2026-08-28",
     "notes": "",
@@ -144,7 +144,7 @@
       "2026-08-15": "Vacation",
       "2026-08-16": "Vacation"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-08-12",
     "endDate": "2026-08-16",
     "notes": "",
@@ -164,7 +164,7 @@
       "2026-08-08": "Personal",
       "2026-08-09": "Personal"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-08-08",
     "endDate": "2026-08-09",
     "notes": "",
@@ -247,7 +247,7 @@
     "dayTypes": {
       "2026-07-27": "Floating Holiday"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-07-27",
     "endDate": "2026-07-27",
     "notes": "",
@@ -293,7 +293,7 @@
       "2026-07-16": "Vacation",
       "2026-07-17": "Vacation"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-07-13",
     "endDate": "2026-07-17",
     "notes": "",
@@ -307,12 +307,35 @@
     "backfill": true
   },
   {
+    "employee": "Sean Fanning",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-07-13": "Vacation",
+      "2026-07-14": "Vacation",
+      "2026-07-15": "Vacation",
+      "2026-07-16": "Vacation",
+      "2026-07-17": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-07-13",
+    "endDate": "2026-07-17",
+    "notes": "",
+    "id": "TO-2026-0099",
+    "days": 5,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:40:18.635992",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
     "employee": "Robert Roszkowski",
     "type": "Sick",
     "dayTypes": {
       "2026-07-11": "Sick"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-07-11",
     "endDate": "2026-07-11",
     "notes": "",
@@ -331,7 +354,7 @@
     "dayTypes": {
       "2026-07-11": "Sick"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-07-11",
     "endDate": "2026-07-11",
     "notes": "",
@@ -350,7 +373,7 @@
     "dayTypes": {
       "2026-07-08": "Personal"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-07-08",
     "endDate": "2026-07-08",
     "notes": "",
@@ -430,7 +453,7 @@
     "dayTypes": {
       "2026-06-27": "Personal"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-06-27",
     "endDate": "2026-06-27",
     "notes": "",
@@ -450,7 +473,7 @@
       "2026-06-25": "Vacation",
       "2026-06-26": "Vacation"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-06-25",
     "endDate": "2026-06-26",
     "notes": "",
@@ -490,7 +513,7 @@
       "2026-06-16": "Floating Holiday",
       "2026-06-17": "Floating Holiday"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-06-16",
     "endDate": "2026-06-17",
     "notes": "",
@@ -512,7 +535,7 @@
       "2026-06-17": "Bereavement",
       "2026-06-18": "Bereavement"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-06-15",
     "endDate": "2026-06-18",
     "notes": "",
@@ -532,7 +555,7 @@
       "2026-06-11": "Sick",
       "2026-06-12": "Vacation"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-06-11",
     "endDate": "2026-06-12",
     "notes": "",
@@ -590,7 +613,7 @@
     "dayTypes": {
       "2026-06-06": "Floating Holiday"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-06-06",
     "endDate": "2026-06-06",
     "notes": "",
@@ -725,7 +748,7 @@
     "dayTypes": {
       "2026-05-15": "Floating Holiday"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-05-15",
     "endDate": "2026-05-15",
     "notes": "",
@@ -783,7 +806,7 @@
     "dayTypes": {
       "2026-05-12": "Sick"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-05-12",
     "endDate": "2026-05-12",
     "notes": "",
@@ -802,7 +825,7 @@
     "dayTypes": {
       "2026-05-11": "Vacation"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-05-11",
     "endDate": "2026-05-11",
     "notes": "",
@@ -862,7 +885,7 @@
     "dayTypes": {
       "2026-05-03": "Sick"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-05-03",
     "endDate": "2026-05-03",
     "notes": "",
@@ -881,7 +904,7 @@
     "dayTypes": {
       "2026-05-02": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-05-02",
     "endDate": "2026-05-02",
     "notes": "",
@@ -938,7 +961,7 @@
     "dayTypes": {
       "2026-04-19": "Sick"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-04-19",
     "endDate": "2026-04-19",
     "notes": "",
@@ -995,7 +1018,7 @@
     "dayTypes": {
       "2026-04-11": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-04-11",
     "endDate": "2026-04-11",
     "notes": "",
@@ -1075,7 +1098,7 @@
     "dayTypes": {
       "2026-04-01": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-04-01",
     "endDate": "2026-04-01",
     "notes": "",
@@ -1153,7 +1176,7 @@
     "dayTypes": {
       "2026-03-28": "Floating Holiday"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-03-28",
     "endDate": "2026-03-28",
     "notes": "",
@@ -1214,7 +1237,7 @@
     "dayTypes": {
       "2026-03-19": "Floating Holiday"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-03-19",
     "endDate": "2026-03-19",
     "notes": "",
@@ -1233,7 +1256,7 @@
     "dayTypes": {
       "2026-03-18": "Sick"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-03-18",
     "endDate": "2026-03-18",
     "notes": "",
@@ -1290,7 +1313,7 @@
     "dayTypes": {
       "2026-03-10": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-03-10",
     "endDate": "2026-03-10",
     "notes": "",
@@ -1310,7 +1333,7 @@
       "2026-03-08": "Sick",
       "2026-03-09": "Sick"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-03-08",
     "endDate": "2026-03-09",
     "notes": "",
@@ -1329,7 +1352,7 @@
     "dayTypes": {
       "2026-03-07": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-03-07",
     "endDate": "2026-03-07",
     "notes": "",
@@ -1348,7 +1371,7 @@
     "dayTypes": {
       "2026-02-25": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-02-25",
     "endDate": "2026-02-25",
     "notes": "",
@@ -1445,7 +1468,7 @@
     "dayTypes": {
       "2026-02-23": "Sick"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-02-23",
     "endDate": "2026-02-23",
     "notes": "",
@@ -1464,7 +1487,7 @@
     "dayTypes": {
       "2026-02-21": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-02-21",
     "endDate": "2026-02-21",
     "notes": "",
@@ -1540,7 +1563,7 @@
     "dayTypes": {
       "2026-02-09": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-02-09",
     "endDate": "2026-02-09",
     "notes": "",
@@ -1676,7 +1699,7 @@
     "dayTypes": {
       "2026-01-25": "Sick"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-01-25",
     "endDate": "2026-01-25",
     "notes": "",
@@ -1714,7 +1737,7 @@
     "dayTypes": {
       "2026-01-24": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-01-24",
     "endDate": "2026-01-24",
     "notes": "",
@@ -1733,7 +1756,7 @@
     "dayTypes": {
       "2026-01-22": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-01-22",
     "endDate": "2026-01-22",
     "notes": "",
@@ -1771,7 +1794,7 @@
     "dayTypes": {
       "2026-01-18": "Sick"
     },
-    "shift": "1st",
+    "shift": "3rd",
     "startDate": "2026-01-18",
     "endDate": "2026-01-18",
     "notes": "",
@@ -1810,7 +1833,7 @@
     "dayTypes": {
       "2026-01-08": "Sick"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2026-01-08",
     "endDate": "2026-01-08",
     "notes": "",
@@ -1848,7 +1871,7 @@
     "dayTypes": {
       "2025-10-31": "Vacation"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2025-10-31",
     "endDate": "2025-10-31",
     "notes": "",
@@ -1867,7 +1890,7 @@
     "dayTypes": {
       "2025-10-24": "Vacation"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2025-10-24",
     "endDate": "2025-10-24",
     "notes": "",
@@ -1886,7 +1909,7 @@
     "dayTypes": {
       "2025-10-15": "Vacation"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2025-10-15",
     "endDate": "2025-10-15",
     "notes": "",
@@ -1906,7 +1929,7 @@
       "2025-08-25": "Vacation",
       "2025-08-26": "Vacation"
     },
-    "shift": "1st",
+    "shift": "2nd",
     "startDate": "2025-08-25",
     "endDate": "2025-08-26",
     "notes": "",
