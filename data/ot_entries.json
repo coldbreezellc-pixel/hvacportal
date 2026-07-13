@@ -1,14 +1,1 @@
-[
-  {
-    "id": "OT-3",
-    "employee": "Ray Mursch",
-    "date": "2026-07-22",
-    "hours": 8,
-    "status": "noshow",
-    "note": "Accepted then never showed",
-    "shift": "",
-    "coverageKey": null,
-    "enteredBy": "Mateusz Targosz",
-    "createdAt": "2026-07-13T16:41:17.857Z"
-  }
-]
+[]
