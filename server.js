@@ -535,9 +535,11 @@ const TIMEOFF_POOLS = {
   'Sick': 'sickPersonal',
   'Personal': 'sickPersonal',
   'Vacation': 'vacation',
-  'Floating Holiday': 'floating'
+  'Floating Holiday': 'floating',
+  'Bereavement': 'bereavement'
 };
-const DEFAULT_ALLOTMENT = { sickPersonal: 12, vacation: 10, floating: 3 };
+const POOL_KEYS = ['sickPersonal', 'vacation', 'floating', 'bereavement'];
+const DEFAULT_ALLOTMENT = { sickPersonal: 12, vacation: 10, floating: 3, bereavement: 5 };
 
 // Shifts — a day off is always tied to one shift, and that shift needs covering
 const SHIFTS = {
@@ -598,7 +600,8 @@ function requestDayTypes(r) {
 
 // Days drawn per pool for one request
 function poolUsage(r) {
-  const use = { sickPersonal: 0, vacation: 0, floating: 0 };
+  const use = {};
+  POOL_KEYS.forEach(k => { use[k] = 0; });
   Object.values(requestDayTypes(r)).forEach(t => {
     const pool = TIMEOFF_POOLS[t];
     if (pool) use[pool] += 1;
@@ -651,17 +654,16 @@ function computeBalances(requests, allotments, refDateStr) {
   const out = {};
   names.forEach(name => {
     const cfg = allotments[name] || {};
-    const allot = {
-      sickPersonal: cfg.sickPersonal != null ? cfg.sickPersonal : DEFAULT_ALLOTMENT.sickPersonal,
-      vacation: cfg.vacation != null ? cfg.vacation : DEFAULT_ALLOTMENT.vacation,
-      floating: cfg.floating != null ? cfg.floating : DEFAULT_ALLOTMENT.floating
-    };
+    const allot = {};
+    POOL_KEYS.forEach(k => {
+      allot[k] = cfg[k] != null ? cfg[k] : DEFAULT_ALLOTMENT[k];
+    });
     const hireDate = cfg.hireDate || null;
     // No hire date on file → fall back to calendar year for vacation too
     const vacWin = hireDate ? (anniversaryWindow(hireDate, ref) || calWin) : calWin;
 
-    const used = { sickPersonal: 0, vacation: 0, floating: 0 };
-    const pending = { sickPersonal: 0, vacation: 0, floating: 0 };
+    const used = {}, pending = {};
+    POOL_KEYS.forEach(k => { used[k] = 0; pending[k] = 0; });
 
     requests.filter(r => r.employee === name).forEach(r => {
       const bucket = r.status === 'Approved' ? used : (r.status === 'Pending' ? pending : null);
@@ -675,20 +677,18 @@ function computeBalances(requests, allotments, refDateStr) {
       });
     });
 
+    const remaining = {}, windows = {};
+    POOL_KEYS.forEach(k => {
+      remaining[k] = allot[k] - used[k];
+      // Vacation runs on the anniversary year; everything else on the calendar year
+      windows[k] = (k === 'vacation') ? vacWin : calWin;
+    });
+
     out[name] = {
       allotment: allot,
-      used, pending,
-      remaining: {
-        sickPersonal: allot.sickPersonal - used.sickPersonal,
-        vacation: allot.vacation - used.vacation,
-        floating: allot.floating - used.floating
-      },
+      used, pending, remaining,
       hireDate,
-      windows: {
-        vacation: vacWin,
-        sickPersonal: calWin,
-        floating: calWin
-      },
+      windows,
       vacationOnAnniversary: !!hireDate
     };
   });
@@ -725,7 +725,8 @@ function timeOffEmailHtml(r, balances) {
     const rows = [
       ['Sick / Personal', bal.remaining.sickPersonal, bal.allotment.sickPersonal],
       ['Vacation', bal.remaining.vacation, bal.allotment.vacation],
-      ['Floating Holidays', bal.remaining.floating, bal.allotment.floating]
+      ['Floating Holidays', bal.remaining.floating, bal.allotment.floating],
+      ['Bereavement', bal.remaining.bereavement, bal.allotment.bereavement]
     ].map(([label, rem, tot]) =>
       `<tr><td style="padding:5px 10px;font-size:13px;color:#5A6A7E;">${label}</td>
        <td style="padding:5px 10px;font-size:13px;font-weight:700;color:${rem <= 1 ? '#C62828' : '#1B3A5C'};text-align:right;">${rem} of ${tot} left</td></tr>`
@@ -845,8 +846,7 @@ async function emailForEmployee(displayName) {
 app.post('/api/engineers', async (req, res) => {
   try {
     const {
-      displayName, email, username, passwordHash, role,
-      hireDate, sickPersonal, vacation, floating
+      displayName, email, username, passwordHash, role, hireDate
     } = req.body;
 
     if (!displayName || !displayName.trim()) return res.status(400).json({ error: 'Name is required' });
@@ -887,12 +887,9 @@ app.post('/api/engineers', async (req, res) => {
 
     // Their time-off allotment + hire date
     await ghUpdateJson('data/time_off_allotments.json', (allotments) => {
-      allotments[name] = {
-        sickPersonal: Number(sickPersonal) || 0,
-        vacation: Number(vacation) || 0,
-        floating: Number(floating) || 0,
-        hireDate: hireDate || null
-      };
+      const entry = { hireDate: hireDate || null };
+      POOL_KEYS.forEach(k => { entry[k] = Number(req.body[k]) || 0; });
+      allotments[name] = entry;
       return allotments;
     }, `Set allotment for new engineer ${name}`, {});
 
@@ -1092,19 +1089,16 @@ app.delete('/api/time-off/:id', async (req, res) => {
 // Set a person's annual allotment + hire date (admin)
 app.post('/api/time-off-allotments', async (req, res) => {
   try {
-    const { employee, sickPersonal, vacation, floating, hireDate } = req.body;
+    const { employee, hireDate } = req.body;
     if (!employee) return res.status(400).json({ error: 'Missing employee' });
     if (hireDate && isNaN(new Date(hireDate + 'T00:00:00'))) {
       return res.status(400).json({ error: 'Invalid hire date' });
     }
     let result = null;
     await ghUpdateJson('data/time_off_allotments.json', (allotments) => {
-      allotments[employee] = {
-        sickPersonal: Number(sickPersonal) || 0,
-        vacation: Number(vacation) || 0,
-        floating: Number(floating) || 0,
-        hireDate: hireDate || null
-      };
+      const entry = { hireDate: hireDate || null };
+      POOL_KEYS.forEach(k => { entry[k] = Number(req.body[k]) || 0; });
+      allotments[employee] = entry;
       result = allotments;
       return allotments;
     }, `Set allotment + hire date for ${employee}`, {});
