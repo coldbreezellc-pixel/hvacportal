@@ -3,6 +3,23 @@
     "employee": "Ray Sinnott",
     "type": "Vacation",
     "dayTypes": {
+      "2026-12-15": "Vacation",
+      "2026-12-16": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-12-15",
+    "endDate": "2026-12-16",
+    "notes": "",
+    "id": "TO-2026-0002",
+    "days": 2,
+    "status": "Pending",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T12:07:04.394Z"
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Vacation",
+    "dayTypes": {
       "2026-08-10": "Vacation",
       "2026-08-11": "Vacation"
     },
