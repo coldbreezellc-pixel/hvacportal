@@ -606,32 +606,90 @@ function poolUsage(r) {
   return use;
 }
 
-// Compute balances: allotment - approved days used (current year)
-function computeBalances(requests, allotments, year) {
-  const used = {}, pending = {};
-  requests.forEach(r => {
-    if (new Date(r.startDate).getFullYear() !== year) return;
-    const bucket = r.status === 'Approved' ? used : (r.status === 'Pending' ? pending : null);
-    if (!bucket) return;
-    if (!bucket[r.employee]) bucket[r.employee] = { sickPersonal: 0, vacation: 0, floating: 0 };
-    const u = poolUsage(r);
-    bucket[r.employee].sickPersonal += u.sickPersonal;
-    bucket[r.employee].vacation += u.vacation;
-    bucket[r.employee].floating += u.floating;
-  });
+// ── Benefit years ──
+// Vacation runs on the employee's ANNIVERSARY year (hire date → hire date).
+// Sick/Personal and Floating Holidays run on the CALENDAR year (Jan 1 → Dec 31).
+// So each person can have two different windows open at once.
+
+function ymd(d) { return d.toISOString().slice(0, 10); }
+
+// The anniversary window containing `ref`, based on hireDate.
+// e.g. hired Mar 15; on Jul 13 2026 → Mar 15 2026 through Mar 14 2027.
+function anniversaryWindow(hireDate, ref) {
+  const h = new Date(hireDate + 'T00:00:00');
+  if (isNaN(h)) return null;
+  const y = ref.getFullYear();
+  // This year's anniversary (clamped for Feb 29 hires in non-leap years)
+  const anniv = new Date(y, h.getMonth(), h.getDate());
+  if (anniv.getMonth() !== h.getMonth()) anniv.setDate(0); // rolled over → snap back
+  let start, end;
+  if (ref >= anniv) {
+    start = anniv;
+    end = new Date(y + 1, h.getMonth(), h.getDate());
+  } else {
+    start = new Date(y - 1, h.getMonth(), h.getDate());
+    end = anniv;
+  }
+  end.setDate(end.getDate() - 1); // window is inclusive of the day before next anniversary
+  return { start: ymd(start), end: ymd(end) };
+}
+
+function calendarWindow(ref) {
+  const y = ref.getFullYear();
+  return { start: `${y}-01-01`, end: `${y}-12-31` };
+}
+
+// Compute balances. Vacation is counted inside the anniversary window;
+// sick/personal + floating inside the calendar year.
+function computeBalances(requests, allotments, refDateStr) {
+  const ref = refDateStr ? new Date(refDateStr + 'T00:00:00') : new Date();
+  const calWin = calendarWindow(ref);
+
+  const names = new Set(Object.keys(allotments));
+  requests.forEach(r => names.add(r.employee));
+
   const out = {};
-  const names = new Set([...Object.keys(allotments), ...Object.keys(used), ...Object.keys(pending)]);
   names.forEach(name => {
-    const allot = { ...DEFAULT_ALLOTMENT, ...(allotments[name] || {}) };
-    const u = used[name] || { sickPersonal: 0, vacation: 0, floating: 0 };
-    const p = pending[name] || { sickPersonal: 0, vacation: 0, floating: 0 };
+    const cfg = allotments[name] || {};
+    const allot = {
+      sickPersonal: cfg.sickPersonal != null ? cfg.sickPersonal : DEFAULT_ALLOTMENT.sickPersonal,
+      vacation: cfg.vacation != null ? cfg.vacation : DEFAULT_ALLOTMENT.vacation,
+      floating: cfg.floating != null ? cfg.floating : DEFAULT_ALLOTMENT.floating
+    };
+    const hireDate = cfg.hireDate || null;
+    // No hire date on file → fall back to calendar year for vacation too
+    const vacWin = hireDate ? (anniversaryWindow(hireDate, ref) || calWin) : calWin;
+
+    const used = { sickPersonal: 0, vacation: 0, floating: 0 };
+    const pending = { sickPersonal: 0, vacation: 0, floating: 0 };
+
+    requests.filter(r => r.employee === name).forEach(r => {
+      const bucket = r.status === 'Approved' ? used : (r.status === 'Pending' ? pending : null);
+      if (!bucket) return;
+      // Count each DAY against the window that governs its pool
+      Object.entries(requestDayTypes(r)).forEach(([date, type]) => {
+        const pool = TIMEOFF_POOLS[type];
+        if (!pool) return;
+        const win = pool === 'vacation' ? vacWin : calWin;
+        if (date >= win.start && date <= win.end) bucket[pool] += 1;
+      });
+    });
+
     out[name] = {
-      allotment: allot, used: u, pending: p,
+      allotment: allot,
+      used, pending,
       remaining: {
-        sickPersonal: allot.sickPersonal - u.sickPersonal,
-        vacation: allot.vacation - u.vacation,
-        floating: allot.floating - u.floating
-      }
+        sickPersonal: allot.sickPersonal - used.sickPersonal,
+        vacation: allot.vacation - used.vacation,
+        floating: allot.floating - used.floating
+      },
+      hireDate,
+      windows: {
+        vacation: vacWin,
+        sickPersonal: calWin,
+        floating: calWin
+      },
+      vacationOnAnniversary: !!hireDate
     };
   });
   return out;
@@ -643,10 +701,11 @@ app.get('/api/time-off', async (req, res) => {
     const [requests, allotments, gaps, gapAssignments] = await Promise.all([
       getTimeOff(), getAllotments(), getCoverageGaps(), getGapAssignments()
     ]);
-    const year = parseInt(req.query.year) || new Date().getFullYear();
+    // asOf lets you check balances at a given date; defaults to today
+    const asOf = req.query.asOf || null;
     res.json({
       requests, allotments, gaps, gapAssignments,
-      balances: computeBalances(requests, allotments, year),
+      balances: computeBalances(requests, allotments, asOf),
       pools: TIMEOFF_POOLS, defaults: DEFAULT_ALLOTMENT, shifts: SHIFTS
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -742,19 +801,26 @@ app.delete('/api/time-off/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Set a person's annual allotment (admin)
+// Set a person's annual allotment + hire date (admin)
 app.post('/api/time-off-allotments', async (req, res) => {
   try {
-    const allotments = await getAllotments();
-    const { employee, sickPersonal, vacation, floating } = req.body;
+    const { employee, sickPersonal, vacation, floating, hireDate } = req.body;
     if (!employee) return res.status(400).json({ error: 'Missing employee' });
-    allotments[employee] = {
-      sickPersonal: Number(sickPersonal) || 0,
-      vacation: Number(vacation) || 0,
-      floating: Number(floating) || 0
-    };
-    await ghPut('data/time_off_allotments.json', JSON.stringify(allotments, null, 2), `Set allotment for ${employee}`);
-    res.json({ success: true, allotments });
+    if (hireDate && isNaN(new Date(hireDate + 'T00:00:00'))) {
+      return res.status(400).json({ error: 'Invalid hire date' });
+    }
+    let result = null;
+    await ghUpdateJson('data/time_off_allotments.json', (allotments) => {
+      allotments[employee] = {
+        sickPersonal: Number(sickPersonal) || 0,
+        vacation: Number(vacation) || 0,
+        floating: Number(floating) || 0,
+        hireDate: hireDate || null
+      };
+      result = allotments;
+      return allotments;
+    }, `Set allotment + hire date for ${employee}`, {});
+    res.json({ success: true, allotments: result });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
