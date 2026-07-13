@@ -499,6 +499,155 @@ app.delete('/api/work-orders/:id', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════
+// ── TIME OFF & COVERAGE TRACKING ──
+// ═══════════════════════════════════════════
+// Pools: 'sickPersonal' (Sick + Personal share one balance), 'vacation', 'floating'
+const TIMEOFF_POOLS = {
+  'Sick': 'sickPersonal',
+  'Personal': 'sickPersonal',
+  'Vacation': 'vacation',
+  'Floating Holiday': 'floating'
+};
+const DEFAULT_ALLOTMENT = { sickPersonal: 12, vacation: 10, floating: 3 };
+
+async function getTimeOff() {
+  const d = await ghGet('data/time_off.json');
+  if (d && d.content) { try { return JSON.parse(d.content); } catch (e) { return []; } }
+  return [];
+}
+async function getAllotments() {
+  const d = await ghGet('data/time_off_allotments.json');
+  if (d && d.content) { try { return JSON.parse(d.content); } catch (e) { return {}; } }
+  return {};
+}
+
+// Count weekdays-inclusive full days between two dates
+function countDays(start, end) {
+  const s = new Date(start + 'T00:00:00');
+  const e = new Date(end + 'T00:00:00');
+  if (isNaN(s) || isNaN(e) || e < s) return 0;
+  return Math.round((e - s) / 86400000) + 1;
+}
+
+// Compute balances for everyone: allotment - approved days used (current year)
+function computeBalances(requests, allotments, year) {
+  const used = {};
+  requests.forEach(r => {
+    if (r.status !== 'Approved') return;
+    if (new Date(r.startDate).getFullYear() !== year) return;
+    const pool = TIMEOFF_POOLS[r.type];
+    if (!pool) return;
+    if (!used[r.employee]) used[r.employee] = { sickPersonal: 0, vacation: 0, floating: 0 };
+    used[r.employee][pool] += (r.days || 0);
+  });
+  const pending = {};
+  requests.forEach(r => {
+    if (r.status !== 'Pending') return;
+    if (new Date(r.startDate).getFullYear() !== year) return;
+    const pool = TIMEOFF_POOLS[r.type];
+    if (!pool) return;
+    if (!pending[r.employee]) pending[r.employee] = { sickPersonal: 0, vacation: 0, floating: 0 };
+    pending[r.employee][pool] += (r.days || 0);
+  });
+  const out = {};
+  const names = new Set([...Object.keys(allotments), ...Object.keys(used), ...Object.keys(pending)]);
+  names.forEach(name => {
+    const allot = { ...DEFAULT_ALLOTMENT, ...(allotments[name] || {}) };
+    const u = used[name] || { sickPersonal: 0, vacation: 0, floating: 0 };
+    const p = pending[name] || { sickPersonal: 0, vacation: 0, floating: 0 };
+    out[name] = {
+      allotment: allot,
+      used: u,
+      pending: p,
+      remaining: {
+        sickPersonal: allot.sickPersonal - u.sickPersonal,
+        vacation: allot.vacation - u.vacation,
+        floating: allot.floating - u.floating
+      }
+    };
+  });
+  return out;
+}
+
+// List all requests + balances
+app.get('/api/time-off', async (req, res) => {
+  try {
+    const requests = await getTimeOff();
+    const allotments = await getAllotments();
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    res.json({ requests, allotments, balances: computeBalances(requests, allotments, year), pools: TIMEOFF_POOLS, defaults: DEFAULT_ALLOTMENT });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Submit a request
+app.post('/api/time-off', async (req, res) => {
+  try {
+    const requests = await getTimeOff();
+    const r = req.body;
+    if (!r.employee || !r.type || !r.startDate || !r.endDate) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    if (!TIMEOFF_POOLS[r.type]) return res.status(400).json({ error: 'Invalid type' });
+    const year = new Date().getFullYear();
+    const nums = requests.map(x => { const m = (x.id || '').match(/TO-\d+-(\d+)/); return m ? parseInt(m[1]) : 0; });
+    const next = (nums.length ? Math.max(...nums) : 0) + 1;
+    r.id = `TO-${year}-${String(next).padStart(4, '0')}`;
+    r.days = countDays(r.startDate, r.endDate);
+    r.status = 'Pending';
+    r.coveringTech = r.coveringTech || '';
+    r.createdAt = new Date().toISOString();
+    requests.unshift(r);
+    await ghPut('data/time_off.json', JSON.stringify(requests, null, 2), `Time off request ${r.id} — ${r.employee}`);
+    res.json({ success: true, request: r });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Update a request (approve/deny, assign coverage)
+app.put('/api/time-off/:id', async (req, res) => {
+  try {
+    const requests = await getTimeOff();
+    const idx = requests.findIndex(x => x.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: 'Request not found' });
+    const patch = { ...req.body };
+    delete patch.id; delete patch.createdAt; delete patch.employee;
+    if (patch.startDate || patch.endDate) {
+      patch.days = countDays(patch.startDate || requests[idx].startDate, patch.endDate || requests[idx].endDate);
+    }
+    requests[idx] = { ...requests[idx], ...patch, updatedAt: new Date().toISOString() };
+    await ghPut('data/time_off.json', JSON.stringify(requests, null, 2), `Update time off ${requests[idx].id} → ${requests[idx].status}`);
+    res.json({ success: true, request: requests[idx] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Delete a request
+app.delete('/api/time-off/:id', async (req, res) => {
+  try {
+    const requests = await getTimeOff();
+    const idx = requests.findIndex(x => x.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: 'Request not found' });
+    const removed = requests.splice(idx, 1)[0];
+    await ghPut('data/time_off.json', JSON.stringify(requests, null, 2), `Delete time off ${removed.id}`);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Set a person's annual allotment (admin)
+app.post('/api/time-off-allotments', async (req, res) => {
+  try {
+    const allotments = await getAllotments();
+    const { employee, sickPersonal, vacation, floating } = req.body;
+    if (!employee) return res.status(400).json({ error: 'Missing employee' });
+    allotments[employee] = {
+      sickPersonal: Number(sickPersonal) || 0,
+      vacation: Number(vacation) || 0,
+      floating: Number(floating) || 0
+    };
+    await ghPut('data/time_off_allotments.json', JSON.stringify(allotments, null, 2), `Set allotment for ${employee}`);
+    res.json({ success: true, allotments });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ═══════════════════════════════════════════
 // ── SLACK INTEGRATION — auto-create work orders from Slack messages ──
 // ═══════════════════════════════════════════
 // Setup:
