@@ -695,6 +695,149 @@ function computeBalances(requests, allotments, refDateStr) {
   return out;
 }
 
+// ── Time Off email notifications ──
+const TIMEOFF_ADMIN_EMAILS = (process.env.TIMEOFF_NOTIFY_EMAILS ||
+  'mateusz.targosz@versantmedia.com,sean.fanning@versantmedia.com')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+function fmtDateLong(d) {
+  const x = new Date(d + 'T00:00:00');
+  if (isNaN(x)) return d;
+  return x.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// Breakdown of a request's day types, e.g. "3 Vacation + 1 Floating Holiday"
+function typeBreakdown(r) {
+  const counts = {};
+  Object.values(requestDayTypes(r)).forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+  return Object.entries(counts).map(([t, n]) => `${n} × ${t}`).join(' + ');
+}
+
+function timeOffEmailHtml(r, balances) {
+  const sh = SHIFTS[r.shift] || {};
+  const bal = balances && balances[r.employee];
+  const range = r.startDate === r.endDate
+    ? fmtDateLong(r.startDate)
+    : `${fmtDateLong(r.startDate)} → ${fmtDateLong(r.endDate)}`;
+
+  let balHtml = '';
+  if (bal) {
+    const rows = [
+      ['Sick / Personal', bal.remaining.sickPersonal, bal.allotment.sickPersonal],
+      ['Vacation', bal.remaining.vacation, bal.allotment.vacation],
+      ['Floating Holidays', bal.remaining.floating, bal.allotment.floating]
+    ].map(([label, rem, tot]) =>
+      `<tr><td style="padding:5px 10px;font-size:13px;color:#5A6A7E;">${label}</td>
+       <td style="padding:5px 10px;font-size:13px;font-weight:700;color:${rem <= 1 ? '#C62828' : '#1B3A5C'};text-align:right;">${rem} of ${tot} left</td></tr>`
+    ).join('');
+    balHtml = `<div style="margin-top:18px;">
+      <div style="font-size:12px;font-weight:700;color:#5A6A7E;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Balance if approved is not yet applied</div>
+      <table style="width:100%;border-collapse:collapse;background:#F8FAFC;border-radius:8px;">${rows}</table>
+    </div>`;
+  }
+
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F3F6FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:22px 16px;">
+    <div style="background:linear-gradient(135deg,#1B3A5C,#2A5280);color:#fff;padding:20px;border-radius:12px 12px 0 0;">
+      <div style="font-size:12px;letter-spacing:1.4px;text-transform:uppercase;opacity:.85;">HVAC Engineering — Local 68</div>
+      <div style="font-size:21px;font-weight:800;margin-top:5px;">Time Off Request</div>
+      <div style="font-size:13px;margin-top:3px;opacity:.9;">Awaiting your approval</div>
+    </div>
+    <div style="background:#fff;padding:22px;border-radius:0 0 12px 12px;border:1px solid #D4DCE8;border-top:none;">
+      <div style="font-size:19px;font-weight:800;color:#1E2A3A;">${r.employee}</div>
+      <div style="display:inline-block;background:#FEF3C7;color:#92400E;font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;text-transform:uppercase;margin-top:7px;">Pending</div>
+
+      <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+        <tr><td style="padding:7px 0;font-size:12px;color:#8A96A8;text-transform:uppercase;letter-spacing:.5px;width:88px;">Dates</td>
+            <td style="padding:7px 0;font-size:14px;font-weight:600;color:#1E2A3A;">${range}</td></tr>
+        <tr><td style="padding:7px 0;font-size:12px;color:#8A96A8;text-transform:uppercase;letter-spacing:.5px;">Days</td>
+            <td style="padding:7px 0;font-size:14px;font-weight:600;color:#1E2A3A;">${r.days} full day${r.days === 1 ? '' : 's'}</td></tr>
+        <tr><td style="padding:7px 0;font-size:12px;color:#8A96A8;text-transform:uppercase;letter-spacing:.5px;">Type</td>
+            <td style="padding:7px 0;font-size:14px;font-weight:600;color:#1E2A3A;">${typeBreakdown(r)}</td></tr>
+        <tr><td style="padding:7px 0;font-size:12px;color:#8A96A8;text-transform:uppercase;letter-spacing:.5px;">Shift</td>
+            <td style="padding:7px 0;font-size:14px;font-weight:600;color:#C62828;">${sh.label || r.shift} &nbsp;<span style="color:#5A6A7E;font-weight:500;">${sh.time || ''}</span></td></tr>
+      </table>
+
+      <div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:11px;margin-top:14px;">
+        <div style="font-size:12px;font-weight:700;color:#991B1B;">⚠ This shift will need coverage</div>
+        <div style="font-size:12px;color:#5A6A7E;margin-top:3px;">Assign a covering tech when you approve.</div>
+      </div>
+
+      ${r.notes ? `<div style="margin-top:14px;padding:11px;background:#F8FAFC;border-radius:8px;">
+        <div style="font-size:11px;font-weight:700;color:#8A96A8;text-transform:uppercase;letter-spacing:.5px;">Note from ${r.employee.split(' ')[0]}</div>
+        <div style="font-size:14px;color:#1E2A3A;margin-top:4px;font-style:italic;">${escapeHtml(r.notes)}</div>
+      </div>` : ''}
+
+      ${balHtml}
+
+      <a href="https://local68.up.railway.app/time-off/"
+         style="display:block;text-align:center;background:#2979FF;color:#fff;text-decoration:none;padding:14px;border-radius:9px;font-weight:700;font-size:15px;margin-top:20px;">
+        Review &amp; Approve →
+      </a>
+      <div style="font-size:11px;color:#8A96A8;text-align:center;margin-top:12px;">Request ${r.id}</div>
+    </div>
+  </div></body></html>`;
+}
+
+function decisionEmailHtml(r) {
+  const approved = r.status === 'Approved';
+  const sh = SHIFTS[r.shift] || {};
+  const range = r.startDate === r.endDate
+    ? fmtDateLong(r.startDate)
+    : `${fmtDateLong(r.startDate)} → ${fmtDateLong(r.endDate)}`;
+  const color = approved ? '#2E7D32' : '#C62828';
+  const bg = approved ? '#E8F5E9' : '#FEE2E2';
+
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F3F6FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:22px 16px;">
+    <div style="background:linear-gradient(135deg,#1B3A5C,#2A5280);color:#fff;padding:20px;border-radius:12px 12px 0 0;">
+      <div style="font-size:12px;letter-spacing:1.4px;text-transform:uppercase;opacity:.85;">HVAC Engineering — Local 68</div>
+      <div style="font-size:21px;font-weight:800;margin-top:5px;">Time Off ${approved ? 'Approved' : 'Denied'}</div>
+    </div>
+    <div style="background:#fff;padding:22px;border-radius:0 0 12px 12px;border:1px solid #D4DCE8;border-top:none;">
+      <div style="background:${bg};border-radius:9px;padding:15px;text-align:center;">
+        <div style="font-size:26px;">${approved ? '✅' : '❌'}</div>
+        <div style="font-size:17px;font-weight:800;color:${color};margin-top:5px;">
+          Your request was ${approved ? 'approved' : 'denied'}
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+        <tr><td style="padding:7px 0;font-size:12px;color:#8A96A8;text-transform:uppercase;width:88px;">Dates</td>
+            <td style="padding:7px 0;font-size:14px;font-weight:600;color:#1E2A3A;">${range}</td></tr>
+        <tr><td style="padding:7px 0;font-size:12px;color:#8A96A8;text-transform:uppercase;">Days</td>
+            <td style="padding:7px 0;font-size:14px;font-weight:600;color:#1E2A3A;">${r.days} day${r.days === 1 ? '' : 's'} — ${typeBreakdown(r)}</td></tr>
+        <tr><td style="padding:7px 0;font-size:12px;color:#8A96A8;text-transform:uppercase;">Shift</td>
+            <td style="padding:7px 0;font-size:14px;font-weight:600;color:#1E2A3A;">${sh.label || r.shift} <span style="color:#5A6A7E;font-weight:500;">${sh.time || ''}</span></td></tr>
+        ${approved && r.coveringTech ? `<tr><td style="padding:7px 0;font-size:12px;color:#8A96A8;text-transform:uppercase;">Covered by</td>
+            <td style="padding:7px 0;font-size:14px;font-weight:700;color:#00897B;">🛡 ${escapeHtml(r.coveringTech)}</td></tr>` : ''}
+      </table>
+      ${approved && !r.coveringTech ? `<div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:11px;margin-top:14px;font-size:12px;color:#92400E;font-weight:600;">
+        ⚠ A covering tech hasn't been assigned to this shift yet.</div>` : ''}
+      <a href="https://local68.up.railway.app/time-off/"
+         style="display:block;text-align:center;background:#1B3A5C;color:#fff;text-decoration:none;padding:13px;border-radius:9px;font-weight:700;font-size:14px;margin-top:20px;">
+        View in Portal →
+      </a>
+      <div style="font-size:11px;color:#8A96A8;text-align:center;margin-top:12px;">Request ${r.id}</div>
+    </div>
+  </div></body></html>`;
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Look up an employee's email from the user list
+async function emailForEmployee(displayName) {
+  try {
+    const d = await ghGet('data/pm_users.json');
+    if (!d || !d.content) return null;
+    const users = JSON.parse(d.content);
+    const u = (Array.isArray(users) ? users : []).find(x => x.displayName === displayName);
+    return u && u.email ? u.email : null;
+  } catch { return null; }
+}
+
 // List all requests + balances + recurring gaps + gap coverage assignments
 app.get('/api/time-off', async (req, res) => {
   try {
@@ -761,6 +904,27 @@ app.post('/api/time-off', async (req, res) => {
       };
       return [saved, ...requests];
     }, `Time off request — ${r.employee} (${r.shift} shift, ${range.length}d)`);
+
+    // Notify admins — don't fail the request if the email bounces
+    if (RESEND_API_KEY && saved) {
+      try {
+        const [allRequests, allotments] = await Promise.all([getTimeOff(), getAllotments()]);
+        const balances = computeBalances(allRequests, allotments, null);
+        const sh = SHIFTS[saved.shift] || {};
+        const dateLabel = saved.startDate === saved.endDate
+          ? fmtDateLong(saved.startDate)
+          : `${fmtDateLong(saved.startDate)} – ${fmtDateLong(saved.endDate)}`;
+        await sendEmail({
+          to: TIMEOFF_ADMIN_EMAILS,
+          subject: `Time Off Request — ${saved.employee}, ${saved.days} day${saved.days === 1 ? '' : 's'} (${sh.label || saved.shift})`,
+          html: timeOffEmailHtml(saved, balances)
+        });
+        console.log(`Time off email sent to admins for ${saved.id} (${dateLabel})`);
+      } catch (e) {
+        console.error('Time off notification email failed:', e.message);
+      }
+    }
+
     res.json({ success: true, request: saved });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -768,10 +932,11 @@ app.post('/api/time-off', async (req, res) => {
 // Update a request (approve/deny, assign coverage)
 app.put('/api/time-off/:id', async (req, res) => {
   try {
-    let updated = null, notFound = false;
+    let updated = null, notFound = false, prevStatus = null;
     await ghUpdateJson('data/time_off.json', (requests) => {
       const idx = requests.findIndex(x => x.id === req.params.id);
       if (idx < 0) { notFound = true; return null; }
+      prevStatus = requests[idx].status;
       const patch = { ...req.body };
       delete patch.id; delete patch.createdAt; delete patch.employee;
       if (patch.startDate || patch.endDate) {
@@ -782,6 +947,28 @@ app.put('/api/time-off/:id', async (req, res) => {
       return requests;
     }, `Update time off ${req.params.id}`);
     if (notFound) return res.status(404).json({ error: 'Request not found' });
+
+    // Tell the engineer when the decision actually changes
+    const statusChanged = updated && updated.status !== prevStatus &&
+      (updated.status === 'Approved' || updated.status === 'Denied');
+    if (RESEND_API_KEY && statusChanged) {
+      try {
+        const to = await emailForEmployee(updated.employee);
+        if (to) {
+          await sendEmail({
+            to,
+            subject: `Time Off ${updated.status} — ${fmtDateLong(updated.startDate)}`,
+            html: decisionEmailHtml(updated)
+          });
+          console.log(`Decision email sent to ${updated.employee} for ${updated.id}`);
+        } else {
+          console.log(`No email on file for ${updated.employee} — skipped decision email`);
+        }
+      } catch (e) {
+        console.error('Decision email failed:', e.message);
+      }
+    }
+
     res.json({ success: true, request: updated });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
