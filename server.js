@@ -510,6 +510,13 @@ const TIMEOFF_POOLS = {
 };
 const DEFAULT_ALLOTMENT = { sickPersonal: 12, vacation: 10, floating: 3 };
 
+// Shifts — a day off is always tied to one shift, and that shift needs covering
+const SHIFTS = {
+  '1st': { label: '1st Shift', time: '6:00 AM – 2:00 PM' },
+  '2nd': { label: '2nd Shift', time: '2:00 PM – 10:00 PM' },
+  '3rd': { label: '3rd Shift', time: '10:00 PM – 6:00 AM' }
+};
+
 async function getTimeOff() {
   const d = await ghGet('data/time_off.json');
   if (d && d.content) { try { return JSON.parse(d.content); } catch (e) { return []; } }
@@ -575,7 +582,7 @@ app.get('/api/time-off', async (req, res) => {
     const requests = await getTimeOff();
     const allotments = await getAllotments();
     const year = parseInt(req.query.year) || new Date().getFullYear();
-    res.json({ requests, allotments, balances: computeBalances(requests, allotments, year), pools: TIMEOFF_POOLS, defaults: DEFAULT_ALLOTMENT });
+    res.json({ requests, allotments, balances: computeBalances(requests, allotments, year), pools: TIMEOFF_POOLS, defaults: DEFAULT_ALLOTMENT, shifts: SHIFTS });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -588,6 +595,7 @@ app.post('/api/time-off', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     if (!TIMEOFF_POOLS[r.type]) return res.status(400).json({ error: 'Invalid type' });
+    if (!r.shift || !SHIFTS[r.shift]) return res.status(400).json({ error: 'Invalid or missing shift' });
     const year = new Date().getFullYear();
     const nums = requests.map(x => { const m = (x.id || '').match(/TO-\d+-(\d+)/); return m ? parseInt(m[1]) : 0; });
     const next = (nums.length ? Math.max(...nums) : 0) + 1;
@@ -597,7 +605,7 @@ app.post('/api/time-off', async (req, res) => {
     r.coveringTech = r.coveringTech || '';
     r.createdAt = new Date().toISOString();
     requests.unshift(r);
-    await ghPut('data/time_off.json', JSON.stringify(requests, null, 2), `Time off request ${r.id} — ${r.employee}`);
+    await ghPut('data/time_off.json', JSON.stringify(requests, null, 2), `Time off request ${r.id} — ${r.employee} (${r.shift} shift)`);
     res.json({ success: true, request: r });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
