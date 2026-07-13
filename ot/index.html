@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Overtime List — Local 68</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --navy:#1B3A5C;--navy-light:#2A5280;--accent:#2979FF;--teal:#00897B;
+    --success:#2E7D32;--warn:#C62828;--border:#D4DCE8;
+    --text:#1E2A3A;--text-mid:#5A6A7E;--text-light:#8A96A8;--bg:#F3F6FA;
+  }
+  body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .topbar{background:linear-gradient(135deg,var(--navy),var(--navy-light));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+  .back{background:rgba(255,255,255,.15);border:none;color:#fff;width:34px;height:34px;border-radius:9px;font-size:17px;cursor:pointer;flex-shrink:0}
+  .tb-t{font-size:16px;font-weight:800;line-height:1.2}
+  .tb-s{font-size:11px;opacity:.85;letter-spacing:.5px;text-transform:uppercase}
+  .container{padding:14px;max-width:900px;margin:0 auto;padding-bottom:50px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .card-head{background:linear-gradient(135deg,var(--navy),var(--navy-light));color:#fff;padding:12px 15px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+  .card-body{padding:14px}
+  .loading,.empty{text-align:center;padding:26px;color:var(--text-light);font-size:13px}
+  .empty .ic{display:block;font-size:26px;margin-bottom:7px}
+
+  /* Week nav */
+  .wk-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .wk-btn{width:36px;height:36px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:20px;font-weight:700;color:var(--navy);cursor:pointer;line-height:1}
+  .wk-title{font-size:14px;font-weight:800;color:var(--navy);text-align:center;line-height:1.3}
+  .wk-title small{display:block;font-size:10px;color:var(--text-light);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+
+  /* OT grid */
+  .ot-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ot-grid{border-collapse:separate;border-spacing:2px;width:100%;min-width:640px}
+  .ot-grid th{font-size:9px;font-weight:800;color:var(--text-light);text-transform:uppercase;padding:4px 2px;text-align:center;white-space:nowrap}
+  .ot-grid th.nm{text-align:left;padding-left:6px;min-width:120px}
+  .ot-grid td{padding:0;text-align:center}
+  .ot-nm{text-align:left;font-size:12px;font-weight:700;color:var(--text);padding:6px;background:#F8FAFC;border-radius:5px;white-space:nowrap}
+  .ot-nm .rk{display:inline-block;font-size:9px;font-weight:800;color:#fff;background:var(--text-light);border-radius:3px;padding:1px 4px;margin-right:5px;min-width:16px}
+  .ot-nm.next .rk{background:var(--success)}
+  .ot-nm.excl{opacity:.5}
+  .ot-nm.excl .rk{background:#CBD5E1;color:var(--text-mid)}
+  .ot-cell{width:100%;min-height:32px;border:1px solid var(--border);border-radius:5px;background:#fff;cursor:pointer;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;position:relative;padding:6px 2px}
+  .ot-cell:active{border-color:var(--accent)}
+  .ot-cell.worked{background:#F1F5F9;color:#111827;border-color:#94A3B8}
+  .ot-cell.declined{background:#FEE2E2;color:#DC2626;border-color:#FCA5A5}
+  .ot-cell.noshow{background:#DBEAFE;color:#2563EB;border-color:#93C5FD}
+  .ot-cell.off{background:#FEF3C7;color:#B45309;border-color:#FCD34D;font-size:9px;font-weight:700}
+  .ot-cell .cm{position:absolute;top:1px;right:2px;font-size:8px}
+  .ot-tot{font-size:12px;font-weight:800;color:var(--navy);padding:6px 3px;background:#F8FAFC;border-radius:5px;white-space:nowrap}
+  .ot-tot.ytd{background:#EFF6FF;color:#1E40AF}
+
+  /* Legend */
+  .legend{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin-top:10px;font-size:10px;color:var(--text-mid);font-weight:600}
+  .legend span{display:flex;align-items:center;gap:4px}
+  .lg{width:16px;height:14px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+  .lg.w{background:#F1F5F9;color:#111827;border:1px solid #94A3B8}
+  .lg.d{background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5}
+  .lg.n{background:#DBEAFE;color:#2563EB;border:1px solid #93C5FD}
+  .lg.o{background:#FEF3C7;border:1px solid #FCD34D}
+
+  /* Next-up call list */
+  .callrow{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1.5px solid var(--border);border-radius:9px;margin-bottom:6px;background:#fff}
+  .callrow.top{border-color:#86EFAC;background:#F0FDF4}
+  .cr-rk{width:24px;height:24px;border-radius:6px;background:var(--text-light);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .callrow.top .cr-rk{background:var(--success)}
+  .cr-nm{font-size:13px;font-weight:700;flex:1}
+  .cr-hrs{font-size:12px;font-weight:800;color:var(--navy)}
+  .cr-sub{font-size:10px;color:var(--text-light);font-weight:600}
+  .cr-off{font-size:9px;font-weight:800;color:#B45309;background:#FEF3C7;padding:2px 6px;border-radius:4px}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:500;display:none;align-items:flex-end;justify-content:center}
+  .modal.show{display:flex}
+  .modal-box{background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;max-height:92vh;overflow-y:auto}
+  .modal-head{background:linear-gradient(135deg,var(--navy),var(--navy-light));color:#fff;padding:15px 17px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;position:sticky;top:0}
+  .mh-sub{font-size:10px;text-transform:uppercase;letter-spacing:1px;opacity:.8;font-weight:700}
+  .mh-title{font-size:17px;font-weight:800;margin-top:2px}
+  .mh-x{background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;font-size:15px;cursor:pointer;flex-shrink:0}
+  .modal-body{padding:17px}
+  label{display:block;font-size:11px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;margin-top:12px}
+  label:first-child{margin-top:0}
+  input,select,textarea{width:100%;padding:11px;border:1.5px solid var(--border);border-radius:9px;font-size:15px;font-family:inherit;background:#fff;color:var(--text)}
+  textarea{min-height:64px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  .st-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .st-btn{padding:11px 4px;border:2px solid var(--border);border-radius:9px;background:#fff;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--text-mid);text-align:center;line-height:1.3}
+  .st-btn .em{display:block;font-size:15px;margin-bottom:2px}
+  .st-btn.on[data-s="worked"]{border-color:#475569;background:#F1F5F9;color:#111827}
+  .st-btn.on[data-s="declined"]{border-color:#DC2626;background:#FEE2E2;color:#DC2626}
+  .st-btn.on[data-s="noshow"]{border-color:#2563EB;background:#DBEAFE;color:#2563EB}
+  .hr-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .hr-btn{padding:10px;border:2px solid var(--border);border-radius:9px;background:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--text-mid)}
+  .hr-btn.on{border-color:var(--accent);background:#EFF6FF;color:var(--accent)}
+  .btn{width:100%;padding:14px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:14px}
+  .btn:disabled{opacity:.5}
+  .btn-row{display:flex;gap:8px;margin-top:14px}
+  .btn-row .btn{margin-top:0}
+  .btn-del{background:#fff;border:1.5px solid #FCA5A5;color:#991B1B;flex:0 0 auto;width:auto;padding:14px 18px}
+  .off-warn{background:#FEF3C7;border:1.5px solid #FCD34D;color:#92400E;font-size:12px;font-weight:600;padding:9px 11px;border-radius:8px;margin-top:12px;line-height:1.4}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(90px);background:var(--navy);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:900;transition:transform .25s;max-width:90%;text-align:center}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--warn)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="back" onclick="location.href='/'">&lsaquo;</button>
+  <div>
+    <div class="tb-t">Overtime List</div>
+    <div class="tb-s">Local 68 &middot; Equalization</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <div class="card-head">Next Up For OT</div>
+    <div class="card-body" id="callList"><div class="loading">Loading&hellip;</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="wk-nav">
+        <button class="wk-btn" onclick="shiftWeek(-1)">&lsaquo;</button>
+        <div class="wk-title" id="wkTitle"></div>
+        <button class="wk-btn" onclick="shiftWeek(1)">&rsaquo;</button>
+      </div>
+      <div class="ot-wrap"><table class="ot-grid" id="otGrid"></table></div>
+      <div class="legend">
+        <span><i class="lg w">8</i>Worked</span>
+        <span><i class="lg d">8</i>Said no</span>
+        <span><i class="lg n">8</i>No call/show</span>
+        <span><i class="lg o"></i>Off</span>
+        <span>&#128172; has a comment</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:8px;">
+        Tap any cell to log OT. Declining still charges the hours.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal" id="otModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <div class="mh-sub" id="mSub"></div>
+        <div class="mh-title" id="mTitle"></div>
+      </div>
+      <button class="mh-x" onclick="closeModal()">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <div id="offWarn"></div>
+
+      <label>What happened?</label>
+      <div class="st-pick">
+        <button class="st-btn" data-s="worked" onclick="pickStatus('worked')"><span class="em">&#9989;</span>Worked</button>
+        <button class="st-btn" data-s="declined" onclick="pickStatus('declined')"><span class="em">&#10060;</span>Said no</button>
+        <button class="st-btn" data-s="noshow" onclick="pickStatus('noshow')"><span class="em">&#128280;</span>No call/show</button>
+      </div>
+
+      <label>Hours</label>
+      <div class="hr-pick">
+        <button class="hr-btn" data-h="8" onclick="pickHours(8)">8</button>
+        <button class="hr-btn" data-h="16" onclick="pickHours(16)">16</button>
+        <button class="hr-btn" data-h="4" onclick="pickHours(4)">4</button>
+      </div>
+      <input type="number" id="m_hours" min="1" step="1" style="margin-top:6px;" oninput="syncHourBtns()">
+
+      <label>Shift (optional)</label>
+      <select id="m_shift">
+        <option value="">&mdash; Not specified &mdash;</option>
+        <option value="1st">1st &mdash; 6a to 2p</option>
+        <option value="2nd">2nd &mdash; 2p to 10p</option>
+        <option value="3rd">3rd &mdash; 10p to 6a</option>
+      </select>
+
+      <label>Comment</label>
+      <textarea id="m_note" placeholder="e.g. called at 6am, said no &mdash; kid sick"></textarea>
+
+      <div class="btn-row">
+        <button class="btn btn-del" id="delBtn" onclick="deleteEntry()" style="display:none;">Delete</button>
+        <button class="btn" id="saveBtn" onclick="saveEntry()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+if (!localStorage.getItem('hvac_session')) window.location.href = '/';
+const _me = JSON.parse(localStorage.getItem('hvac_session') || '{}');
+const isAdmin = _me.role === 'admin';
+const myName = _me.displayName || '';
+
+let OT = { entries: [], baseline: {}, totals: {} };
+let TIMEOFF = { requests: [], schedules: {} };
+let allUsers = [];
+
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+// Monday of the current week
+function mondayOf(d) {
+  const x = new Date(d);
+  const day = x.getDay();               // 0=Sun
+  const diff = (day === 0 ? -6 : 1 - day);
+  x.setDate(x.getDate() + diff);
+  x.setHours(0,0,0,0);
+  return x;
+}
+let weekStart = mondayOf(new Date());
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ymd = d => d.toISOString().slice(0,10);
+
+function toast(m, err) {
+  const t = document.getElementById('toast');
+  t.textContent = m;
+  t.className = 'toast show' + (err ? ' err' : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function shiftWeek(n) {
+  weekStart.setDate(weekStart.getDate() + n * 7);
+  render();
+}
+
+// Is this person on approved time off that day?
+function offOn(name, dateStr) {
+  return TIMEOFF.requests.some(r =>
+    r.employee === name && r.status === 'Approved' &&
+    dateStr >= r.startDate && dateStr <= r.endDate);
+}
+
+function entryFor(name, dateStr) {
+  return OT.entries.find(e => e.employee === name && e.date === dateStr) || null;
+}
+
+// Rotation order: fewest hours first. Excluded people (the chief) never appear.
+function rotation() {
+  return Object.entries(OT.totals)
+    .filter(([, t]) => !t.excluded)
+    .sort((a, b) => a[1].total - b[1].total || a[0].localeCompare(b[0]));
+}
+
+function render() {
+  const end = new Date(weekStart); end.setDate(end.getDate() + 6);
+  const opt = { month: 'short', day: 'numeric' };
+  document.getElementById('wkTitle').innerHTML =
+    weekStart.toLocaleDateString('en-US', opt) + ' &ndash; ' + end.toLocaleDateString('en-US', opt) +
+    '<small>Week ending ' + end.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) + '</small>';
+
+  const order = rotation();
+  const excluded = Object.entries(OT.totals).filter(([, t]) => t.excluded);
+  const rows = order.concat(excluded);
+
+  let h = '<tr><th class="nm">Engineer</th>';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart); d.setDate(d.getDate() + i);
+    h += '<th>' + DAYS[i] + '<br>' + (d.getMonth()+1) + '/' + d.getDate() + '</th>';
+  }
+  h += '<th>Week</th><th>Total</th></tr>';
+
+  rows.forEach(([name, t]) => {
+    const isNext = !t.excluded && t.rank === 1;
+    h += '<tr>';
+    h += '<td><div class="ot-nm' + (isNext ? ' next' : '') + (t.excluded ? ' excl' : '') + '">' +
+         '<span class="rk">' + (t.excluded ? '&ndash;' : t.rank) + '</span>' + esc(name) + '</div></td>';
+    let wk = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart); d.setDate(d.getDate() + i);
+      const ds = ymd(d);
+      const e = entryFor(name, ds);
+      const isOff = offOn(name, ds);
+      let cls = '', txt = '';
+      if (e) {
+        cls = e.status;
+        txt = e.hours;
+        wk += Number(e.hours) || 0;
+      } else if (isOff) {
+        cls = 'off';
+        txt = 'OFF';
+      }
+      h += '<td><div class="ot-cell ' + cls + '" onclick="openCell(\'' + esc(name) + '\',\'' + ds + '\')">' +
+           txt + (e && e.note ? '<span class="cm">&#128172;</span>' : '') + '</div></td>';
+    }
+    h += '<td><div class="ot-tot">' + wk + '</div></td>';
+    h += '<td><div class="ot-tot ytd">' + t.total + '</div></td>';
+    h += '</tr>';
+  });
+  document.getElementById('otGrid').innerHTML = h;
+
+  renderCallList();
+}
+
+function renderCallList() {
+  const box = document.getElementById('callList');
+  const order = rotation();
+  if (!order.length) {
+    box.innerHTML = '<div class="empty"><span class="ic">&#128203;</span>No OT list set up yet</div>';
+    return;
+  }
+  const today = ymd(new Date());
+  box.innerHTML = order.slice(0, 6).map(([name, t], i) => {
+    const off = offOn(name, today);
+    return '<div class="callrow' + (i === 0 ? ' top' : '') + '">' +
+      '<div class="cr-rk">' + t.rank + '</div>' +
+      '<div class="cr-nm">' + esc(name) +
+        '<div class="cr-sub">' + t.worked + ' worked &middot; ' + t.declined + ' declined' +
+        (t.noshow ? ' &middot; ' + t.noshow + ' no-show' : '') + '</div>' +
+      '</div>' +
+      (off ? '<span class="cr-off">OFF TODAY</span>' : '') +
+      '<div class="cr-hrs">' + t.total + ' hrs</div>' +
+      '</div>';
+  }).join('') +
+  '<div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:8px;">Fewest hours goes first. Turning it down still charges the hours.</div>';
+}
+
+// ── Modal ──
+let mEmp = null, mDate = null, mEntry = null, mStatus = 'worked', mHours = 8;
+
+function openCell(name, dateStr) {
+  if (!isAdmin) return toast('Only a chief can log OT', true);
+  mEmp = name; mDate = dateStr;
+  mEntry = entryFor(name, dateStr);
+  const d = new Date(dateStr + 'T00:00:00');
+  document.getElementById('mSub').textContent = name;
+  document.getElementById('mTitle').textContent =
+    d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+  mStatus = mEntry ? mEntry.status : 'worked';
+  mHours = mEntry ? Number(mEntry.hours) : 8;
+  document.getElementById('m_hours').value = mHours;
+  document.getElementById('m_note').value = mEntry ? (mEntry.note || '') : '';
+  document.getElementById('m_shift').value = mEntry ? (mEntry.shift || '') : '';
+  pickStatus(mStatus); syncHourBtns();
+
+  document.getElementById('delBtn').style.display = mEntry ? 'block' : 'none';
+  document.getElementById('saveBtn').textContent = mEntry ? 'Update' : 'Log OT';
+
+  const warn = document.getElementById('offWarn');
+  warn.innerHTML = offOn(name, dateStr)
+    ? '<div class="off-warn">&#9888; ' + esc(name.split(' ')[0]) + ' is on approved time off this day.</div>'
+    : '';
+
+  document.getElementById('otModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('otModal').classList.remove('show');
+  mEmp = mDate = mEntry = null;
+}
+
+function pickStatus(s) {
+  mStatus = s;
+  document.querySelectorAll('.st-btn').forEach(b => b.classList.toggle('on', b.dataset.s === s));
+}
+function pickHours(h) {
+  mHours = h;
+  document.getElementById('m_hours').value = h;
+  syncHourBtns();
+}
+function syncHourBtns() {
+  const v = Number(document.getElementById('m_hours').value);
+  mHours = v;
+  document.querySelectorAll('.hr-btn').forEach(b => b.classList.toggle('on', Number(b.dataset.h) === v));
+}
+
+async function saveEntry() {
+  const hours = Number(document.getElementById('m_hours').value);
+  if (!(hours > 0)) return toast('Hours must be more than 0', true);
+  const note = document.getElementById('m_note').value.trim();
+  const shift = document.getElementById('m_shift').value;
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    let r;
+    if (mEntry) {
+      r = await fetch('/api/ot/' + mEntry.id, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hours, status: mStatus, note, shift })
+      });
+    } else {
+      r = await fetch('/api/ot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee: mEmp, date: mDate, hours, status: mStatus, note, shift, enteredBy: myName })
+      });
+    }
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Save failed');
+    toast('Saved');
+    closeModal();
+    await load();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteEntry() {
+  if (!mEntry) return;
+  if (!confirm('Delete this OT entry? The hours come back off their total.')) return;
+  try {
+    const r = await fetch('/api/ot/' + mEntry.id, { method: 'DELETE' });
+    if (!r.ok) throw new Error('Delete failed');
+    toast('Deleted');
+    closeModal();
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function load() {
+  try {
+    const [ot, to, usersRes] = await Promise.all([
+      fetch('/api/ot').then(r => r.json()),
+      fetch('/api/time-off').then(r => r.json()),
+      fetch('/api/data/pm_users').then(r => r.json()).catch(() => ({}))
+    ]);
+    OT = ot;
+    TIMEOFF = to;
+    let u = (usersRes && usersRes.value != null) ? usersRes.value : usersRes;
+    if (typeof u === 'string') { try { u = JSON.parse(u); } catch (e) { u = []; } }
+    allUsers = Array.isArray(u) ? u : [];
+    render();
+  } catch (e) {
+    toast('Failed to load: ' + e.message, true);
+  }
+}
+
+load();
+</script>
+</body>
+</html>
