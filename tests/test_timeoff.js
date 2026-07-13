@@ -129,6 +129,34 @@ function check(name, cond, detail) {
   check('Calendar shows who is on duty', (grid.match(/who-on/g) || []).length > 0);
   check('Calendar flags short shifts', (grid.match(/cs-row short/g) || []).length > 0);
 
+  // The calendar must show NAMES, not just initials, and say how many are needed
+  check('Calendar shows full-ish names (not initials)', /Christian D\.|Ray S\.|Robert R\./.test(grid),
+        (grid.match(/who-on">[^<]+/g) || []).slice(0,3).map(x=>x.slice(9)).join(', '));
+  check('Calendar shows a "Need n" badge on short shifts', (grid.match(/cs-need/g) || []).length > 0,
+        `${(grid.match(/cs-need/g) || []).length} shifts flagged`);
+  check('Grid is wide enough to scroll', !!d.querySelector('.cal-scroll'));
+
+  // The Need number must match the coverage engine, not be invented
+  const jul = (() => {
+    let mismatches = 0, checked = 0;
+    for (let day = 1; day <= 31; day++) {
+      const ds = '2026-07-' + String(day).padStart(2,'0');
+      const st = ev(`JSON.stringify(dayStaffing('${ds}'))`);
+      if (!st) continue;
+      const s2 = JSON.parse(st);
+      ['1st','2nd','3rd'].forEach(sh => {
+        if (!s2[sh].applies) return;
+        checked++;
+        const cellNeed = s2[sh].short;
+        const expect = Math.max(0, 2 - (s2[sh].onDuty.length + s2[sh].covering.length));
+        if (cellNeed !== expect) mismatches++;
+      });
+    }
+    return { checked, mismatches };
+  })();
+  check('"Need n" matches the coverage engine', jul.mismatches === 0,
+        `${jul.checked} shifts checked, ${jul.mismatches} mismatched`);
+
   // List view
   ev("setMonthView('list')");
   const list = html('calList');
