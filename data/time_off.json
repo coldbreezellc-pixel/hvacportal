@@ -1,5 +1,23 @@
 [
   {
+    "employee": "Brian Scudder",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-07-20": "Sick"
+    },
+    "shift": "3rd",
+    "startDate": "2026-07-20",
+    "endDate": "2026-07-20",
+    "notes": "",
+    "id": "TO-2026-0002",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "Armando Martinez",
+    "createdAt": "2026-07-13T12:16:37.034Z",
+    "enteredBy": "Mateusz Targosz",
+    "adminEntry": true
+  },
+  {
     "employee": "Ray Sinnott",
     "type": "Mixed",
     "dayTypes": {
