@@ -743,8 +743,20 @@ async function load() {
       fetch('/api/data/pm_users').then(r => r.json()).catch(() => ({}))
     ]);
     DATA = toRes;
-    const u = usersRes.value || usersRes.data || usersRes;
+
+    // /api/data/:key hands back `value` as a JSON *string*, not a parsed array
+    let u = (usersRes && usersRes.value != null) ? usersRes.value : usersRes;
+    if (typeof u === 'string') {
+      try { u = JSON.parse(u); } catch (e) { u = []; }
+    }
     allUsers = Array.isArray(u) ? u : (u && Array.isArray(u.users) ? u.users : []);
+
+    // If the user list ever fails to load, fall back to whoever has a schedule
+    // so coverage and the calendar still work instead of silently showing nothing
+    if (!allUsers.length && DATA.schedules) {
+      allUsers = Object.keys(DATA.schedules).map(n => ({ displayName: n, username: '', role: 'crew' }));
+    }
+    if (!allUsers.length) toast('Could not load the engineer list', true);
     renderMyBalances();
     renderMyRequests();
     renderAllRequests();
