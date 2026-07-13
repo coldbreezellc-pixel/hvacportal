@@ -556,8 +556,20 @@ async function getAllotments() {
   if (d && d.content) { try { return JSON.parse(d.content); } catch (e) { return {}; } }
   return {};
 }
+// Recurring weekly coverage gaps — shifts with nobody on them, week after week
+async function getCoverageGaps() {
+  const d = await ghGet('data/coverage_gaps.json');
+  if (d && d.content) { try { return JSON.parse(d.content); } catch (e) { return []; } }
+  return [];
+}
+// Who's covering a recurring gap on a specific date. Key: "<gapId>|<YYYY-MM-DD>"
+async function getGapAssignments() {
+  const d = await ghGet('data/coverage_assignments.json');
+  if (d && d.content) { try { return JSON.parse(d.content); } catch (e) { return {}; } }
+  return {};
+}
 
-// Count weekdays-inclusive full days between two dates
+// Count full days inclusive between two dates
 function countDays(start, end) {
   const s = new Date(start + 'T00:00:00');
   const e = new Date(end + 'T00:00:00');
@@ -565,25 +577,47 @@ function countDays(start, end) {
   return Math.round((e - s) / 86400000) + 1;
 }
 
-// Compute balances for everyone: allotment - approved days used (current year)
-function computeBalances(requests, allotments, year) {
-  const used = {};
-  requests.forEach(r => {
-    if (r.status !== 'Approved') return;
-    if (new Date(r.startDate).getFullYear() !== year) return;
-    const pool = TIMEOFF_POOLS[r.type];
-    if (!pool) return;
-    if (!used[r.employee]) used[r.employee] = { sickPersonal: 0, vacation: 0, floating: 0 };
-    used[r.employee][pool] += (r.days || 0);
+// Every date in a request's range, as YYYY-MM-DD
+function datesInRange(start, end) {
+  const out = [];
+  let d = new Date(start + 'T00:00:00');
+  const last = new Date(end + 'T00:00:00');
+  while (d <= last) { out.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 1); }
+  return out;
+}
+
+// A request can MIX types across its days (e.g. 3 Vacation + 1 Floating in one
+// stretch). dayTypes maps each date → type. Falls back to a single type for
+// older records that predate mixed stretches.
+function requestDayTypes(r) {
+  if (r.dayTypes && Object.keys(r.dayTypes).length) return r.dayTypes;
+  const out = {};
+  datesInRange(r.startDate, r.endDate).forEach(d => { out[d] = r.type; });
+  return out;
+}
+
+// Days drawn per pool for one request
+function poolUsage(r) {
+  const use = { sickPersonal: 0, vacation: 0, floating: 0 };
+  Object.values(requestDayTypes(r)).forEach(t => {
+    const pool = TIMEOFF_POOLS[t];
+    if (pool) use[pool] += 1;
   });
-  const pending = {};
+  return use;
+}
+
+// Compute balances: allotment - approved days used (current year)
+function computeBalances(requests, allotments, year) {
+  const used = {}, pending = {};
   requests.forEach(r => {
-    if (r.status !== 'Pending') return;
     if (new Date(r.startDate).getFullYear() !== year) return;
-    const pool = TIMEOFF_POOLS[r.type];
-    if (!pool) return;
-    if (!pending[r.employee]) pending[r.employee] = { sickPersonal: 0, vacation: 0, floating: 0 };
-    pending[r.employee][pool] += (r.days || 0);
+    const bucket = r.status === 'Approved' ? used : (r.status === 'Pending' ? pending : null);
+    if (!bucket) return;
+    if (!bucket[r.employee]) bucket[r.employee] = { sickPersonal: 0, vacation: 0, floating: 0 };
+    const u = poolUsage(r);
+    bucket[r.employee].sickPersonal += u.sickPersonal;
+    bucket[r.employee].vacation += u.vacation;
+    bucket[r.employee].floating += u.floating;
   });
   const out = {};
   const names = new Set([...Object.keys(allotments), ...Object.keys(used), ...Object.keys(pending)]);
@@ -592,9 +626,7 @@ function computeBalances(requests, allotments, year) {
     const u = used[name] || { sickPersonal: 0, vacation: 0, floating: 0 };
     const p = pending[name] || { sickPersonal: 0, vacation: 0, floating: 0 };
     out[name] = {
-      allotment: allot,
-      used: u,
-      pending: p,
+      allotment: allot, used: u, pending: p,
       remaining: {
         sickPersonal: allot.sickPersonal - u.sickPersonal,
         vacation: allot.vacation - u.vacation,
@@ -605,42 +637,71 @@ function computeBalances(requests, allotments, year) {
   return out;
 }
 
-// List all requests + balances
+// List all requests + balances + recurring gaps + gap coverage assignments
 app.get('/api/time-off', async (req, res) => {
   try {
-    const requests = await getTimeOff();
-    const allotments = await getAllotments();
+    const [requests, allotments, gaps, gapAssignments] = await Promise.all([
+      getTimeOff(), getAllotments(), getCoverageGaps(), getGapAssignments()
+    ]);
     const year = parseInt(req.query.year) || new Date().getFullYear();
-    res.json({ requests, allotments, balances: computeBalances(requests, allotments, year), pools: TIMEOFF_POOLS, defaults: DEFAULT_ALLOTMENT, shifts: SHIFTS });
+    res.json({
+      requests, allotments, gaps, gapAssignments,
+      balances: computeBalances(requests, allotments, year),
+      pools: TIMEOFF_POOLS, defaults: DEFAULT_ALLOTMENT, shifts: SHIFTS
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Submit a request
+// Submit a request. Supports mixed types across the stretch via dayTypes:
+//   { "2026-08-10": "Vacation", "2026-08-11": "Vacation", "2026-08-12": "Floating Holiday" }
 app.post('/api/time-off', async (req, res) => {
   try {
     const r = req.body;
-    if (!r.employee || !r.type || !r.startDate || !r.endDate) {
+    if (!r.employee || !r.startDate || !r.endDate) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    if (!TIMEOFF_POOLS[r.type]) return res.status(400).json({ error: 'Invalid type' });
     if (!r.shift || !SHIFTS[r.shift]) return res.status(400).json({ error: 'Invalid or missing shift' });
+
+    const range = datesInRange(r.startDate, r.endDate);
+    if (!range.length) return res.status(400).json({ error: 'Invalid date range' });
+
+    // Build/validate dayTypes — every day in the range needs a valid type
+    let dayTypes = {};
+    if (r.dayTypes && Object.keys(r.dayTypes).length) {
+      for (const d of range) {
+        const t = r.dayTypes[d];
+        if (!t || !TIMEOFF_POOLS[t]) return res.status(400).json({ error: `Missing or invalid type for ${d}` });
+        dayTypes[d] = t;
+      }
+    } else {
+      if (!r.type || !TIMEOFF_POOLS[r.type]) return res.status(400).json({ error: 'Invalid type' });
+      range.forEach(d => { dayTypes[d] = r.type; });
+    }
+    // Summary type label: single type, or "Mixed"
+    const distinct = [...new Set(Object.values(dayTypes))];
+    const summaryType = distinct.length === 1 ? distinct[0] : 'Mixed';
+
     let saved = null;
     await ghUpdateJson('data/time_off.json', (requests) => {
-      // ID assigned inside the retry loop against the freshest list, so two
-      // simultaneous submissions can't collide on the same number
       const year = new Date().getFullYear();
       const nums = requests.map(x => { const m = (x.id || '').match(/TO-\d+-(\d+)/); return m ? parseInt(m[1]) : 0; });
       const next = (nums.length ? Math.max(...nums) : 0) + 1;
       saved = {
-        ...r,
+        employee: r.employee,
+        type: summaryType,
+        dayTypes,
+        shift: r.shift,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        notes: r.notes || '',
         id: `TO-${year}-${String(next).padStart(4, '0')}`,
-        days: countDays(r.startDate, r.endDate),
+        days: range.length,
         status: 'Pending',
         coveringTech: r.coveringTech || '',
         createdAt: new Date().toISOString()
       };
       return [saved, ...requests];
-    }, `Time off request — ${r.employee} (${r.shift} shift)`);
+    }, `Time off request — ${r.employee} (${r.shift} shift, ${range.length}d)`);
     res.json({ success: true, request: saved });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -694,6 +755,67 @@ app.post('/api/time-off-allotments', async (req, res) => {
     };
     await ghPut('data/time_off_allotments.json', JSON.stringify(allotments, null, 2), `Set allotment for ${employee}`);
     res.json({ success: true, allotments });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── RECURRING COVERAGE GAPS ──
+// A shift that's short every week regardless of time off (not enough guys on site).
+// Repeats weekly with no end date until removed. Coverage is picked per date.
+
+// Create a standing gap: { weekday: 0-6 (Sun=0), shift: '1st'|'2nd'|'3rd', note }
+app.post('/api/coverage-gaps', async (req, res) => {
+  try {
+    const { weekday, shift, note } = req.body;
+    const wd = Number(weekday);
+    if (!(wd >= 0 && wd <= 6)) return res.status(400).json({ error: 'Invalid weekday' });
+    if (!shift || !SHIFTS[shift]) return res.status(400).json({ error: 'Invalid shift' });
+    let saved = null;
+    await ghUpdateJson('data/coverage_gaps.json', (gaps) => {
+      if (gaps.some(g => g.weekday === wd && g.shift === shift)) {
+        saved = 'duplicate';
+        return null;
+      }
+      const nums = gaps.map(g => { const m = (g.id || '').match(/RG-(\d+)/); return m ? parseInt(m[1]) : 0; });
+      const next = (nums.length ? Math.max(...nums) : 0) + 1;
+      saved = { id: `RG-${next}`, weekday: wd, shift, note: note || '', createdAt: new Date().toISOString() };
+      return [...gaps, saved];
+    }, `Add recurring coverage gap — ${shift} shift`);
+    if (saved === 'duplicate') return res.status(409).json({ error: 'That weekday + shift is already tracked' });
+    res.json({ success: true, gap: saved });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Remove a standing gap (also clears its coverage assignments)
+app.delete('/api/coverage-gaps/:id', async (req, res) => {
+  try {
+    let notFound = false;
+    await ghUpdateJson('data/coverage_gaps.json', (gaps) => {
+      const idx = gaps.findIndex(g => g.id === req.params.id);
+      if (idx < 0) { notFound = true; return null; }
+      gaps.splice(idx, 1);
+      return gaps;
+    }, `Remove recurring coverage gap ${req.params.id}`);
+    if (notFound) return res.status(404).json({ error: 'Gap not found' });
+    // Clean up any coverage assigned to this gap
+    await ghUpdateJson('data/coverage_assignments.json', (assigns) => {
+      Object.keys(assigns).forEach(k => { if (k.startsWith(req.params.id + '|')) delete assigns[k]; });
+      return assigns;
+    }, `Clear assignments for ${req.params.id}`, {});
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Assign (or clear) who covers a recurring gap on a specific date
+app.post('/api/coverage-assign', async (req, res) => {
+  try {
+    const { gapId, date, tech } = req.body;
+    if (!gapId || !date) return res.status(400).json({ error: 'Missing gapId or date' });
+    const key = `${gapId}|${date}`;
+    await ghUpdateJson('data/coverage_assignments.json', (assigns) => {
+      if (tech) assigns[key] = tech; else delete assigns[key];
+      return assigns;
+    }, tech ? `Assign ${tech} to ${key}` : `Clear coverage for ${key}`, {});
+    res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
