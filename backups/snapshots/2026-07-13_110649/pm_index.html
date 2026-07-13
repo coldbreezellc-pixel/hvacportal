@@ -1,0 +1,2051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PM Work Order — Versant Media</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{--navy:#1B3A5C;--navy-light:#2A5280;--accent:#2979FF;--bg:#F3F6FA;--card:#FFFFFF;--border:#D4DCE8;--text:#1E2A3A;--text-mid:#5A6A7E;--text-light:#8A96A8;--success:#2E7D32;--warn:#E65100;--danger:#C62828;--photo-border:#90CAF9;--photo-bg:#E3F2FD;--radius:12px;--radius-sm:8px;--shadow:0 2px 12px rgba(27,58,92,0.08);--liebert:#1565C0;--liebert-bg:#E3F2FD;--safety:#FF6F00;--safety-bg:#FFF8E1;--na-color:#78909C;--na-bg:#ECEFF1}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+  .header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);color:#fff;padding:20px 20px 24px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(27,58,92,.25)}
+  .header h1{font-size:18px;font-weight:700;letter-spacing:.5px;margin-bottom:2px}
+  .header .subtitle{font-size:12px;opacity:.7}
+  .header .badge{display:inline-block;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:6px}
+  .container{padding:16px;max-width:600px;margin:0 auto;padding-bottom:100px}
+  .section{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;border:1px solid var(--border)}
+  .section-header{background:var(--navy);color:#fff;padding:12px 16px;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+  .section-header .icon{font-size:16px}
+  .section-header.safety-hdr{background:var(--safety)}
+  .section-body{padding:16px}
+  .field-group{margin-bottom:14px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  label{display:block;font-size:11px;font-weight:600;color:var(--text-mid);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+  input[type="text"],input[type="date"],select,textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);background:#FAFBFD;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(41,121,255,.12);background:#fff}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235A6A7E' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+  textarea{resize:vertical;min-height:70px}
+  .tech-input-wrap{border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#FAFBFD;padding:6px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:44px;cursor:text;transition:border-color .2s,box-shadow .2s}
+  .tech-input-wrap.focused{border-color:var(--accent);box-shadow:0 0 0 3px rgba(41,121,255,.12);background:#fff}
+  .tech-tag{display:inline-flex;align-items:center;gap:4px;background:#E8F0FE;border:1px solid #C5D8F8;border-radius:6px;padding:4px 8px;font-size:14px;font-weight:500;color:var(--navy);animation:tagIn .2s ease}
+  @keyframes tagIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+  .tech-tag .remove-tag{width:18px;height:18px;border-radius:50%;border:none;background:rgba(27,58,92,.15);color:var(--navy);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+  .tech-text-input{border:none;outline:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);flex:1;min-width:100px;padding:4px 0}
+  .tech-hint{font-size:11px;color:var(--text-light);margin-top:4px}
+  .ppe-banner{background:#FDE8E8;border:2.5px solid var(--danger);border-radius:var(--radius);padding:20px 16px;text-align:center;margin-bottom:14px;animation:ppePulse 2s ease-in-out infinite}
+  @keyframes ppePulse{0%,100%{box-shadow:0 0 0 0 rgba(198,40,40,.2)}50%{box-shadow:0 0 0 8px rgba(198,40,40,0)}}
+  .ppe-banner .ppe-icon{font-size:36px;display:block;margin-bottom:8px}
+  .ppe-banner .ppe-text{font-size:18px;font-weight:700;color:var(--danger);line-height:1.3;text-transform:uppercase;letter-spacing:.5px}
+  .ppe-ack-btn{width:100%;padding:14px 16px;border:2.5px solid var(--danger);border-radius:var(--radius-sm);background:#fff;color:var(--danger);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:12px;line-height:1.3}
+  .ppe-ack-btn:active{transform:scale(.97)}
+  .ppe-ack-btn.acknowledged{background:var(--success);border-color:var(--success);color:#fff;pointer-events:none;animation:none}
+  .ppe-ack-btn.acknowledged::before{content:'✓ '}
+  .ppe-banner.acknowledged{border-color:var(--success);background:#E8F5E9;animation:none}
+  .ppe-banner.acknowledged .ppe-text{color:var(--success)}
+  .ppe-timestamp{font-size:11px;color:var(--success);margin-top:8px;font-weight:500;display:none}
+  .ppe-banner.acknowledged .ppe-timestamp{display:block}
+  .gated-content{display:none}.gated-content.unlocked{display:block}
+  .safety-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+  .safety-table th{background:var(--safety-bg);text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:var(--safety);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #FFE082}
+  .safety-table th.th-done,.safety-table th.th-na{text-align:center;width:46px}
+  .safety-table td{padding:8px 10px;border-bottom:1px solid #EEF1F6;font-size:14px;vertical-align:middle}
+  .safety-table td.td-action{text-align:center;width:46px;padding:8px 4px}
+  .safety-table .condition-select{font-size:13px;padding:6px 8px;width:100%}
+  .safety-table .notes-input{font-size:13px;padding:6px 8px;width:100%}
+  .safety-check{width:28px;height:28px;border-radius:6px;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto;transition:all .15s;background:#FAFBFD;font-size:11px;font-weight:700;color:var(--text-light);flex-shrink:0;user-select:none}
+  .safety-check:active{transform:scale(.9)}
+  .safety-check.done-check.active{background:var(--success);border-color:var(--success);color:#fff}
+  .safety-check.na-check.active{background:var(--na-color);border-color:var(--na-color);color:#fff}
+  .safety-sub-header{font-size:12px;font-weight:700;color:var(--safety);text-transform:uppercase;letter-spacing:.8px;padding:10px 0 4px;margin-top:8px;border-bottom:1.5px solid #FFE082;margin-bottom:2px}
+  .emergency-box{background:#FFF3E0;border:1.5px solid #FFE082;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.5;color:var(--text)}
+  .emergency-box strong{color:var(--danger);font-size:12px;text-transform:uppercase}
+  .emergency-box ul{margin:6px 0 0 16px;padding:0}
+  .emergency-box li{margin-bottom:6px}
+  .safety-continue-btn{width:100%;padding:14px 16px;border:2px solid var(--success);border-radius:var(--radius-sm);background:var(--success);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px}
+  .safety-continue-btn:active{transform:scale(.97)}
+  .safety-continue-btn:disabled{opacity:.4;pointer-events:none}
+  .safety-sig-card{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;background:#FAFBFD;transition:all .3s}
+  .safety-sig-card.signed{border-color:var(--success);background:#E8F5E9}
+  .safety-sig-name{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:8px}
+  .safety-sig-canvas-wrap{width:100%;height:80px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);background:#fff;position:relative;overflow:hidden;touch-action:none;margin-bottom:8px}
+  .safety-sig-canvas-wrap.has-sig{border-style:solid;border-color:var(--success)}
+  .safety-sig-canvas-wrap canvas{width:100%;height:100%;display:block}
+  .safety-sig-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-light);font-size:12px;pointer-events:none}
+  .safety-sig-actions{display:flex;gap:8px;align-items:center}
+  .safety-sig-btn{flex:1;padding:10px;border:2px solid var(--border);border-radius:var(--radius-sm);background:#fff;color:var(--text-mid);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;text-align:center}
+  .safety-sig-btn:active{transform:scale(.97)}
+  .safety-sig-btn.signed-btn{border-color:var(--success);background:var(--success);color:#fff;pointer-events:none}
+  .safety-sig-btn.clear-btn{flex:0 0 auto;padding:10px 14px;color:var(--text-light);font-size:12px}
+  .equip-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .equip-chip{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#FAFBFD;cursor:pointer;transition:all .15s;user-select:none;font-size:14px;font-weight:500}
+  .equip-chip:active{transform:scale(.97)}
+  .equip-chip.selected{border-color:var(--accent);background:#E8F0FE;box-shadow:0 0 0 2px rgba(41,121,255,.15)}
+  .equip-chip .chip-check{width:20px;height:20px;border-radius:4px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;transition:all .15s}
+  .equip-chip.selected .chip-check{background:var(--accent);border-color:var(--accent)}
+  .equip-group-label{grid-column:1/-1;font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:1px;margin-top:6px;padding-bottom:2px;border-bottom:1px solid var(--border)}
+  .liebert-units-area{display:none;margin-top:10px}
+  .liebert-units-area.show{display:block}
+  .liebert-unit-entry{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--liebert-bg);border:1.5px solid #90CAF9;border-radius:var(--radius-sm);margin-bottom:8px;animation:tagIn .2s ease}
+  .liebert-unit-entry .lu-label{font-size:12px;font-weight:700;color:var(--liebert);white-space:nowrap;min-width:60px}
+  .liebert-unit-entry input{flex:1;font-size:14px;padding:8px 10px;border:1.5px solid #90CAF9;border-radius:6px}
+  .liebert-unit-entry .lu-remove{width:26px;height:26px;border-radius:50%;border:none;background:rgba(198,40,40,.15);color:var(--danger);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .add-liebert-btn{width:100%;padding:10px;border:1.5px dashed #90CAF9;border-radius:var(--radius-sm);background:transparent;color:var(--liebert);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+  .add-liebert-btn:active{transform:scale(.97)}
+  .pm-checklist{margin-top:16px;padding-top:4px;border-top:2px solid var(--border)}.pm-checklist:first-child{border-top:none;margin-top:0}
+  .pm-checklist-header{border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .pm-checklist-header.ct-header{background:#FFF3E0;border:1px solid #FFE0B2}
+  .pm-checklist-header.pump-header{background:#E8F5E9;border:1px solid #C8E6C9}
+  .pm-checklist-header.liebert-header{background:var(--liebert-bg);border:1px solid #90CAF9}
+  .pm-checklist-header .equip-tag{font-size:13px;font-weight:700}
+  .pm-checklist-header.ct-header .equip-tag{color:var(--warn)}
+  .pm-checklist-header.pump-header .equip-tag{color:var(--success)}
+  .pm-checklist-header.liebert-header .equip-tag{color:var(--liebert)}
+  .pm-freq-label{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.8px;padding:8px 0 4px;border-bottom:1px solid var(--border);margin-bottom:6px;margin-top:10px}
+  .pm-sub-label{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;padding:4px 0 2px;margin-top:6px}
+  .pm-task-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #EEF1F6}.pm-task-row:last-child{border-bottom:none}
+  .pm-task-check{width:22px;height:22px;border-radius:4px;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .15s;background:#FAFBFD;font-size:14px;color:#fff}
+  .pm-task-check.checked{background:var(--success);border-color:var(--success)}
+  .pm-task-text{font-size:14px;color:var(--text);line-height:1.4;flex:1}
+  .pm-task-text.checked-text{color:var(--text-light);text-decoration:line-through}
+  .pm-warn{background:#FFF8E1;border:1px solid #FFE082;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:600;color:#E65100;margin-bottom:10px}
+  .pm-note{background:#F3E5F5;border:1px solid #CE93D8;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:500;color:#6A1B9A;margin-top:4px;margin-bottom:6px;font-style:italic}
+  .pm-alert{background:#FFEBEE;border:1px solid #EF9A9A;border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:600;color:var(--danger);margin-top:4px;margin-bottom:6px}
+  .reading-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:6px 0 10px}
+  .reading-row label{font-size:10px;margin-bottom:2px}
+  .reading-row input{font-size:13px;padding:6px 8px;text-align:center}
+  .freq-chips{display:flex;gap:8px;flex-wrap:wrap}
+  .freq-chip{padding:8px 14px;border:1.5px solid var(--border);border-radius:20px;background:#FAFBFD;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;user-select:none}
+  .freq-chip:active{transform:scale(.97)}
+  .freq-chip.selected{border-color:var(--accent);background:#E8F0FE;color:var(--accent)}
+  .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .photo-slot{border:2px dashed var(--photo-border);border-radius:var(--radius);background:var(--photo-bg);position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .1s;min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .photo-slot:active{transform:scale(.97)}
+  .photo-slot.has-photo{border-style:solid;border-color:var(--success);background:#fff}
+  .photo-slot .placeholder{text-align:center;padding:16px}
+  .photo-slot .placeholder .cam-icon{font-size:36px;display:block;margin-bottom:6px}
+  .photo-slot .placeholder .tap-text{font-size:12px;color:var(--accent);font-weight:600}
+  .photo-slot .placeholder .sub-text{font-size:10px;color:var(--text-light);margin-top:2px}
+  .photo-slot .slot-badge{position:absolute;top:8px;left:8px;width:22px;height:22px;background:var(--navy);color:#fff;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2}
+  .photo-slot img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+  .photo-slot .remove-btn{position:absolute;top:6px;right:6px;width:26px;height:26px;background:var(--danger);color:#fff;border:none;border-radius:50%;font-size:14px;font-weight:700;cursor:pointer;z-index:3;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+  .photo-slot.has-photo .remove-btn{display:flex}
+  .photo-slot input[type="file"]{display:none}
+  .photo-caption{margin-top:8px;width:100%}
+  .photo-caption input{font-size:12px;padding:6px 8px}
+  .loto-photo-slot{border:2px dashed #FFE082;border-radius:var(--radius-sm);background:#FFFBEB;position:relative;overflow:hidden;cursor:pointer;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .2s}
+  .loto-photo-slot:active{transform:scale(.97)}
+  .loto-photo-slot.has-photo{border-style:solid;border-color:var(--success);background:#fff}
+  .loto-photo-slot img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+  .loto-photo-slot .loto-remove{position:absolute;top:4px;right:4px;width:24px;height:24px;background:var(--danger);color:#fff;border:none;border-radius:50%;font-size:12px;font-weight:700;cursor:pointer;z-index:3;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+  .loto-photo-slot.has-photo .loto-remove{display:flex}
+  .loto-photo-slot .loto-badge{position:absolute;top:4px;left:4px;background:var(--warn);color:#fff;border-radius:4px;font-size:9px;font-weight:700;padding:2px 6px;z-index:2}
+  .loto-photo-slot input[type="file"]{display:none}
+  .loto-photo-slot .loto-placeholder{text-align:center;padding:12px}
+  .loto-photo-slot .loto-placeholder .loto-cam{font-size:28px;display:block;margin-bottom:4px}
+  .loto-photo-slot .loto-placeholder .loto-text{font-size:11px;color:var(--warn);font-weight:600}
+  .loto-caption{margin-top:6px}
+  .loto-caption input{font-size:11px;padding:5px 8px;width:100%;border:1px solid #FFE082;border-radius:6px;font-family:'DM Sans',sans-serif}
+
+  /* Completion Signature area */
+  .comp-sig-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;background:#FAFBFD;transition:all .3s}
+  .comp-sig-card.signed{border-color:var(--success);background:#E8F5E9}
+  .comp-sig-card .comp-sig-name{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .comp-sig-card .comp-sig-name .sig-status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.5px}
+  .comp-sig-card .sig-status.pending{background:#FEF3C7;color:#D97706}
+  .comp-sig-card .sig-status.done{background:#D1FAE5;color:var(--success)}
+  .comp-sig-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .comp-sig-canvas-wrap{width:100%;height:90px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);background:#fff;position:relative;overflow:hidden;touch-action:none;margin-bottom:10px}
+  .comp-sig-canvas-wrap.has-sig{border-style:solid;border-color:var(--success)}
+  .comp-sig-canvas-wrap canvas{width:100%;height:100%;display:block}
+  .comp-sig-placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-light);font-size:13px;pointer-events:none}
+  .comp-sig-actions{display:flex;gap:8px}
+  .comp-sig-confirm{flex:1;padding:11px;border:2px solid var(--accent);border-radius:var(--radius-sm);background:#fff;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+  .comp-sig-confirm:active{transform:scale(.97)}
+  .comp-sig-confirm.confirmed{background:var(--success);border-color:var(--success);color:#fff;pointer-events:none}
+  .comp-sig-clear{padding:11px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#fff;color:var(--text-light);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
+
+  .check-row{display:flex;align-items:center;gap:16px;margin:8px 0}
+  .check-row label{display:flex;align-items:center;gap:6px;text-transform:none;font-size:14px;font-weight:500;color:var(--text);cursor:pointer;margin-bottom:0}
+  .check-row input[type="radio"]{width:18px;height:18px;accent-color:var(--accent)}
+  .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:100;box-shadow:0 -4px 16px rgba(27,58,92,.08)}
+  .btn{flex:1;padding:14px;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:transform .1s;letter-spacing:.3px}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:linear-gradient(135deg,var(--accent) 0%,var(--navy-light) 100%);color:#fff;box-shadow:0 4px 16px rgba(41,121,255,.3)}
+  .btn-secondary{background:var(--bg);color:var(--text);border:1.5px solid var(--border)}
+  .loading-overlay{display:none;position:fixed;inset:0;background:rgba(27,58,92,.85);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+  .loading-overlay.show{display:flex}
+  .loading-overlay .spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+  .loading-overlay p{color:#fff;font-size:15px;font-weight:600}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media print{body{background:#fff}.header{position:static;box-shadow:none}.bottom-bar,.loading-overlay{display:none !important}.container{padding:0;max-width:100%}.section{box-shadow:none;break-inside:avoid;page-break-inside:avoid}.photo-slot{min-height:140px;border:1px solid #ccc}.photo-slot .placeholder{display:none}.photo-slot .remove-btn{display:none !important}input,select,textarea{border:1px solid #ccc}.equip-chip:not(.selected){opacity:.3}.tech-hint{display:none}.ppe-ack-btn{display:none}.ppe-banner{animation:none;border:2px solid var(--success);background:#E8F5E9}.ppe-banner .ppe-text{color:var(--success)}.gated-content{display:block !important}.liebert-units-area{display:block !important}.safety-continue-btn{display:none}.sig-placeholder{display:none !important}}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><p id="loadingText">Generating PDF…</p></div>
+<div id="formContent">
+<div class="header"><h1>PREVENTIVE MAINTENANCE WORK ORDER</h1><div class="subtitle">Versant Media</div><div class="badge">PM-001 • Mobile Form</div></div>
+<div class="container">
+  <!-- Draft/History Bar -->
+  <div id="draftBanner" style="display:none;background:#FEF3C7;border:2px solid #F59E0B;border-radius:12px;padding:14px 16px;margin-bottom:14px;text-align:center;">
+    <div style="font-size:14px;font-weight:700;color:#92400E;margin-bottom:4px;">📝 Unsaved Draft Found</div>
+    <div id="draftInfo" style="font-size:12px;color:#A16207;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button onclick="restoreDraftAndDismiss()" style="padding:10px 18px;border:none;border-radius:8px;background:#F59E0B;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Resume Draft</button>
+      <button onclick="dismissDraft()" style="padding:10px 18px;border:1.5px solid #D4DCE8;border-radius:8px;background:#fff;color:#5A6A7E;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Start Fresh</button>
+    </div>
+  </div>
+
+  <!-- PM History — Collapsible at top -->
+  <div style="margin-bottom:14px;border:1.5px solid #D4DCE8;border-radius:12px;overflow:hidden;background:#fff;">
+    <div onclick="toggleHistory()" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:#f8fafc;border-bottom:1px solid #E2E8F0;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">📋</span>
+        <span style="font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;color:#1E293B;">PM History</span>
+        <span id="historyCount" style="background:#E8F0FE;color:#2979FF;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:700;">0</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <a href="/" onclick="event.stopPropagation()" style="font-family:'DM Sans',sans-serif;font-size:12px;color:#5A6A7E;text-decoration:none;font-weight:600;">← Menu</a>
+        <span id="historyArrow" style="font-size:18px;color:#94a3b8;transition:transform .2s;">▼</span>
+      </div>
+    </div>
+    <div id="historyPanel" style="display:none;max-height:500px;overflow-y:auto;">
+      <div id="historyList" style=""></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header"><span class="icon">📋</span> Work Order Information</div>
+    <div class="section-body">
+      <div class="field-group"><label>Date</label><input type="date" id="wo_date"></div>
+      <div class="field-group"><label>Facility / Location</label><select id="facility"><option value="" disabled selected>Select facility…</option><option>900 Sylvan Ave, Englewood Cliffs</option><option>904 Sylvan Ave, Englewood Cliffs</option></select></div>
+      <div class="field-group">
+        <label>PM Technician(s)</label>
+        <div class="tech-input-wrap" id="techWrap" onclick="document.getElementById('techInput').focus()"><input type="text" class="tech-text-input" id="techInput" placeholder="Type name, tap + to add" inputmode="text" enterkeyhint="done" onkeydown="handleTechKey(event)" onkeyup="handleTechKeyUp(event)" onfocus="document.getElementById('techWrap').classList.add('focused')" onblur="handleTechBlur()"><button type="button" onclick="event.stopPropagation();var inp=document.getElementById('techInput');var v=inp.value.trim();if(v){addTechName(v);inp.value='';inp.focus()}" style="padding:6px 14px;border:1.5px solid #2979FF;border-radius:6px;background:#2979FF;color:#fff;font-family:DM Sans,sans-serif;font-size:16px;font-weight:700;cursor:pointer;flex-shrink:0;line-height:1;">+</button></div>
+        <div class="tech-hint">Press Enter or comma after each name. Tap ✕ to remove.</div>
+      </div>
+      <div class="ppe-banner" id="ppeBanner"><span class="ppe-icon">🛑</span><div class="ppe-text">MAKE SURE TO USE PROPER PPE AT ALL TIMES</div><button class="ppe-ack-btn" id="ppeAckBtn" onclick="acknowledgePPE()">I acknowledge that without PROPER PPE I cannot perform this PM</button><div class="ppe-timestamp" id="ppeTimestamp"></div></div>
+    </div>
+  </div>
+  <div class="gated-content" id="safetyGate">
+  <div class="section" id="safetySection">
+    <div class="section-header safety-hdr"><span class="icon">🦺</span> HVAC Safety Checklist</div>
+    <div class="section-body">
+      <div class="safety-sub-header">Personal Protective Equipment (PPE)</div>
+      <table class="safety-table" id="ppeTable"><tr><th>PPE Item</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      <div class="safety-sub-header">Pre-Job Safety Checklist</div>
+      <table class="safety-table" id="preJobTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      <div class="safety-sub-header">Electrical Safety</div>
+      <table class="safety-table" id="electricalTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      
+      <!-- LOTO Photo Documentation -->
+      <div style="margin:12px 0;padding:14px;background:#FFF8E1;border:1.5px solid #FFE082;border-radius:var(--radius-sm);">
+        <div style="font-size:12px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📸 Lockout/Tagout Photo Documentation</div>
+        <p style="font-size:12px;color:var(--text-mid);margin-bottom:10px;">Take photos of LOTO locks, tags, and equipment lockout points.</p>
+        <div id="lotoPhotoGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+        <button onclick="addLotoPhoto()" style="width:100%;padding:10px;margin-top:10px;border:1.5px dashed #FFE082;border-radius:var(--radius-sm);background:transparent;color:var(--warn);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">+ Add LOTO Photo</button>
+      </div>
+      <div class="safety-sub-header">Gas & Chemical Safety</div>
+      <table class="safety-table" id="gasTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+      <div class="safety-sub-header">Emergency Procedures</div>
+      <div class="emergency-box"><ul><li><strong>Electrical Shock:</strong> Do not touch the person. Disconnect power source if possible and call the Chief and emergency services.</li><li><strong>Gas Leak:</strong> Evacuate the area immediately. Do not use electrical switches or open flames. Call the gas company from a safe distance.</li><li><strong>Fire:</strong> Use a fire extinguisher if safe to do so. Evacuate the area and call emergency services and Notify Chief and GRIC.</li><li><strong>Chemical Spill:</strong> Use appropriate PPE and clean-up materials. Refer to the Safety Data Sheet (SDS) for specific handling instructions.</li></ul></div>
+      
+      <!-- Per-technician safety signatures -->
+      <div id="safetySignaturesArea" style="display:none;margin-top:16px;">
+        <div class="safety-sub-header">Technician Safety Signatures</div>
+        <p style="font-size:12px;color:var(--text-mid);margin:6px 0 12px;">Each technician must sign below to confirm they have reviewed the safety checklist.</p>
+        <div id="safetySignaturesList"></div>
+      </div>
+
+      <button class="safety-continue-btn" id="safetyContinueBtn" onclick="completeSafety()" disabled>✓ Safety Checklist Reviewed — Continue to PM</button>
+    </div>
+  </div>
+  </div>
+  <div class="gated-content" id="gatedContent">
+    <div class="section"><div class="section-header"><span class="icon">📋</span> PM Details</div><div class="section-body">
+      <div class="field-group"><label>Service Interval</label><div class="freq-chips"><div class="freq-chip" data-freq="Monthly" onclick="selectFreq(this)">Monthly</div><div class="freq-chip selected" data-freq="Quarterly" onclick="selectFreq(this)">Quarterly</div><div class="freq-chip" data-freq="Semi-Annual" onclick="selectFreq(this)">Semi-Annual</div><div class="freq-chip" data-freq="Annual" onclick="selectFreq(this)">Annual</div><div class="freq-chip" data-freq="Repair" onclick="selectFreq(this)">Repair</div></div></div>
+      <div class="field-group"><label>Equipment (tap to select multiple)</label><div class="equip-grid" id="equipGrid"></div></div>
+      <div class="liebert-units-area" id="liebertArea" style="display:none;"><label style="color:var(--liebert);font-weight:700;font-size:12px;margin-bottom:8px;">LIEBERT UNIT NUMBERS</label><div id="liebertUnitsList"></div><button class="add-liebert-btn" onclick="addLiebertUnit()">+ Add Another Liebert Unit</button></div>
+      <div id="multiUnitArea"></div>
+    </div></div>
+  </div>
+  <div class="gated-content" id="gatedSections">
+  <div class="section" id="pmChecklistSection" style="display:none;"><div class="section-header"><span class="icon">🔧</span> PM Checklist</div><div class="section-body" id="pmChecklistBody"></div></div>
+  <div class="section"><div class="section-header"><span class="icon">💬</span> General Comments / Findings</div><div class="section-body"><textarea id="general_comments" placeholder="Enter observations, findings, or follow-up items…" rows="4"></textarea></div></div>
+  <div class="section"><div class="section-header"><span class="icon">📸</span> Photo Documentation</div><div class="section-body"><p style="font-size:12px;color:var(--text-light);margin-bottom:12px;">Tap a slot to take a photo or choose from your gallery.</p><div class="photo-grid" id="photoGrid"></div><button class="btn btn-secondary" style="margin-top:12px;flex:none;width:100%;" onclick="addPhotoSlot()">+ Add More Photo Slots</button></div></div>
+  <div class="section"><div class="section-header" style="background:var(--safety)"><span class="icon">✅</span> Post-Job Safety Checklist</div><div class="section-body">
+    <p style="font-size:12px;color:var(--text-mid);margin-bottom:10px;">Complete these items after finishing all PM work.</p>
+    <table class="safety-table" id="postJobTable"><tr><th>Task</th><th class="th-done">Done</th><th class="th-na">N/A</th></tr></table>
+  </div></div>
+  <div class="section"><div class="section-header"><span class="icon">📊</span> Completion Summary</div><div class="section-body"><div class="field-group"><label>Tasks Completed</label><input type="text" id="tasks_completed" placeholder="e.g. 8/8"></div><div class="field-group"><label>Follow-up Required?</label><div class="check-row"><label><input type="radio" name="followup" value="yes"> Yes</label><label><input type="radio" name="followup" value="no" checked> No</label></div></div><div class="field-group"><label>Summary Notes</label><textarea id="summary_notes" placeholder="Final summary or follow-up details…" rows="3"></textarea></div></div></div>
+
+  <!-- Per-technician completion signatures -->
+  <div class="section">
+    <div class="section-header"><span class="icon">✍️</span> Technician Signatures</div>
+    <div class="section-body">
+      <p style="font-size:12px;color:var(--text-mid);margin-bottom:12px;">Each technician must sign below to confirm the work has been completed.</p>
+      <div id="completionSignaturesList"></div>
+      <div id="noTechSigMsg" style="text-align:center;padding:20px;color:var(--text-light);font-size:13px;">Add technician name(s) above to generate signature fields</div>
+    </div>
+  </div>
+  </div>
+</div>
+</div>
+<div class="bottom-bar"><button class="btn btn-primary" style="flex:1" onclick="saveAndEmail()">📧 Email Report</button></div>
+
+<script>
+// ═══ SESSION CHECK + AUTO-LOGOUT ═══
+const TIMEOUT_MS = 10 * 60 * 1000;
+function resetActivityTimer() { localStorage.setItem('hvac_last_activity', Date.now().toString()); }
+function checkInactivity() {
+  const last = parseInt(localStorage.getItem('hvac_last_activity') || '0');
+  const sess = localStorage.getItem('hvac_session');
+  if (sess && last && (Date.now() - last > TIMEOUT_MS)) {
+    localStorage.removeItem('hvac_session');
+    localStorage.removeItem('pm_session');
+    localStorage.removeItem('hvac_last_activity');
+    alert('Session expired — please sign in again.');
+    window.location.href = '/';
+  }
+  if (!sess) { window.location.href = '/'; }
+}
+['click','touchstart','keydown','scroll','mousemove'].forEach(evt => document.addEventListener(evt, resetActivityTimer, { passive: true }));
+setInterval(checkInactivity, 30000);
+resetActivityTimer();
+// Redirect to login if not signed in
+if (!localStorage.getItem('hvac_session')) { window.location.href = '/'; }
+// Get current user info
+const _currentUser = JSON.parse(localStorage.getItem('hvac_session') || '{}');
+
+// ═══ AUTO-SAVE DRAFT ═══
+function saveDraft() {
+  try {
+    // Capture all safety check states (Done/N/A buttons)
+    const safetyChecks = {};
+    document.querySelectorAll('.safety-check').forEach(el => {
+      if (el.id) safetyChecks[el.id] = el.classList.contains('active');
+    });
+    // Capture PPE condition selects
+    const ppeConditions = {};
+    document.querySelectorAll('#ppeTable .condition-select').forEach((sel, idx) => {
+      ppeConditions['ppe_cond_' + idx] = sel.value;
+    });
+    // Capture follow-up radio
+    const followupYes = document.querySelector('input[name="followup"][value="yes"]')?.checked || false;
+    // Capture Liebert unit numbers
+    const liebertData = liebertUnits.map(u => ({ id: u.id, num: u.num }));
+    // Capture multi-unit equipment data
+    const equipUnitsData = {};
+    Object.entries(equipUnits || {}).forEach(([name, units]) => {
+      equipUnitsData[name] = units.map(u => ({ id: u.id, num: u.num }));
+    });
+    // Capture all amp readings and findings textareas in PM checklists
+    const checklistInputs = {};
+    document.querySelectorAll('#pmChecklistBody input[type="text"], #pmChecklistBody textarea').forEach((el, idx) => {
+      // Use a stable identifier based on parent header + index
+      const block = el.closest('.pm-checklist');
+      if (!block) return;
+      const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || ('block' + idx);
+      const inputsInBlock = Array.from(block.querySelectorAll('input[type="text"], textarea'));
+      const localIdx = inputsInBlock.indexOf(el);
+      checklistInputs[header + '|' + localIdx] = el.value || '';
+    });
+    // Capture all PM checklist task checked states
+    const checkedTasks = {};
+    document.querySelectorAll('#pmChecklistBody .pm-task-check').forEach(el => {
+      const block = el.closest('.pm-checklist');
+      if (!block) return;
+      const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || '';
+      const allChecks = Array.from(block.querySelectorAll('.pm-task-check'));
+      const localIdx = allChecks.indexOf(el);
+      checkedTasks[header + '|' + localIdx] = el.classList.contains('checked');
+    });
+    // Capture LOTO photos
+    const lotoData = lotoPhotos.map(p => ({ id: p.id, dataUrl: p.dataUrl, caption: p.caption }));
+
+    const draft = {
+      date: document.getElementById('wo_date').value,
+      facility: document.getElementById('facility').value,
+      techNames: techNames.slice(),
+      selectedFreq: selectedFreq,
+      selectedEquip: [...selectedEquip],
+      ppeAcknowledged: ppeAcknowledged,
+      safetyCompleted: safetyCompleted,
+      safetyChecks: safetyChecks,
+      ppeConditions: ppeConditions,
+      followupYes: followupYes,
+      liebertData: liebertData,
+      equipUnitsData: equipUnitsData,
+      checklistInputs: checklistInputs,
+      checkedTasks: checkedTasks,
+      lotoData: lotoData,
+      generalComments: document.getElementById('general_comments')?.value || '',
+      tasksCompleted: document.getElementById('tasks_completed')?.value || '',
+      summaryNotes: document.getElementById('summary_notes')?.value || '',
+      savedAt: new Date().toISOString(),
+      savedBy: _currentUser.displayName || 'Unknown'
+    };
+    localStorage.setItem('pm_draft', JSON.stringify(draft));
+  } catch(e) { console.log('Draft save error:', e); }
+}
+// Auto-save every 30 seconds
+setInterval(saveDraft, 30000);
+// Save on any input change
+document.addEventListener('change', saveDraft);
+// Save on input typing (debounced) for findings/amp reading fields
+let _saveDebounce;
+document.addEventListener('input', () => {
+  clearTimeout(_saveDebounce);
+  _saveDebounce = setTimeout(saveDraft, 1000);
+});
+// Save when task checkboxes are clicked
+document.addEventListener('click', e => {
+  if (e.target && (e.target.classList.contains('pm-task-check') || e.target.closest('.pm-task-check'))) {
+    setTimeout(saveDraft, 100);
+  }
+});
+
+function loadDraft() {
+  try {
+    const d = JSON.parse(localStorage.getItem('pm_draft'));
+    if (!d) return false;
+    // Check if draft is less than 24 hours old
+    if (Date.now() - new Date(d.savedAt).getTime() > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem('pm_draft');
+      return false;
+    }
+    return d;
+  } catch { return false; }
+}
+
+function restoreDraft(d) {
+  // Basic fields
+  if (d.date) document.getElementById('wo_date').value = d.date;
+  if (d.facility) {
+    const facEl = document.getElementById('facility');
+    facEl.value = d.facility;
+    // Fire change so the equipment chips for this facility get built
+    facEl.dispatchEvent(new Event('change'));
+  }
+  if (d.techNames && d.techNames.length) {
+    d.techNames.forEach(n => addTechName(n));
+  }
+
+  // PPE acknowledgment
+  if (d.ppeAcknowledged) {
+    acknowledgePPE();
+  }
+
+  // Restore safety check states (Done/N/A)
+  if (d.safetyChecks) {
+    setTimeout(() => {
+      Object.entries(d.safetyChecks).forEach(([id, active]) => {
+        const el = document.getElementById(id);
+        if (el && active) el.classList.add('active');
+      });
+    }, 200);
+  }
+
+  // Restore PPE condition selects
+  if (d.ppeConditions) {
+    setTimeout(() => {
+      document.querySelectorAll('#ppeTable .condition-select').forEach((sel, idx) => {
+        const val = d.ppeConditions['ppe_cond_' + idx];
+        if (val) sel.value = val;
+      });
+    }, 200);
+  }
+
+  // Safety completed
+  if (d.safetyCompleted) {
+    setTimeout(() => completeSafety(), 300);
+  }
+
+  // Frequency
+  if (d.selectedFreq) {
+    setTimeout(() => {
+      const chip = document.querySelector('.freq-chip[data-freq="' + d.selectedFreq + '"]');
+      if (chip) selectFreq(chip);
+    }, 400);
+  }
+
+  // Equipment
+  if (d.selectedEquip && d.selectedEquip.length) {
+    setTimeout(() => {
+      document.querySelectorAll('.equip-chip').forEach(chip => {
+        const name = chip.querySelector('span:last-child')?.textContent;
+        if (name && d.selectedEquip.includes(name)) {
+          if (!selectedEquip.has(name)) {
+            selectedEquip.add(name);
+            chip.classList.add('selected');
+          }
+        }
+      });
+      toggleLiebertArea();
+      renderPMChecklists();
+    }, 500);
+  }
+
+  // Liebert units
+  if (d.liebertData && d.liebertData.length) {
+    setTimeout(() => {
+      // Clear existing and rebuild
+      liebertUnits = [];
+      liebertIdCounter = 0;
+      d.liebertData.forEach(lu => {
+        liebertIdCounter++;
+        liebertUnits.push({ id: liebertIdCounter, num: lu.num || '' });
+      });
+      renderLiebertEntries();
+      renderPMChecklists();
+    }, 600);
+  }
+
+  // Multi-unit equipment data
+  if (d.equipUnitsData) {
+    setTimeout(() => {
+      equipUnits = {};
+      Object.entries(d.equipUnitsData).forEach(([name, units]) => {
+        equipUnits[name] = units.map(u => {
+          equipUnitIdCounter++;
+          return { id: equipUnitIdCounter, num: u.num || '' };
+        });
+      });
+      renderMultiUnitArea();
+      renderPMChecklists();
+      // After checklists are rendered, restore the inputs and check states
+      setTimeout(() => {
+        if (d.checklistInputs) {
+          document.querySelectorAll('#pmChecklistBody input[type="text"], #pmChecklistBody textarea').forEach((el, idx) => {
+            const block = el.closest('.pm-checklist');
+            if (!block) return;
+            const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || ('block' + idx);
+            const inputsInBlock = Array.from(block.querySelectorAll('input[type="text"], textarea'));
+            const localIdx = inputsInBlock.indexOf(el);
+            const key = header + '|' + localIdx;
+            if (d.checklistInputs[key] !== undefined) el.value = d.checklistInputs[key];
+          });
+        }
+        if (d.checkedTasks) {
+          document.querySelectorAll('#pmChecklistBody .pm-task-check').forEach(el => {
+            const block = el.closest('.pm-checklist');
+            if (!block) return;
+            const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || '';
+            const allChecks = Array.from(block.querySelectorAll('.pm-task-check'));
+            const localIdx = allChecks.indexOf(el);
+            const key = header + '|' + localIdx;
+            if (d.checkedTasks[key]) {
+              el.classList.add('checked');
+              const textEl = document.getElementById(el.id + '_t');
+              if (textEl) textEl.classList.add('checked-text');
+            }
+          });
+        }
+      }, 400);
+    }, 700);
+  } else if (d.checklistInputs || d.checkedTasks) {
+    // Restore checklist state even without multi-unit data
+    setTimeout(() => {
+      if (d.checklistInputs) {
+        document.querySelectorAll('#pmChecklistBody input[type="text"], #pmChecklistBody textarea').forEach((el, idx) => {
+          const block = el.closest('.pm-checklist');
+          if (!block) return;
+          const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || ('block' + idx);
+          const inputsInBlock = Array.from(block.querySelectorAll('input[type="text"], textarea'));
+          const localIdx = inputsInBlock.indexOf(el);
+          const key = header + '|' + localIdx;
+          if (d.checklistInputs[key] !== undefined) el.value = d.checklistInputs[key];
+        });
+      }
+      if (d.checkedTasks) {
+        document.querySelectorAll('#pmChecklistBody .pm-task-check').forEach(el => {
+          const block = el.closest('.pm-checklist');
+          if (!block) return;
+          const header = block.querySelector('.pm-checklist-header')?.textContent?.trim() || '';
+          const allChecks = Array.from(block.querySelectorAll('.pm-task-check'));
+          const localIdx = allChecks.indexOf(el);
+          const key = header + '|' + localIdx;
+          if (d.checkedTasks[key]) {
+            el.classList.add('checked');
+            const textEl = document.getElementById(el.id + '_t');
+            if (textEl) textEl.classList.add('checked-text');
+          }
+        });
+      }
+    }, 800);
+  }
+
+  // Follow-up
+  if (d.followupYes) {
+    setTimeout(() => {
+      const radio = document.querySelector('input[name="followup"][value="yes"]');
+      if (radio) radio.checked = true;
+    }, 500);
+  }
+
+  // LOTO photos
+  if (d.lotoData && d.lotoData.length) {
+    setTimeout(() => {
+      lotoPhotos = [];
+      lotoIdCounter = 0;
+      d.lotoData.forEach(p => {
+        lotoIdCounter++;
+        lotoPhotos.push({ id: lotoIdCounter, dataUrl: p.dataUrl || null, caption: p.caption || '' });
+      });
+      renderLotoPhotos();
+    }, 300);
+  }
+
+  // Text fields (delayed to ensure sections are visible)
+  setTimeout(() => {
+    if (d.generalComments) { const el = document.getElementById('general_comments'); if (el) el.value = d.generalComments; }
+    if (d.tasksCompleted) { const el = document.getElementById('tasks_completed'); if (el) el.value = d.tasksCompleted; }
+    if (d.summaryNotes) { const el = document.getElementById('summary_notes'); if (el) el.value = d.summaryNotes; }
+  }, 700);
+}
+
+function clearDraft() {
+  localStorage.removeItem('pm_draft');
+}
+
+// ═══ PM HISTORY ═══
+async function savePMToHistory(data) {
+  try {
+    const storageData = { ...data };
+    if (storageData.emailAttachments) {
+      storageData.attachmentCount = storageData.emailAttachments.length;
+      delete storageData.emailAttachments;
+    }
+    // Load current history from server
+    let history = [];
+    let sha = null;
+    try {
+      const res = await fetch('/api/data/pm_history?t=' + Date.now());
+      if (res.ok) {
+        const d = await res.json();
+        history = JSON.parse(d.value || '[]');
+        sha = d.sha;
+      }
+    } catch(e) {}
+    history.unshift(storageData);
+    if (history.length > 50) history = history.slice(0, 50);
+    // Save back to server
+    await fetch('/api/data/pm_history', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.stringify(history), sha: sha })
+    });
+  } catch(e) {
+    console.log('History save error:', e);
+  }
+}
+
+async function getPMHistory() {
+  try {
+    const res = await fetch('/api/data/pm_history?t=' + Date.now());
+    if (res.ok) {
+      const d = await res.json();
+      return JSON.parse(d.value || '[]');
+    }
+  } catch(e) {}
+  return [];
+}
+
+// ═══ SAFETY CHECKLIST ═══
+function scToggle(dId,nId){const d=document.getElementById(dId),n=document.getElementById(nId);d.classList.toggle('active');if(d.classList.contains('active'))n.classList.remove('active');checkAllSafetySigned()}
+function scToggleNA(dId,nId){const d=document.getElementById(dId),n=document.getElementById(nId);n.classList.toggle('active');if(n.classList.contains('active'))d.classList.remove('active');checkAllSafetySigned()}
+let scUid=0;
+const PPE_ITEMS=['Safety Glasses','Gloves','Ear Protection','Dust Mask/Respirator','Safety Shoes','Hard Hat'];
+const PREJOB_TASKS=['Review job order for specific hazards','Inspect work area for tripping hazards','Ensure adequate lighting','Verify that all tools are in good condition','Check the accessibility of fire extinguisher'];
+const ELECTRICAL_TASKS=['Ensure power is disconnected before starting work','Use appropriate lockout/tagout procedures','Inspect electrical cords and tools for damage','Test for live wires using a non-contact voltage tester'];
+const GAS_TASKS=['Check for gas leaks using a gas detector','Ensure proper ventilation in the work area','Use refrigerant handling equipment according to EPA guidelines','Store chemicals and gases according to manufacturer\'s instructions'];
+const POSTJOB_TASKS=['Clean work area and remove all debris','Put away all tools','Inspect installation or repair area','Test Equipment operation','Send Email Regarding Findings and completion'];
+function buildPPETable(){const tb=document.getElementById('ppeTable');PPE_ITEMS.forEach(item=>{scUid++;const dId='sd_'+scUid,nId='sn_'+scUid;const tr=document.createElement('tr');tr.innerHTML='<td>'+item+'</td><td class="td-action"><div class="safety-check done-check" id="'+dId+'" onclick="scToggle(\''+dId+'\',\''+nId+'\')">✓</div></td><td class="td-action"><div class="safety-check na-check" id="'+nId+'" onclick="scToggleNA(\''+dId+'\',\''+nId+'\')">N/A</div></td>';tb.appendChild(tr)})}
+function buildCheckTable(tableId,tasks){const tb=document.getElementById(tableId);tasks.forEach(task=>{scUid++;const dId='sd_'+scUid,nId='sn_'+scUid;const tr=document.createElement('tr');tr.innerHTML='<td>'+task+'</td><td class="td-action"><div class="safety-check done-check" id="'+dId+'" onclick="scToggle(\''+dId+'\',\''+nId+'\')">✓</div></td><td class="td-action"><div class="safety-check na-check" id="'+nId+'" onclick="scToggleNA(\''+dId+'\',\''+nId+'\')">N/A</div></td>';tb.appendChild(tr)})}
+buildPPETable();buildCheckTable('preJobTable',PREJOB_TASKS);buildCheckTable('electricalTable',ELECTRICAL_TASKS);buildCheckTable('gasTable',GAS_TASKS);buildCheckTable('postJobTable',POSTJOB_TASKS);
+// Update button status when PPE conditions change
+document.querySelectorAll('.condition-select').forEach(sel => sel.addEventListener('change', checkAllSafetySigned));
+
+// ═══ LOTO PHOTO DOCUMENTATION ═══
+let lotoPhotos = []; // array of {id, dataUrl, caption}
+let lotoIdCounter = 0;
+
+function addLotoPhoto() {
+  lotoIdCounter++;
+  lotoPhotos.push({ id: lotoIdCounter, dataUrl: null, caption: '' });
+  renderLotoPhotos();
+}
+
+function renderLotoPhotos() {
+  const grid = document.getElementById('lotoPhotoGrid');
+  grid.innerHTML = lotoPhotos.map(p => {
+    const hasPhoto = !!p.dataUrl;
+    return '<div style="display:flex;flex-direction:column;">' +
+      '<div class="loto-photo-slot' + (hasPhoto ? ' has-photo' : '') + '" id="lotoSlot_' + p.id + '" onclick="document.getElementById(\'lotoFile_' + p.id + '\').click()">' +
+      (hasPhoto ? '<img src="' + p.dataUrl + '" alt="">' : '') +
+      '<span class="loto-badge">LOTO #' + p.id + '</span>' +
+      (hasPhoto ? '' : '<div class="loto-placeholder"><span class="loto-cam">📷</span><span class="loto-text">Tap to capture</span></div>') +
+      '<button class="loto-remove" onclick="event.stopPropagation();removeLotoPhoto(' + p.id + ')">✕</button>' +
+      '<input type="file" id="lotoFile_' + p.id + '" accept="image/*" onchange="handleLotoPhoto(' + p.id + ',this)">' +
+      '</div>' +
+      '<div class="loto-caption"><input type="text" placeholder="Label (e.g. MCC Panel B)" value="' + (p.caption || '').replace(/"/g, '&quot;') + '" onchange="updateLotoCaption(' + p.id + ',this.value)"></div>' +
+      '</div>';
+  }).join('');
+}
+
+function handleLotoPhoto(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const max = 800;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > max) { h = h * max / w; w = max; } }
+      else { if (h > max) { w = w * max / h; h = max; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const p = lotoPhotos.find(x => x.id === id);
+      if (p) p.dataUrl = dataUrl;
+      renderLotoPhotos();
+      saveDraft();
+      checkAllSafetySigned();
+      // Upload to R2 in background — keep base64 in dataUrl, store R2 URL in .url
+      uploadPhotoToServer(dataUrl, 'loto', file.name).then(url => {
+        if (url && url !== dataUrl) {
+          const pp = lotoPhotos.find(x => x.id === id);
+          if (pp) { pp.url = url; saveDraft(); }
+        }
+      }).catch(()=>{});
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Upload a photo (data URL) to the server; server uploads to R2 or echoes back unchanged
+async function uploadPhotoToServer(dataUrl, folder, filename) {
+  try {
+    const res = await fetch('/api/upload-photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataUrl, folder, filename })
+    });
+    const result = await res.json();
+    return result.url || dataUrl;
+  } catch {
+    return dataUrl;
+  }
+}
+
+function removeLotoPhoto(id) {
+  lotoPhotos = lotoPhotos.filter(p => p.id !== id);
+  renderLotoPhotos();
+  saveDraft();
+  checkAllSafetySigned();
+}
+
+function updateLotoCaption(id, val) {
+  const p = lotoPhotos.find(x => x.id === id);
+  if (p) p.caption = val;
+  saveDraft();
+}
+
+// Init with 2 empty LOTO photo slots
+addLotoPhoto();
+addLotoPhoto();
+
+let ppeAcknowledged=false,safetyCompleted=false;
+function acknowledgePPE(){ppeAcknowledged=true;document.getElementById('ppeBanner').classList.add('acknowledged');const btn=document.getElementById('ppeAckBtn');btn.classList.add('acknowledged');btn.textContent='PPE Acknowledged';const now=new Date();document.getElementById('ppeTimestamp').textContent='Acknowledged at '+now.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true})+(techNames.length?' by '+techNames.join(', '):'');document.getElementById('safetyGate').classList.add('unlocked');buildSafetySignatures();setTimeout(()=>document.getElementById('safetySection').scrollIntoView({behavior:'smooth',block:'start'}),300)}
+function completeSafety(){safetyCompleted=true;document.getElementById('gatedContent').classList.add('unlocked');document.getElementById('gatedSections').classList.add('unlocked');const btn=document.getElementById('safetyContinueBtn');btn.textContent='✓ Safety Checklist Complete';btn.disabled=true;btn.style.opacity='.6';setTimeout(()=>{document.getElementById('gatedContent').scrollIntoView({behavior:'smooth',block:'start'});buildCompletionSignatures()},300)}
+
+// ═══ SAFETY SIGNATURES ═══
+const safetySigs = {}; // {techName: {signed: bool, canvas, ctx, drawing, points}}
+
+function buildSafetySignatures(){
+  const area = document.getElementById('safetySignaturesArea');
+  const list = document.getElementById('safetySignaturesList');
+  const btn = document.getElementById('safetyContinueBtn');
+  
+  if(techNames.length === 0){
+    area.style.display = 'none';
+    btn.disabled = true;
+    return;
+  }
+  
+  area.style.display = 'block';
+  list.innerHTML = '';
+  
+  // Clear old sigs that no longer have a matching tech
+  Object.keys(safetySigs).forEach(name => {
+    if(!techNames.includes(name)) delete safetySigs[name];
+  });
+  
+  techNames.forEach((name, idx) => {
+    // Preserve existing signature state
+    if(!safetySigs[name]) safetySigs[name] = {signed:false, hasDrawing:false};
+    const sig = safetySigs[name];
+    const canvasId = 'safeSigCanvas_' + idx;
+    
+    const card = document.createElement('div');
+    card.className = 'safety-sig-card' + (sig.signed ? ' signed' : '');
+    card.id = 'safeSigCard_' + idx;
+    card.innerHTML = '<div class="safety-sig-name">✍️ ' + name + '</div>' +
+      '<div class="safety-sig-canvas-wrap' + (sig.hasDrawing ? ' has-sig' : '') + '" id="safeSigWrap_' + idx + '">' +
+      '<canvas id="' + canvasId + '"></canvas>' +
+      '<div class="safety-sig-placeholder" id="safeSigPh_' + idx + '"' + (sig.hasDrawing ? ' style="display:none"' : '') + '>Sign here with your finger</div>' +
+      '</div>' +
+      '<div class="safety-sig-actions">' +
+      '<button class="safety-sig-btn' + (sig.signed ? ' signed-btn' : '') + '" id="safeSigBtn_' + idx + '" onclick="confirmSafetySig(' + idx + ')">' + (sig.signed ? '✓ SIGNED' : 'TAP TO CONFIRM SIGNATURE') + '</button>' +
+      '<button class="safety-sig-btn clear-btn" onclick="clearSafetySig(' + idx + ')">Clear</button>' +
+      '</div>';
+    list.appendChild(card);
+    
+    // Setup canvas
+    setTimeout(() => initSafetySigCanvas(idx, name), 50);
+  });
+  
+  checkAllSafetySigned();
+}
+
+function initSafetySigCanvas(idx, name){
+  const canvas = document.getElementById('safeSigCanvas_' + idx);
+  if(!canvas) return;
+  const wrap = canvas.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  if(rect.width < 10 || rect.height < 10) {
+    setTimeout(() => initSafetySigCanvas(idx, name), 500);
+    return;
+  }
+  canvas.width = rect.width * 2;
+  canvas.height = rect.height * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.strokeStyle = '#1B3A5C';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+  
+  function getPos(e){
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return {x: t.clientX - r.left, y: t.clientY - r.top};
+  }
+  
+  function startDraw(e){
+    e.preventDefault();
+    drawing = true;
+    const p = getPos(e);
+    lastX = p.x; lastY = p.y;
+    safetySigs[name].hasDrawing = true;
+    document.getElementById('safeSigPh_' + idx).style.display = 'none';
+    document.getElementById('safeSigWrap_' + idx).classList.add('has-sig');
+  }
+  function draw(e){
+    if(!drawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastX = p.x; lastY = p.y;
+  }
+  function endDraw(){drawing = false;}
+  
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+  canvas.addEventListener('touchstart', startDraw, {passive:false});
+  canvas.addEventListener('touchmove', draw, {passive:false});
+  canvas.addEventListener('touchend', endDraw);
+}
+
+function isSafetyComplete() {
+  // Check safety checklist items (NOT Post-Job which is at the bottom now)
+  let allChecked = true;
+  const unchecked = [];
+  document.querySelectorAll('#safetySection .safety-table').forEach(table => {
+    if (table.id === 'postJobTable') return; // skip — it's checked separately
+    table.querySelectorAll('tr').forEach((tr, i) => {
+      if (i === 0) return;
+      const doneEl = tr.querySelector('.done-check');
+      const naEl = tr.querySelector('.na-check');
+      const done = doneEl?.classList.contains('active') || false;
+      const na = naEl?.classList.contains('active') || false;
+      if (!done && !na) {
+        allChecked = false;
+        const task = tr.querySelector('td')?.textContent || 'Item';
+        unchecked.push(task);
+      }
+    });
+  });
+  return { complete: allChecked, unchecked };
+}
+
+function isPostJobComplete() {
+  const table = document.getElementById('postJobTable');
+  if (!table) return { complete: true, unchecked: [] };
+  let allChecked = true;
+  const unchecked = [];
+  table.querySelectorAll('tr').forEach((tr, i) => {
+    if (i === 0) return;
+    const doneEl = tr.querySelector('.done-check');
+    const naEl = tr.querySelector('.na-check');
+    const done = doneEl?.classList.contains('active') || false;
+    const na = naEl?.classList.contains('active') || false;
+    if (!done && !na) {
+      allChecked = false;
+      const task = tr.querySelector('td')?.textContent || 'Item';
+      unchecked.push(task);
+    }
+  });
+  return { complete: allChecked, unchecked };
+}
+
+function hasLotoPhoto() {
+  return lotoPhotos.some(p => p.dataUrl);
+}
+
+function confirmSafetySig(idx){
+  const name = techNames[idx];
+  
+  // Check safety completeness first
+  const safety = isSafetyComplete();
+  if (!safety.complete) {
+    const missing = safety.unchecked.slice(0, 3).join('\n• ');
+    const more = safety.unchecked.length > 3 ? '\n...and ' + (safety.unchecked.length - 3) + ' more' : '';
+    alert('⚠️ All safety checklist items must be marked Done or N/A before signing.\n\nIncomplete items:\n• ' + missing + more);
+    return;
+  }
+  
+  // Check LOTO photo
+  if (!hasLotoPhoto()) {
+    alert('⚠️ At least one LOTO (Lockout/Tagout) photo must be added before signing.\n\nScroll up to the Electrical Safety section to add a LOTO photo.');
+    return;
+  }
+  
+  // Check signature drawing
+  if(!safetySigs[name] || !safetySigs[name].hasDrawing){
+    alert('Please sign above before confirming.');
+    return;
+  }
+  safetySigs[name].signed = true;
+  document.getElementById('safeSigBtn_' + idx).textContent = '✓ SIGNED';
+  document.getElementById('safeSigBtn_' + idx).classList.add('signed-btn');
+  document.getElementById('safeSigCard_' + idx).classList.add('signed');
+  checkAllSafetySigned();
+}
+
+function clearSafetySig(idx){
+  const name = techNames[idx];
+  safetySigs[name] = {signed:false, hasDrawing:false};
+  const canvas = document.getElementById('safeSigCanvas_' + idx);
+  if(canvas){
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  document.getElementById('safeSigPh_' + idx).style.display = 'flex';
+  document.getElementById('safeSigWrap_' + idx).classList.remove('has-sig');
+  document.getElementById('safeSigBtn_' + idx).textContent = 'TAP TO CONFIRM SIGNATURE';
+  document.getElementById('safeSigBtn_' + idx).classList.remove('signed-btn');
+  document.getElementById('safeSigCard_' + idx).classList.remove('signed');
+  // Re-init canvas listeners
+  setTimeout(() => initSafetySigCanvas(idx, name), 50);
+  checkAllSafetySigned();
+}
+
+function checkAllSafetySigned(){
+  const btn = document.getElementById('safetyContinueBtn');
+  if(techNames.length === 0){btn.disabled = true; btn.textContent = 'Add technician name(s) first'; return;}
+  
+  const safety = isSafetyComplete();
+  const loto = hasLotoPhoto();
+  const allSigned = techNames.every(name => safetySigs[name] && safetySigs[name].signed);
+  
+  if (!safety.complete || !loto || !allSigned) {
+    btn.disabled = true;
+    const issues = [];
+    if (!safety.complete) issues.push(safety.unchecked.length + ' checklist items incomplete');
+    if (!loto) issues.push('LOTO photo required');
+    if (!allSigned) {
+      const signedCount = techNames.filter(name => safetySigs[name] && safetySigs[name].signed).length;
+      issues.push(signedCount + '/' + techNames.length + ' signed');
+    }
+    btn.textContent = issues.join(' · ');
+  } else {
+    btn.disabled = false;
+    btn.textContent = '✓ All Signed — Continue to PM';
+  }
+}
+
+// ═══ TECH NAMES + AUTO SIGNATURE ═══
+const techNames=[];
+function addTechName(n){const c=n.trim();if(!c||techNames.includes(c))return;techNames.push(c);renderTechTags();buildCompletionSignatures();if(ppeAcknowledged)buildSafetySignatures()}
+function removeTechName(i){techNames.splice(i,1);renderTechTags();buildCompletionSignatures();if(ppeAcknowledged)buildSafetySignatures()}
+function renderTechTags(){const w=document.getElementById('techWrap');w.querySelectorAll('.tech-tag').forEach(t=>t.remove());const inp=document.getElementById('techInput');techNames.forEach((n,i)=>{const t=document.createElement('span');t.className='tech-tag';t.innerHTML=n+' <button class="remove-tag" onclick="removeTechName('+i+')">✕</button>';w.insertBefore(t,inp)});inp.placeholder=techNames.length?'Add another…':'Type name, press Enter to add…'}
+function handleTechKey(e){const inp=e.target;if(e.key==='Enter'||e.key===','){e.preventDefault();const v=inp.value.replace(/,/g,'').trim();if(v){addTechName(v);inp.value=''}}if(e.key==='Backspace'&&!inp.value&&techNames.length>0)removeTechName(techNames.length-1)}
+function handleTechKeyUp(e){if(e.key==='Enter'){e.preventDefault();const inp=e.target;const v=inp.value.replace(/,/g,'').trim();if(v){addTechName(v);inp.value=''}}}
+function handleTechBlur(){setTimeout(()=>{const inp=document.getElementById('techInput');const v=inp.value.trim();if(v){addTechName(v);inp.value=''}document.getElementById('techWrap').classList.remove('focused')},150)}
+function getTechString(){return techNames.join(', ')}
+
+// ═══ COMPLETION SIGNATURES ═══
+const compSigs = {}; // {name: {signed, hasDrawing}}
+
+function buildCompletionSignatures(){
+  const list = document.getElementById('completionSignaturesList');
+  const noMsg = document.getElementById('noTechSigMsg');
+  if(!list) return;
+  
+  if(techNames.length === 0){
+    list.innerHTML = '';
+    noMsg.style.display = 'block';
+    return;
+  }
+  noMsg.style.display = 'none';
+  list.innerHTML = '';
+  
+  // Clean old entries
+  Object.keys(compSigs).forEach(n => { if(!techNames.includes(n)) delete compSigs[n]; });
+  
+  const today = new Date();
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  
+  techNames.forEach((name, idx) => {
+    if(!compSigs[name]) compSigs[name] = {signed:false, hasDrawing:false};
+    const sig = compSigs[name];
+    const card = document.createElement('div');
+    card.className = 'comp-sig-card' + (sig.signed ? ' signed' : '');
+    card.id = 'compSigCard_' + idx;
+    card.innerHTML = 
+      '<div class="comp-sig-name">' + name + ' <span class="sig-status ' + (sig.signed ? 'done' : 'pending') + '" id="compSigStatus_' + idx + '">' + (sig.signed ? '✓ Signed' : 'Pending') + '</span></div>' +
+      '<div class="comp-sig-fields">' +
+        '<div><label>Print Name</label><input type="text" value="' + name + '" readonly style="background:#f0f0f0;"></div>' +
+        '<div><label>Date</label><input type="date" value="' + todayStr + '" readonly style="background:#f0f0f0;"></div>' +
+      '</div>' +
+      '<label>Signature</label>' +
+      '<div class="comp-sig-canvas-wrap' + (sig.hasDrawing ? ' has-sig' : '') + '" id="compSigWrap_' + idx + '">' +
+        '<canvas id="compSigCanvas_' + idx + '"></canvas>' +
+        '<div class="comp-sig-placeholder" id="compSigPh_' + idx + '"' + (sig.hasDrawing ? ' style="display:none"' : '') + '>✍️ Sign here with your finger</div>' +
+      '</div>' +
+      '<div class="comp-sig-actions">' +
+        '<button class="comp-sig-confirm' + (sig.signed ? ' confirmed' : '') + '" id="compSigBtn_' + idx + '" onclick="confirmCompSig(' + idx + ')">' + (sig.signed ? '✓ SIGNED & CONFIRMED' : 'Confirm Signature') + '</button>' +
+        '<button class="comp-sig-clear" onclick="clearCompSig(' + idx + ')">Clear</button>' +
+      '</div>';
+    list.appendChild(card);
+    setTimeout(() => initCompSigCanvas(idx, name), 300);
+  });
+}
+
+function initCompSigCanvas(idx, name){
+  const canvas = document.getElementById('compSigCanvas_' + idx);
+  if(!canvas) return;
+  const wrap = canvas.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  // If section is hidden, rect will be 0 — retry later
+  if(rect.width < 10 || rect.height < 10) {
+    setTimeout(() => initCompSigCanvas(idx, name), 500);
+    return;
+  }
+  canvas.width = rect.width * 2;
+  canvas.height = rect.height * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.strokeStyle = '#1B3A5C';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  let drawing = false, lastX = 0, lastY = 0;
+  function getPos(e){
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return {x: t.clientX - r.left, y: t.clientY - r.top};
+  }
+  function startDraw(e){
+    e.preventDefault(); drawing = true;
+    const p = getPos(e); lastX = p.x; lastY = p.y;
+    compSigs[name].hasDrawing = true;
+    document.getElementById('compSigPh_' + idx).style.display = 'none';
+    document.getElementById('compSigWrap_' + idx).classList.add('has-sig');
+  }
+  function draw(e){
+    if(!drawing) return; e.preventDefault();
+    const p = getPos(e);
+    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+    lastX = p.x; lastY = p.y;
+  }
+  function endDraw(){ drawing = false; }
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+  canvas.addEventListener('touchstart', startDraw, {passive:false});
+  canvas.addEventListener('touchmove', draw, {passive:false});
+  canvas.addEventListener('touchend', endDraw);
+}
+
+function confirmCompSig(idx){
+  const name = techNames[idx];
+  
+  // Check Post-Job checklist is complete
+  const postJob = isPostJobComplete();
+  if (!postJob.complete) {
+    const missing = postJob.unchecked.slice(0, 3).join('\n• ');
+    const more = postJob.unchecked.length > 3 ? '\n...and ' + (postJob.unchecked.length - 3) + ' more' : '';
+    alert('⚠️ All Post-Job checklist items must be completed before signing.\n\nIncomplete items:\n• ' + missing + more);
+    document.getElementById('postJobTable').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  
+  if(!compSigs[name] || !compSigs[name].hasDrawing){
+    alert('Please sign above before confirming.');
+    return;
+  }
+  compSigs[name].signed = true;
+  document.getElementById('compSigBtn_' + idx).textContent = '✓ SIGNED & CONFIRMED';
+  document.getElementById('compSigBtn_' + idx).classList.add('confirmed');
+  document.getElementById('compSigCard_' + idx).classList.add('signed');
+  const st = document.getElementById('compSigStatus_' + idx);
+  st.textContent = '✓ Signed'; st.className = 'sig-status done';
+}
+
+function clearCompSig(idx){
+  const name = techNames[idx];
+  compSigs[name] = {signed:false, hasDrawing:false};
+  const canvas = document.getElementById('compSigCanvas_' + idx);
+  if(canvas){ const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+  document.getElementById('compSigPh_' + idx).style.display = 'flex';
+  document.getElementById('compSigWrap_' + idx).classList.remove('has-sig');
+  document.getElementById('compSigBtn_' + idx).textContent = 'Confirm Signature';
+  document.getElementById('compSigBtn_' + idx).classList.remove('confirmed');
+  document.getElementById('compSigCard_' + idx).classList.remove('signed');
+  const st = document.getElementById('compSigStatus_' + idx);
+  st.textContent = 'Pending'; st.className = 'sig-status pending';
+  setTimeout(() => initCompSigCanvas(idx, name), 50);
+}
+
+// ═══ EQUIPMENT ═══
+// ═══ EQUIPMENT — facility-aware ═══
+// Equipment shared by both facilities
+const EQUIPMENT_SHARED={'Safety':['CO Detectors']};
+// Equipment specific to 900 Sylvan Ave
+const EQUIPMENT_900={
+  'Cooling Towers':['Cooling Tower 1','Cooling Tower 2','Cooling Tower 3','Cooling Tower 4'],
+  'PACO Pumps':['PCWP 1','PCWP 2','PCWP 3','PCWP 4','SCWP 1','SCWP 2','SCWP 3','SCWP 4','CHWP 1','CHWP 2','CHWP 3','CHWP 4'],
+  'Liebert Units':['Liebert Unit','Basement Liebert Units'],
+  'Air Handling':['AHU Buffalo','AHU Studio Units','HV and Fan Units','FCU','GE Penthouse Unit','Bard Unit'],
+  'Fans':['Fan Exhaust','Fan Exhaust Kitchen','Fan Smoke Purge','Filtration Make-Up'],
+  'Heaters':['Stairwell Heater','Hot Water Heater','Domestic Hot Water System'],
+  'Other':['Blowdown Penthouse'],
+  'Plumbing':['Bathroom Hardware','Bathroom Plumbing','Drain Fitness Center'],
+  'Fountains':['Fountain Courtyard','Fountain Water Hall']
+};
+// Equipment specific to 904 Sylvan Ave
+const EQUIPMENT_904={'Air Handling':['Bard Unit']};
+
+function getFacility(){const f=document.getElementById('facility').value;if(f&&f.startsWith('900'))return '900';if(f&&f.startsWith('904'))return '904';return null}
+function getEquipmentForFacility(){const fac=getFacility();if(!fac)return{};const eq={};if(fac==='900')Object.assign(eq,EQUIPMENT_900);if(fac==='904')Object.assign(eq,EQUIPMENT_904);Object.assign(eq,EQUIPMENT_SHARED);return eq}
+let liebertUnits=[],liebertIdCounter=0;
+function addLiebertUnit(){liebertIdCounter++;liebertUnits.push({id:liebertIdCounter,num:''});renderLiebertEntries()}
+function removeLiebertUnit(id){liebertUnits=liebertUnits.filter(u=>u.id!==id);renderLiebertEntries();renderPMChecklists()}
+function updateLiebertNum(id,val){const u=liebertUnits.find(u=>u.id===id);if(u)u.num=val;renderPMChecklists()}
+function renderLiebertEntries(){const list=document.getElementById('liebertUnitsList');list.innerHTML='';liebertUnits.forEach((u,idx)=>{const d=document.createElement('div');d.className='liebert-unit-entry';d.innerHTML='<span class="lu-label">Unit #'+(idx+1)+'</span><input type="text" placeholder="Enter unit number…" value="'+u.num+'" oninput="updateLiebertNum('+u.id+',this.value)"><button class="lu-remove" onclick="removeLiebertUnit('+u.id+')">✕</button>';list.appendChild(d)})}
+function getLiebertNames(){return liebertUnits.map((u,i)=>'Liebert Unit #'+(u.num||('('+(i+1)+')')))}
+
+// ═══ MULTI-UNIT EQUIPMENT ═══
+// Equipment that supports multiple units with unit numbers
+const MULTI_UNIT_EQUIP=new Set([
+  // Air Handling
+  'AHU Buffalo','AHU Studio Units','HV and Fan Units','FCU','GE Penthouse Unit','Bard Unit',
+  // Fans
+  'Fan Exhaust','Fan Exhaust Kitchen','Fan Smoke Purge','Filtration Make-Up',
+  // Heaters
+  'Stairwell Heater','Hot Water Heater','Domestic Hot Water System',
+  // Liebert (basement — regular Liebert Unit already uses liebertUnits)
+  'Basement Liebert Units'
+]);
+function isMultiUnit(n){return MULTI_UNIT_EQUIP.has(n)}
+// equipUnits maps equipment name → array of {id, num}
+let equipUnits={}, equipUnitIdCounter=0;
+function addEquipUnit(equipName){equipUnitIdCounter++;if(!equipUnits[equipName])equipUnits[equipName]=[];equipUnits[equipName].push({id:equipUnitIdCounter,num:''});renderMultiUnitArea();renderPMChecklists()}
+function removeEquipUnit(equipName,id){if(!equipUnits[equipName])return;equipUnits[equipName]=equipUnits[equipName].filter(u=>u.id!==id);if(equipUnits[equipName].length===0)delete equipUnits[equipName];renderMultiUnitArea();renderPMChecklists()}
+function updateEquipUnitNum(equipName,id,val){if(!equipUnits[equipName])return;const u=equipUnits[equipName].find(u=>u.id===id);if(u)u.num=val;renderPMChecklists()}
+
+function renderMultiUnitArea(){
+  const area=document.getElementById('multiUnitArea');
+  if(!area)return;
+  area.innerHTML='';
+  const selectedMultiUnit=[...selectedEquip].filter(isMultiUnit);
+  if(!selectedMultiUnit.length)return;
+  selectedMultiUnit.forEach(equipName=>{
+    const wrap=document.createElement('div');
+    wrap.style.cssText='border:1.5px dashed var(--border);border-radius:10px;padding:12px;margin-top:10px;background:#FAFBFD;';
+    const units=equipUnits[equipName]||[];
+    let html='<label style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:8px;display:block;text-transform:uppercase;letter-spacing:.5px;">'+equipName+' — Unit Numbers</label>';
+    html+='<div>';
+    units.forEach((u,idx)=>{
+      html+='<div class="liebert-unit-entry"><span class="lu-label">Unit #'+(idx+1)+'</span><input type="text" placeholder="Enter unit number…" value="'+u.num.replace(/"/g,'&quot;')+'" oninput="updateEquipUnitNum(\''+equipName.replace(/'/g,"\\'")+'\','+u.id+',this.value)"><button class="lu-remove" onclick="removeEquipUnit(\''+equipName.replace(/'/g,"\\'")+'\','+u.id+')">✕</button></div>';
+    });
+    html+='</div>';
+    html+='<button class="add-liebert-btn" onclick="addEquipUnit(\''+equipName.replace(/'/g,"\\'")+'\')">+ Add Another '+equipName+' Unit</button>';
+    wrap.innerHTML=html;
+    area.appendChild(wrap);
+  });
+}
+
+function toggleLiebertArea(){
+  // Regular Liebert Unit (dynamic unit numbers) — existing
+  const showLiebert=[...selectedEquip].some(n=>n==='Liebert Unit');
+  const liebertEl=document.getElementById('liebertArea');
+  liebertEl.style.display=showLiebert?'block':'none';
+  if(showLiebert&&liebertUnits.length===0)addLiebertUnit();
+  // Multi-unit equipment — auto-add a unit when equipment is newly selected
+  const selectedMultiUnit=[...selectedEquip].filter(isMultiUnit);
+  selectedMultiUnit.forEach(name=>{
+    if(!equipUnits[name]||equipUnits[name].length===0){
+      equipUnitIdCounter++;
+      equipUnits[name]=[{id:equipUnitIdCounter,num:''}];
+    }
+  });
+  // Clean up unselected
+  Object.keys(equipUnits).forEach(name=>{
+    if(!selectedEquip.has(name))delete equipUnits[name];
+  });
+  renderMultiUnitArea();
+}
+function getMultiUnitNames(){
+  const names=[];
+  Object.entries(equipUnits).forEach(([equipName,units])=>{
+    units.forEach((u,i)=>{
+      names.push(equipName+' #'+(u.num||('('+(i+1)+')')));
+    });
+  });
+  return names;
+}
+
+const CT_PM={'Quarterly':['Inspect general condition of Tower','Inspect, clean cold water basin and basin filtration piping','Ensure all basin filtration nozzles are in place and clear of debris','Inspect domestic water make up system and adjust if necessary','Inspect conduit distribution system and sprayers for proper operation','Inspect fan blade bolts for tightness and stress cracks','Inspect belts — adjust or replace if necessary','Lubricate fan shaft bearings','Lubricate fan motor adjusting rods','Inspect all piping insulation and actuators'],'Quarterly — VFD':['Replace all VFD Filters — perform inventory after change','Confirm proper operation of cooling fans','Check all MCC indicator lights — replace if necessary'],'Semi-Annual':['Full tower cleaning','Clean the outside of the fan motor to prevent overheating','Inspect heat trace system and basin heaters (record amperes)','Inspect all surfaces for corrosion and report findings','Inspect galvanized components, wire brush and apply cold galvanize as necessary'],'Annual':['Open Balance Clean, remove strainer and clean it','Megger the fan motor windings']};
+const PUMP_PM={'Daily':{tasks:['Check if there are no leaks or seeping of condenser water at mechanical seals'],note:'This should be performed during building rounds every shift'},'Quarterly':{tasks:['Check for unusual noise or vibration','Ensure motor and pump mounting bolts are snug','Inspect pump and seals for water leaks','Inspect drive coupling for wear (LOTO)','Ensure drive coupling set screws are tight (LOTO)','Check pump shaft for free rotation (LOTO)','Inspect and test pressure gauges and cyclone separators','Exercise all isolation valves — NOTE START POSITION BEFORE PROCEEDING']},'Semi-Annual':{tasks:['Measure and record motor amperage at 60 Hz','Grease pump and motor — use Polyurea Grease','Check bearings temperature before and after applying grease','Inspect vibration eliminators and ensure base is floating','Inspect drive coupling alignment (LOTO)'],note:'Refer to both O+M manuals (pump and motor) for lubrication quantities'}};
+const LIEBERT_PM={'Monthly':{sections:[{sub:'Blower Section',tasks:['Clean and inspect blower wheel(s) for loose or cracked blades','Bearings inspect for free movement, and check set screw for tightness','Inspect belt condition and tension (replace if necessary) — USE LOTO']},{sub:'Heaters',tasks:['Inspect heating elements for deterioration','Engage heaters through the controller and confirm proper operation']},{sub:'Air Filters',tasks:['Check air filter switch','Wipe section clean including intake grills — report any damage to unit']},{sub:'Condensate Pump',tasks:['Inspect mechanical pump operation','Inspect all electrical connections']},{sub:'CHW Piping',tasks:['Inspect all piping actuators for leaks and unrestricted movement (stroke via Test Outputs Menu)','Inspect all CHW insulation — repair if necessary','Inspect and test supply, return gauges and iso valves — replace if necessary','Inspect and test all Belimo Actuators — report any issues to Chief immediately']}]},'Semi-Annual':{sections:[{sub:'Blower Section',tasks:['Lubricate drive motor if serviceable (2 oz. every 3 years from initial PM date)','Inspect and tighten electrical connections']},{sub:'Strainers',tasks:['Blow down supply strainers','Ensure there are no leaks, reinstall cap and make sure there are no leaks','Top off chilled water via Penthouse']},{sub:'Heaters',tasks:['Engage heaters through the controller and confirm proper operation','Record amperes on each element and write down findings'],hasHeaterReadings:true},{sub:'Air Filters',tasks:['Replace Air Filters']},{sub:'CHW Piping + A Coil',tasks:['Inspect coil for any signs of leaks and rust/corrosion','Clean condensate pan','Repair and/or add insulation where necessary'],alert:'REPORT ANY AND ALL SIGNS OF CORROSION ON THE ENTIRE MACHINE'},{sub:'Electrical',tasks:['Check Fuses','Inspect and tighten all electrical connections','Check operating sequence','Check contactor operation and inspect contacts for pitting','Check condition of drive motor and record amperes'],hasMotorReadings:true}]}};
+
+let selectedFreq='Quarterly';
+function selectFreq(el){document.querySelectorAll('.freq-chip').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');selectedFreq=el.dataset.freq;renderPMChecklists()}
+const selectedEquip=new Set();const grid=document.getElementById('equipGrid');
+function buildEquipmentChips(){const grid=document.getElementById('equipGrid');grid.innerHTML='';const EQUIPMENT=getEquipmentForFacility();if(!Object.keys(EQUIPMENT).length){grid.innerHTML='<p style="font-size:13px;color:var(--text-light);padding:10px;grid-column:1/-1;">Select a facility above to see available equipment.</p>';return}Object.entries(EQUIPMENT).forEach(([group,items])=>{const lbl=document.createElement('div');lbl.className='equip-group-label';lbl.textContent=group;grid.appendChild(lbl);items.forEach(name=>{const chip=document.createElement('div');chip.className='equip-chip'+(selectedEquip.has(name)?' selected':'');chip.innerHTML='<span class="chip-check">✓</span><span>'+name+'</span>';chip.addEventListener('click',()=>{if(selectedEquip.has(name)){selectedEquip.delete(name);chip.classList.remove('selected')}else{selectedEquip.add(name);chip.classList.add('selected')}toggleLiebertArea();renderPMChecklists()});grid.appendChild(chip)})})}
+buildEquipmentChips();
+document.getElementById('facility').addEventListener('change',()=>{
+  // When facility changes, clear equipment selections that don't match the new facility
+  const EQUIPMENT=getEquipmentForFacility();
+  const validNames=new Set();
+  Object.values(EQUIPMENT).forEach(items=>items.forEach(n=>validNames.add(n)));
+  [...selectedEquip].forEach(n=>{if(!validNames.has(n))selectedEquip.delete(n)});
+  buildEquipmentChips();
+  toggleLiebertArea();
+  renderPMChecklists();
+});
+function isCT(n){return n.startsWith('Cooling Tower')}function isPump(n){return n.startsWith('PCWP')||n.startsWith('SCWP')||n.startsWith('CHWP')}function isLiebert(n){return n.startsWith('Liebert')}function isCO(n){return n==='CO Detectors'}
+const CO_PM={'Monthly':['Notify Security you will be testing CO detectors and causing a local audible alert','Press and hold test button on wall mounted detector until audible alert is heard'],'Annual':['Notify Security you will be testing CO detectors and causing a local audible alert','Replace batteries using (1) 9V battery in each detector','Press and hold test button on wall mounted detector until audible alert is heard']};
+function getCOTasks(f){const t={};if(f==='Monthly'||f==='Quarterly'||f==='Semi-Annual'||f==='Annual')t['Monthly']=CO_PM['Monthly'];if(f==='Annual')t['Annual']=CO_PM['Annual'];return t}
+
+// ═══ GENERIC PM DATA for 900 Sylvan equipment ═══
+// Each entry: { intervals: {freq: [tasks]}, amps: true/false, ampLabels: ['L1','L2','L3'] }
+const GENERIC_PM={
+  'AHU Buffalo':{amps:false,intervals:{
+    'Quarterly':['Check physical condition of blower section','Check belt condition and tension — use belt checker, replace if necessary','Inspect vibration eliminators — adjust if necessary','Check all bearings, pulleys, and set screws for tightness','Ensure condensate pan and drain are clean and clear of obstruction','Inspect for any signs of algae or bacteria — REPORT ISSUES IMMEDIATELY','VFD: Ensure proper operation of cooling fans — REPORT ISSUES IMMEDIATELY','CHW: Blow down chilled water strainers','CHW: Check proper operation via BMS','CHW: Inspect all pressure gauges for proper operation — replace if necessary'],
+    'Semi-Annual':['Clean and inspect blower wheel for loose or cracked blades','Lubricate blower shaft bearings (REFER TO LUBE MASTER) — wipe excess grease from bearing after adding lube','Lubricate motor if serviceable type (REFER TO LUBE MASTER)','Inspect all electrical contactors for excessively burnt, corroded or pitted contacts','Inspect air dampers for proper sealing — adjust if necessary','Replace all 2" Pre-Filters, box old ones and move to loading dock for removal','Flush condensate drains with fresh water and ensure unrestricted flow','Wipe down exterior of the unit','Vacuum all exterior flood containment pans as well as the Air Handler Room Floors'],
+    'Annual':['Check all Blower bearings, pulleys and set screws for tightness','Inspect all electric wires for signs of overheating — replace if necessary']
+  }},
+  'AHU Studio Units':{amps:false,intervals:{
+    'Quarterly':['Check physical condition of blower section','Check belt condition and tension — use belt checker, replace if necessary','Inspect vibration eliminators — adjust if necessary','Check all bearings, pulleys, and set screws for tightness','Ensure condensate pan and drain are clean and clear of obstruction','VFD: Ensure proper operation of cooling fans — REPORT ISSUES IMMEDIATELY','CHW: Blow down chilled water strainers','CHW: Check proper operation via BMS','Pour Chromate "Lift" into all floor drains in the Studio AHU Room'],
+    'Semi-Annual':['Clean and inspect blower wheel for loose or cracked blades','Lubricate blower shaft bearings (REFER TO LUBE MASTER)','Lubricate motor if serviceable type (REFER TO LUBE MASTER)','Inspect all electrical contactors for excessively burnt, corroded or pitted contacts','Inspect air dampers for proper sealing — adjust if necessary','Replace Air Filters','Flush condensate drains with fresh water and ensure unrestricted flow','Wipe down exterior of the unit','Vacuum all exterior flood containment pans as well as the Air Handler Room Floors'],
+    'Annual':['Check all Blower bearings, pulleys and set screws for tightness','Inspect all electric wires for signs of overheating — replace if necessary','Ensure all wire terminations are tight','Remove, clean and apply never seize to chilled water strainers']
+  }},
+  'Bard Unit':{amps:true,ampLabels:['Evap Fan','Cond Fan','Crankcase Htr','Compressor'],intervals:{
+    'Quarterly':['Replace air filter','Inspect Evaporator Fan operation — clean if necessary','Record Evaporator Fan Amperes','Inspect Condenser Fan operation — clean if necessary','Record Condenser Fan Amperes','Check Refrigerant Cycle (Evaporator Temp, Condenser Coil Temperature)','Inspect for refrigerant leaks','Check all contactors and controls','Inspect Crankcase Heaters if Equipped (Record Amperes)','Ensure Condensate pan is clean and drain runs free of obstruction','Record Compressor Amperes','Inspect Economizer for proper operation','Inspect thermostat for proper operation'],
+    'Semi-Annual':['Clean condensate pan and drain','Tighten all electrical connections (Lock Out Tag Out)','Check all fasteners and set screws (Lock Out Tag Out)','Clean Condenser Fan and Coil','Clean Evaporator Fan and Coil']
+  }},
+  'Basement Liebert Units':{amps:false,intervals:{
+    'Monthly':['Blower: Impellers free of debris — USE LOTO','Blower: Bearings are FREE','Blower: Inspect belt condition and tension (replace if necessary) — USE LOTO','Humidifier: Inspect drain pan for leaks','Humidifier: Inspect Humidifier Lamps','Humidifier: Inspect humidifier fill valve assembly — confirm proper operation','Humidifier: Check pan for mineral deposits — clean if necessary','Heaters: Inspect heating elements for deterioration','Heaters: Engage heaters through the controller and confirm proper operation','Air Filters: Check air filter switch','Air Filters: Wipe section clean','Condensate Pump: Inspect pump operation and connections','CHW Piping: Inspect all actuators for leaks and unrestricted movement'],
+    'Semi-Annual':['Blower: Clean and inspect blower wheel(s) for loose or cracked blades','Blower: Bearings inspect for free movement and check set screw for tightness','Blower: Lubricate drive motor if serviceable (2oz every 3 years from initial PM date)','Blower: Inspect belt condition and tension (replace if necessary)','Blower: Inspect and tighten electrical connections']
+  }},
+  'Bathroom Hardware':{amps:false,intervals:{
+    'Quarterly':['Inspect all hinges — repair if necessary','Inspect privacy latches for proper operation and alignment','Inspect partition alignment — repair if necessary','Inspect partition floor skirts — repair if necessary','Inspect partition mounting hardware and anchoring — repair if necessary','Inspect accessory coat hook and toilet paper dispenser — repair if necessary','Inspect entrance door hardware and operation — repair if necessary','Inspect Janitor closet lock and door hardware — repair if necessary']
+  }},
+  'Bathroom Plumbing':{amps:false,intervals:{
+    'Quarterly':['Inspect and test all fixtures for proper mounting and operation — repair if necessary','Inspect and test all soap dispensers for proper mounting and operation — repair if necessary','Inspect and test all Flushometers for proper operation and no leakage — repair if necessary','Inspect and ensure that all Escutcheons are properly installed — repair if necessary','Inspect and ensure that all drains are working properly and not leaking — repair if necessary','Inspect and ensure that toilet paper holders are not loose and working properly — repair if necessary']
+  }},
+  'Blowdown Penthouse':{amps:false,intervals:{
+    'Semi-Annual':['Primary Pump #1 — blow down','Primary Pump #2 — blow down','Primary Pump #3 — blow down','Primary Pump #4 — blow down','Secondary Pump #1 — blow down','Secondary Pump #2 — blow down','Secondary Pump #3 — blow down','Secondary Pump #4 — blow down','Chilled Pump #1 — blow down','Chilled Pump #2 — blow down','Chilled Pump #3 — blow down','Chilled Pump #4 — blow down','HX Plate and Frame — HX 1','HX Plate and Frame — HX 2','Brominator','Strainer — blow down','Tower Bleed','Tower Filter','Separator','Bag Filter','Tower Filtration #1','Tower Filtration #2','Ensure air vents are operating properly']
+  }},
+  'Domestic Hot Water System':{amps:true,ampLabels:['Gas Heater Pump','Elec HWH Element','Fitness Pump'],intervals:{
+    'Quarterly':['Gas Fired Heater (Kitchen): Inspect tank for any signs of leakage','Gas Fired Heater (Kitchen): Increase Temp Set Point to activate heater','Gas Fired Heater (Kitchen): Inspect gas line for corrosion (repair if necessary)','Gas Fired Heater (Kitchen): Inspect Flue for damage or signs of leakage','Gas Fired Heater (Kitchen): Run heat — check flame pattern (refer to O+M)','Gas Fired Heater (Kitchen): Blow down sediment from bottom of tank','Gas Circulation Pump (Kitchen): Inspect Pump for any signs of leakage','Gas Circulation Pump (Kitchen): Record amps and compare with Nameplate','Electric HWH (Fitness): Inspect Tank for any signs of leakage','Electric HWH (Fitness): Inspect Heating Elements and Wiring (use LOTO)','Electric HWH (Fitness): Increase Temp set point to activate heater','Electric HWH (Fitness): Record current draw on each heating element and compare with Nameplate','Circulation Pump (Fitness): Inspect Pump for any signs of leakage','Circulation Pump (Fitness): Record amps and compare with Nameplate']
+  }},
+  'Drain Fitness Center':{amps:false,intervals:{
+    'Monthly':['Remove hair from interceptors','Flush drains with water','Snake each drain using 100\' snake'],
+    'Quarterly':['Remove hair from interceptors','Flush drains with water','Snake each drain using 100\' snake','Apply WHAM to shower and sink drains — USE PROPER PPE','Flush with water after treating as directed by manufacturer']
+  }},
+  'FCU':{amps:true,ampLabels:['Motor 1','Motor 2 (DD)','Heater B1','Heater B2'],intervals:{
+    'Quarterly':['Inspect physical conditions of sheaves and pulleys — check alignment','Inspect all bearings, pulleys and set screws for tightness — adjust if necessary','Inspect belt condition and tension — use belts checker','Clean and vacuum condensate pan and drain','Inspect condensate pump for proper operation','Test flood alarm circuit — pump and pan sensors','Ensure both CHW Actuators close when flood alarm is tripped','Exercise all automatic and manual isolation valves','Test proper operation of thermostats','Test all gauges and ensure proper operation — replace if necessary','Ensure proper operation of electric heaters in FCU-B1 and B2 — record amperes','Inspect blower vibration eliminators — adjust if necessary','Inspect all contactors for excessively burnt, corroded or pitted contacts','Inspect all wires for signs of overheating — replace any wires if necessary','Inspect physical condition and proper operation of Chilled Water Actuator','Inspect all chilled water piping — repair or add insulation where necessary','Measure motor(s) amperage and record (DD drives have 2 motors)'],
+    'Semi-Annual':['Blow down chilled water strainer','Change Air Filter in the Unit — see master sheet for proper size'],
+    'Annual':['Lubricate shaft bearings (if serviceable type)','Lubricate motor (if serviceable type)']
+  }},
+  'Fan Exhaust':{amps:false,intervals:{
+    'Semi-Annual':['Check belt condition, replace or adjust tension as necessary','Clean the fan wheel and shaft','Inspect all electrical terminations and tighten as necessary','Lubricate fan shaft bearings (USE SHELL ALVANIA #2)','Lubricate drive motor if applicable (USE CHEVRON SRI)']
+  }},
+  'Fan Exhaust Kitchen':{amps:true,ampLabels:['L1','L2','L3'],intervals:{
+    'Quarterly':['Inspect belt for wear — adjust or replace as necessary','Inspect physical condition and proper alignment of sheaves and pulleys','Inspect all electrical terminations — tighten as necessary','Inspect bearings and ensure set screws are snug','Ensure access door to blower wheel are tight and there are no leaks','Inspect vibration eliminators — adjust or replace as necessary','Record Amperes (L1, L2, L3)','Wipe down all internal and external parts of the unit','Run and ensure proper operation of the unit after performing PM'],
+    'Semi-Annual':['Lubricate fan shaft bearings — refer to Lube Master','Lubricate drive motor (if applicable — refer to O+M)']
+  }},
+  'Fan Smoke Purge':{amps:false,intervals:{
+    'Quarterly':['Inspect belts for wear (adjust or replace as necessary)','Inspect sheaves and pulleys for wear and alignment','Inspect exterior of fans for any signs of rust or corrosion and repair same','Inspect spring isolators for signs of wear or failure','Clean fan wheel and shaft','Inspect all electrical terminations and tighten as necessary','Ensure supply and return screens or louvers (as applicable) are free of debris and move freely','After PMs are completed, see Chief Engineer to perform Quarterly run test'],
+    'Semi-Annual':['Lubricate fan shaft bearings (USE SHELL ALVANIA #2)','Lubricate drive motor if applicable (USE CHEVRON SRI)']
+  }},
+  'Filtration Make-Up':{amps:true,ampLabels:['Motor Amps'],intervals:{
+    'Quarterly':['Inspect Fan for proper operation','Ensure blades are free from debris and spin freely','Record Motor Amperes','Vacuum supply and return registers','Replace Pre-Filters'],
+    'Semi-Annual':['Replace 4 inch HEPA Filters'],
+    'Annual':['Replace Charcoal activated filters']
+  }},
+  'Fountain Courtyard':{amps:true,ampLabels:['SE','CTR#1','CTR#2','SW'],intervals:{
+    'Monthly':['Inspect general condition of water','Inspect the domestic water makeup system operation','Remove and clean filter cartridge','Record Motor Amperes (SE, CTR#1, CTR#2, SW)','Ensure all spray heads are clear of debris','Ensure PVC screening is clean','Remove PVC screening and inspect pump filter screening — clean if necessary','Check condition of the anode — replace if necessary (check O+M)'],
+    'Semi-Annual':['Full fountain cleaning','Shock with liquid chlorine 3 days before the PM']
+  }},
+  'Fountain Water Hall':{amps:false,intervals:{
+    'Quarterly':['Inspect all water connections for signs of leakage','Vacuum Condenser Coil','Inspect Condenser Fan operation — clean if necessary','Check Refrigerant Cycle (Evaporator Temp, Condenser Coil Temperature)','Inspect for refrigerant leaks','Inspect water actuator and linkages','Ensure drain is clean and drain runs free of obstruction','Tighten all electrical connections','Check all fasteners and set screws']
+  }},
+  'GE Penthouse Unit':{amps:true,ampLabels:['Evap Fan','Cond Fan','Crankcase Htr','Compressor'],intervals:{
+    'Quarterly':['Clean all air filters','Inspect Evaporator Fan operation — clean if necessary','Record Evaporator Fan Amperes','Inspect Condenser Fan operation — clean if necessary','Record Condenser Fan Amperes','Check Refrigerant Cycle (Evaporator Temp, Condenser Coil Temperature)','Inspect for refrigerant leaks','Check all contactors and controls','Inspect Crankcase Heaters if Equipped (Record Amperes)','Ensure Condensate pan is clean and drain runs free of obstruction','Record Compressor Amperes','Inspect thermostat for proper operation','Clean Condenser Fan and Coil','Clean Evaporator Fan and Coil'],
+    'Semi-Annual':['Clean condensate pan and drain','Tighten all electrical connections (Lock Out Tag Out)','Check all fasteners and set screws (Lock Out Tag Out)']
+  }},
+  'HV and Fan Units':{amps:false,intervals:{
+    'Quarterly':['Make sure to include EX-B1, AC-B1, SF-B2 in this PM','Blower (Direct Drive): Check physical condition of blower section, wipe any dirt buildup from blades','Blower: Check cone alignment, set screws and bearings for tightness','Blower: Check Motor and motor mounting section for any damage — REPORT ANY ISSUES','Blower: Ensure motor mounting bolts are snug','Blower: Check motor shaft for free rotation (LOTO)']
+  }},
+  'Stairwell Heater':{amps:true,ampLabels:['Blower','Heating Element'],intervals:{
+    'Quarterly':['Vacuum Elements','Clean blower wheel','Record Amperage of blower','Record amperage of heating element','Replace Air Filters','Confirm Stat Operation','Ensure all electrical connections are tight','Wipe down cabinet']
+  }},
+  'Hot Water Heater':{amps:false,intervals:{
+    'Quarterly':['Check for any signs of discharge of the Safety Valve into the pan','Ensure the temperature is between 110°F and 120°F max','Inspect all wiring','Element Condition — Leakage? Corrosion?'],
+    'Semi-Annual':['Remove and clean Low Water Cutoff sensor']
+  }},
+  'Liebert Basement':{amps:false,intervals:{
+    'Monthly':['Blower: Clean and inspect blower wheel(s) for loose or cracked blades','Blower: Bearings inspect for free movement and check set screw for tightness','Blower: Inspect belt condition and tension (replace if necessary) — USE LOTO','Heaters: Inspect heating elements for deterioration','Heaters: Engage heaters through the controller and confirm proper operation','Air Filters: Check air filter switch','Air Filters: Wipe section clean including intake grills — report any damage to unit','Condensate Pump: Inspect mechanical pump operation','Condensate Pump: Inspect all electrical connections','CHW Piping: Inspect all piping actuators for leaks and unrestricted movement (stroke via Test Outputs Menu)','CHW Piping: Inspect all CHW insulation — repair if necessary','CHW Piping: Inspect and test supply, return gauges and iso valves — replace if necessary','CHW Piping: Inspect and test all Belimo Actuators — report any issues to Chief immediately'],
+    'Semi-Annual':['Blower: Lubricate drive motor if serviceable (2oz every 3 years from initial PM date)','Blower: Inspect and tighten electrical connections','Strainers: Blow down supply strainers','Strainers: Ensure there are no leaks, reinstall cap and make sure there are no leaks']
+  }}
+};
+
+function isGeneric(n){return GENERIC_PM.hasOwnProperty(n)}
+function getGenericTasks(n,f){const pm=GENERIC_PM[n];if(!pm)return{};const t={};const order=['Monthly','Quarterly','Semi-Annual','Annual'];const fIdx=order.indexOf(f);if(fIdx<0)return{};for(let i=0;i<=fIdx;i++){if(pm.intervals[order[i]])t[order[i]]=pm.intervals[order[i]]}return t}
+function getCTTasks(f){const t={};if(f!=='Monthly'){if(f==='Quarterly'||f==='Semi-Annual'||f==='Annual'){t['Quarterly']=CT_PM['Quarterly'];t['Quarterly — VFD']=CT_PM['Quarterly — VFD']}if(f==='Semi-Annual'||f==='Annual')t['Semi-Annual']=CT_PM['Semi-Annual'];if(f==='Annual')t['Annual']=CT_PM['Annual']}return t}
+function getPumpTasks(f){const t={};t['Daily']=PUMP_PM['Daily'];if(f==='Quarterly'||f==='Semi-Annual'||f==='Annual')t['Quarterly']=PUMP_PM['Quarterly'];if(f==='Semi-Annual'||f==='Annual')t['Semi-Annual']=PUMP_PM['Semi-Annual'];return t}
+function getLiebertTasks(f){const t={};if(f==='Monthly'||f==='Quarterly'||f==='Semi-Annual'||f==='Annual')t['Monthly']=LIEBERT_PM['Monthly'];if(f==='Semi-Annual'||f==='Annual')t['Semi-Annual']=LIEBERT_PM['Semi-Annual'];return t}
+
+let uid=0;
+function renderPMChecklists(){uid=0;const sec=document.getElementById('pmChecklistSection'),body=document.getElementById('pmChecklistBody');body.innerHTML='';const cts=[...selectedEquip].filter(isCT),pumps=[...selectedEquip].filter(isPump),hasLiebert=[...selectedEquip].some(isLiebert),coDetectors=[...selectedEquip].filter(isCO),generics=[...selectedEquip].filter(isGeneric);if(!cts.length&&!pumps.length&&!hasLiebert&&!coDetectors.length&&!generics.length){sec.style.display='none';return}sec.style.display='';body.appendChild(mkWarn());
+// REPAIR mode — only show findings per equipment, no PM task checklists
+if(selectedFreq==='Repair'){
+  cts.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🔧 '+name+' — Repair'));appendFindings(b,name);body.appendChild(b)});
+  pumps.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('pump-header','🔧 '+name+' — Repair'));appendFindings(b,name);body.appendChild(b)});
+  if(hasLiebert&&liebertUnits.length){liebertUnits.forEach((unit,ui)=>{const ul=unit.num?'Liebert Unit #'+unit.num:'Liebert Unit '+(ui+1);const b=mkBlock();b.appendChild(mkHeader('liebert-header','🔧 '+ul+' — Repair'));appendFindings(b,ul);body.appendChild(b)})}
+  coDetectors.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🔧 '+name+' — Repair'));appendFindings(b,name);body.appendChild(b)});
+  generics.forEach(name=>{if(isMultiUnit(name)){const units=equipUnits[name]||[];if(!units.length){const b=mkBlock();b.appendChild(mkHeader('ct-header','🔧 '+name+' — Repair'));appendFindings(b,name);body.appendChild(b)}else{units.forEach((u,idx)=>{const unitLabel='#'+(u.num||('('+(idx+1)+')'));const b=mkBlock();b.appendChild(mkHeader('ct-header','🔧 '+name+' '+unitLabel+' — Repair'));appendFindings(b,name+' '+unitLabel);body.appendChild(b)})}}else{const b=mkBlock();b.appendChild(mkHeader('ct-header','🔧 '+name+' — Repair'));appendFindings(b,name);body.appendChild(b)}});
+  return;
+}
+if(cts.length){const tasks=getCTTasks(selectedFreq);if(Object.keys(tasks).length)cts.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🏗 '+name+' — '+selectedFreq+' PM'));Object.entries(tasks).forEach(([f,ts])=>{b.appendChild(mkFreqLabel(f));ts.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});appendFindings(b,name);body.appendChild(b)})}if(pumps.length){const tasks=getPumpTasks(selectedFreq);pumps.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('pump-header','⚙️ '+name+' — '+selectedFreq+' Paco Pump PM'));Object.entries(tasks).forEach(([f,data])=>{b.appendChild(mkFreqLabel(f));if(data.note)b.appendChild(mkNote(data.note));data.tasks.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});appendFindings(b,name);body.appendChild(b)})}if(hasLiebert&&liebertUnits.length){const tasks=getLiebertTasks(selectedFreq);liebertUnits.forEach((unit,ui)=>{const ul=unit.num?'Liebert Unit #'+unit.num:'Liebert Unit '+(ui+1);const b=mkBlock();b.appendChild(mkHeader('liebert-header','❄️ '+ul+' — '+selectedFreq+' CAC PM'));Object.entries(tasks).forEach(([freq,data])=>{b.appendChild(mkFreqLabel(freq));data.sections.forEach(sec=>{b.appendChild(mkSubLabel(sec.sub));sec.tasks.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)));if(sec.alert)b.appendChild(mkAlert(sec.alert));if(sec.hasHeaterReadings){const r=document.createElement('div');r.className='reading-row';r.innerHTML='<div><label>HTR #1 Amps</label><input type="text" placeholder="—"></div><div><label>HTR #2 Amps</label><input type="text" placeholder="—"></div><div><label>HTR #3 Amps</label><input type="text" placeholder="—"></div>';b.appendChild(r)}if(sec.hasMotorReadings){const r=document.createElement('div');r.className='reading-row';r.innerHTML='<div><label>L#1 Amps</label><input type="text" placeholder="—"></div><div><label>L#2 Amps</label><input type="text" placeholder="—"></div><div><label>L#3 Amps</label><input type="text" placeholder="—"></div>';b.appendChild(r)}})});appendFindings(b,ul);body.appendChild(b)})}
+if(coDetectors.length){const tasks=getCOTasks(selectedFreq);if(Object.keys(tasks).length)coDetectors.forEach(name=>{const b=mkBlock();b.appendChild(mkHeader('ct-header','🔴 '+name+' — '+selectedFreq+' PM'));Object.entries(tasks).forEach(([f,ts])=>{b.appendChild(mkFreqLabel(f));ts.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});appendFindings(b,name);body.appendChild(b)})}
+// Generic equipment — render one checklist per unit for multi-unit equipment, else single checklist
+function renderGenericBlock(name,unitLabel){
+  const pm=GENERIC_PM[name];const tasks=getGenericTasks(name,selectedFreq);if(!Object.keys(tasks).length)return null;
+  const b=mkBlock();
+  const headerTitle=unitLabel?('🔧 '+name+' '+unitLabel+' — '+selectedFreq+' PM'):('🔧 '+name+' — '+selectedFreq+' PM');
+  b.appendChild(mkHeader('ct-header',headerTitle));
+  Object.entries(tasks).forEach(([f,ts])=>{b.appendChild(mkFreqLabel(f));ts.forEach((t,i)=>b.appendChild(mkTaskRow(t,i)))});
+  if(pm.amps&&pm.ampLabels&&pm.ampLabels.length){
+    const r=document.createElement('div');r.className='reading-row';
+    r.style.cssText='display:grid;grid-template-columns:repeat('+Math.min(pm.ampLabels.length,3)+',1fr);gap:8px;margin-top:8px;';
+    r.innerHTML=pm.ampLabels.map(lbl=>'<div><label style="font-size:11px;color:var(--text-mid);">'+lbl+' Amps</label><input type="text" placeholder="—" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;"></div>').join('');
+    b.appendChild(mkFreqLabel('Amp Readings'));b.appendChild(r);
+  }
+  appendFindings(b,name+(unitLabel?' '+unitLabel:''));
+  return b;
+}
+generics.forEach(name=>{
+  if(isMultiUnit(name)){
+    const units=equipUnits[name]||[];
+    if(units.length===0){
+      // Render one block with no unit label as fallback
+      const b=renderGenericBlock(name,'');
+      if(b)body.appendChild(b);
+    } else {
+      units.forEach((u,idx)=>{
+        const unitLabel='#'+(u.num||('('+(idx+1)+')'));
+        const b=renderGenericBlock(name,unitLabel);
+        if(b)body.appendChild(b);
+      });
+    }
+  } else {
+    const b=renderGenericBlock(name,'');
+    if(b)body.appendChild(b);
+  }
+});
+}
+function mkBlock(){const d=document.createElement('div');d.className='pm-checklist';return d}function mkHeader(c,t){const d=document.createElement('div');d.className='pm-checklist-header '+c;d.innerHTML='<span class="equip-tag">'+t+'</span>';return d}function mkFreqLabel(t){const d=document.createElement('div');d.className='pm-freq-label';d.textContent=t;return d}function mkSubLabel(t){const d=document.createElement('div');d.className='pm-sub-label';d.textContent=t;return d}function mkTaskRow(t,i){uid++;const id='tk_'+uid;const d=document.createElement('div');d.className='pm-task-row';d.innerHTML='<div class="pm-task-check" id="'+id+'" onclick="toggleCheck(\''+id+'\')">✓</div><div class="pm-task-text" id="'+id+'_t">'+(i+1)+'. '+t+'</div>';return d}function mkNote(t){const d=document.createElement('div');d.className='pm-note';d.textContent=t;return d}function mkAlert(t){const d=document.createElement('div');d.className='pm-alert';d.textContent=t;return d}function mkWarn(){const d=document.createElement('div');d.className='pm-warn';d.textContent='⚠️ MAKE SURE TO USE PROPER PPE AT ALL TIMES';return d}function appendFindings(b,n){b.appendChild(mkFreqLabel('Findings'));const ta=document.createElement('textarea');ta.placeholder='Findings for '+n+'…';ta.rows=3;ta.style.cssText='width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:DM Sans,sans-serif;font-size:14px;color:var(--text);background:#FAFBFD;resize:vertical;margin-top:4px;';b.appendChild(ta)}function toggleCheck(id){document.getElementById(id).classList.toggle('checked');document.getElementById(id+'_t').classList.toggle('checked-text')}
+
+const _today=new Date();document.getElementById('wo_date').value=_today.getFullYear()+'-'+String(_today.getMonth()+1).padStart(2,'0')+'-'+String(_today.getDate()).padStart(2,'0');
+let photoCount=0;function addPhotoSlot(){photoCount++;const n=photoCount;const w=document.createElement('div');w.innerHTML='<div class="photo-slot" id="ps'+n+'" onclick="document.getElementById(\'pi'+n+'\').click()"><div class="slot-badge">'+n+'</div><div class="placeholder"><span class="cam-icon">📷</span><div class="tap-text">Tap to Add Photo</div><div class="sub-text">Camera or Gallery</div></div><input type="file" id="pi'+n+'" accept="image/*" onchange="handlePhoto(this,'+n+')"><button class="remove-btn" onclick="removePhoto(event,'+n+')">✕</button></div><div class="photo-caption"><input type="text" placeholder="Caption…"></div>';document.getElementById('photoGrid').appendChild(w)}for(let i=0;i<4;i++)addPhotoSlot();
+function handlePhoto(inp,n){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){const s=document.getElementById('ps'+n);const o=s.querySelector('img');if(o)o.remove();const img=document.createElement('img');img.src=e.target.result;s.appendChild(img);s.classList.add('has-photo');uploadPhotoToServer(e.target.result,'pm-photos',f.name).then(url=>{if(url&&url!==e.target.result){img.dataset.r2url=url}}).catch(()=>{})};r.readAsDataURL(f)}function removePhoto(e,n){e.stopPropagation();const s=document.getElementById('ps'+n);const img=s.querySelector('img');if(img)img.remove();s.classList.remove('has-photo');document.getElementById('pi'+n).value=''}
+
+function formatDate(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return(d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear()}
+async function saveAndEmail(){
+const facility=document.getElementById('facility').value,tech=getTechString(),dateVal=document.getElementById('wo_date').value;
+if(!facility){alert('Please select a facility.');return}
+if(!techNames.length){alert('Please add at least one technician name.');return}
+if(!ppeAcknowledged){alert('You must acknowledge the PPE requirement.');return}
+if(!safetyCompleted){alert('Please complete the Safety Checklist.');return}
+if(!selectedEquip.size){alert('Please select at least one piece of equipment.');return}
+const hasLiebert=[...selectedEquip].some(n=>n==='Liebert Unit');
+if(hasLiebert){if(!liebertUnits.length){alert('Please add at least one Liebert Unit #.');return}if(liebertUnits.some(u=>!u.num.trim())){alert('Please fill in all Liebert Unit numbers.');return}}
+// Multi-unit validation
+for(const n of [...selectedEquip].filter(isMultiUnit)){
+  const units=equipUnits[n]||[];
+  if(!units.length){alert('Please add at least one Unit # for '+n+'.');return}
+  if(units.some(u=>!u.num.trim())){alert('Please fill in all Unit # for '+n+'.');return}
+}
+
+// Follow-up validation
+const followupYes=document.querySelector('input[name="followup"][value="yes"]').checked;
+const summaryNotes=document.getElementById('summary_notes').value.trim();
+if(followupYes && !summaryNotes){
+  alert('⚠️ Follow-up is required. Please describe what needs to be followed up in the Summary Notes field.');
+  document.getElementById('summary_notes').focus();
+  document.getElementById('summary_notes').scrollIntoView({behavior:'smooth',block:'center'});
+  return;
+}
+
+// Completion signature validation
+const unsignedTechs = techNames.filter(name => !compSigs[name] || !compSigs[name].signed);
+if(unsignedTechs.length > 0){
+  alert('⚠️ All technicians must sign before submitting.\n\nStill need signatures from:\n• ' + unsignedTechs.join('\n• '));
+  document.getElementById('completionSignaturesList').scrollIntoView({behavior:'smooth',block:'start'});
+  return;
+}
+
+let equipParts=[...selectedEquip].filter(n=>n!=='Liebert Unit'&&!isMultiUnit(n));
+if(hasLiebert)equipParts=equipParts.concat(getLiebertNames());
+equipParts=equipParts.concat(getMultiUnitNames());
+const equipList=equipParts.join(', '),dateFormatted=formatDate(dateVal);
+const generalComments=document.getElementById('general_comments').value.trim();
+const tasksCompleted=document.getElementById('tasks_completed').value.trim();
+
+// Build subject with follow-up flag
+let subject=equipList+' - '+(selectedFreq==='Repair'?'Repair':selectedFreq+' PM')+' - '+tech+' - '+dateFormatted;
+if(followupYes) subject='⚠️ FOLLOW-UP REQUIRED — '+subject;
+
+const overlay=document.getElementById('loadingOverlay'),lt=document.getElementById('loadingText');
+overlay.classList.add('show');lt.textContent='Preparing report…';
+try{
+document.querySelector('.bottom-bar').style.display='none';
+
+// Gather all checklist data
+const checklistData = [];
+document.querySelectorAll('.pm-checklist').forEach(block => {
+  const header = block.querySelector('.pm-checklist-header')?.textContent || '';
+  const tasks = [];
+  block.querySelectorAll('.pm-task-row').forEach(row => {
+    const check = row.querySelector('.pm-task-check');
+    const text = row.querySelector('.pm-task-text');
+    tasks.push({ text: text?.textContent || '', done: check?.classList.contains('checked') || false });
+  });
+  const findings = block.querySelector('textarea')?.value || '';
+  checklistData.push({ header, tasks, findings });
+});
+
+// Gather safety checklist status (safety section only, not Post-Job)
+const safetyData = [];
+document.querySelectorAll('#safetySection .safety-table').forEach(table => {
+  if (table.id === 'postJobTable') return;
+  const rows = [];
+  table.querySelectorAll('tr').forEach((tr, i) => {
+    if(i === 0) return;
+    const cells = tr.querySelectorAll('td');
+    const task = cells[0]?.textContent || '';
+    const doneEl = tr.querySelector('.done-check');
+    const naEl = tr.querySelector('.na-check');
+    const done = doneEl?.classList.contains('active') || false;
+    const na = naEl?.classList.contains('active') || false;
+    const condSelect = tr.querySelector('.condition-select');
+    const condition = condSelect?.value || '';
+    rows.push({ task, done, na, condition });
+  });
+  if(rows.length) safetyData.push(rows);
+});
+
+// Gather Post-Job data separately
+const postJobData = [];
+const postJobTable = document.getElementById('postJobTable');
+if (postJobTable) {
+  postJobTable.querySelectorAll('tr').forEach((tr, i) => {
+    if(i === 0) return;
+    const task = tr.querySelector('td')?.textContent || '';
+    const doneEl = tr.querySelector('.done-check');
+    const naEl = tr.querySelector('.na-check');
+    const done = doneEl?.classList.contains('active') || false;
+    const na = naEl?.classList.contains('active') || false;
+    postJobData.push({ task, done, na });
+  });
+}
+
+// Gather LOTO photos
+const lotoAttachments = [];
+const lotoInlineHtml = [];
+const lotoArchiveData = [];
+lotoPhotos.filter(p => p.dataUrl).forEach((p, i) => {
+  const isUrl = /^https?:\/\//i.test(p.dataUrl);
+  const b64 = (!isUrl && p.dataUrl.startsWith('data:')) ? p.dataUrl.split(',')[1] : null;
+  const caption = p.caption || 'LOTO Photo ' + (i+1);
+  // Email inline — works with both R2 URL and data URL
+  lotoInlineHtml.push('<div style="margin:8px 0;"><img src="' + p.dataUrl + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
+  // Attachment — only possible from base64
+  if (b64) lotoAttachments.push({ filename: 'LOTO_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg' });
+  // Archive — prefer R2 URL (tiny), else base64
+  if (isUrl) lotoArchiveData.push({ caption: caption, url: p.dataUrl });
+  else if (b64) lotoArchiveData.push({ caption: caption, image: b64 });
+});
+
+// Gather regular photos
+document.querySelectorAll('.photo-slot.has-photo img').forEach((img, i) => {
+  const src = img.src || '';
+  if (!src) return;
+  const isUrl = /^https?:\/\//i.test(src);
+  const b64 = (!isUrl && src.startsWith('data:')) ? src.split(',')[1] : null;
+  const caption = img.closest('.photo-slot')?.parentElement?.querySelector('.photo-caption input')?.value || 'Photo ' + (i+1);
+  if (!isUrl && !b64) return;
+  // Email inline
+  lotoInlineHtml.push('<div style="margin:8px 0;"><img src="' + src + '" style="width:100%;max-width:500px;border-radius:8px;border:1px solid #e2e8f0;" /><div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:600;">📸 ' + caption + '</div></div>');
+  if (b64) lotoAttachments.push({ filename: 'Photo_' + (i+1) + '.jpg', content: b64, contentType: 'image/jpeg' });
+  if (isUrl) lotoArchiveData.push({ caption: caption, url: src });
+  else if (b64) lotoArchiveData.push({ caption: caption, image: b64 });
+});
+
+const photosHtml = lotoInlineHtml.length > 0 ? '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">📸 Photos</div>' + lotoInlineHtml.join('') + '</div>' : '';
+
+lt.textContent='Sending email…';
+
+// Build email
+let followUpBanner = '';
+if(followupYes){
+  followUpBanner = '<div style="background:#FEF2F2;border:2px solid #DC2626;border-radius:10px;padding:16px;margin:16px 0;text-align:center;"><div style="font-size:16px;font-weight:800;color:#DC2626;">⚠️ FOLLOW-UP REQUIRED</div><div style="color:#7F1D1D;font-size:14px;margin-top:8px;">' + (summaryNotes||'').replace(/\n/g,'<br>') + '</div></div>';
+}
+
+let checklistHtml = '';
+checklistData.forEach(cl => {
+  checklistHtml += '<div style="margin:16px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;"><div style="background:#1B3A5C;color:#fff;padding:8px 12px;font-size:13px;font-weight:700;">' + cl.header + '</div><div style="padding:8px 12px;">';
+  cl.tasks.forEach(t => { checklistHtml += '<div style="padding:3px 0;font-size:13px;color:#334155;">' + (t.done?'✅':'⬜') + ' ' + t.text + '</div>'; });
+  if(cl.findings) checklistHtml += '<div style="margin-top:8px;padding:8px;background:#FFF8E1;border-radius:6px;border:1px solid #FFE082;font-size:13px;color:#92400E;"><b>Findings:</b> ' + cl.findings.replace(/\n/g,'<br>') + '</div>';
+  checklistHtml += '</div></div>';
+});
+
+let safetyHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">Safety Checklist</div>';
+const safetyLabels = ['Personal Protective Equipment (PPE)','Pre-Job Safety','Electrical Safety','Gas & Chemical Safety'];
+safetyData.forEach((section, si) => {
+  safetyHtml += '<div style="font-size:12px;font-weight:700;color:#64748b;margin:8px 0 4px;text-transform:uppercase;">' + (safetyLabels[si]||'Section') + '</div>';
+  section.forEach(row => {
+    const icon = row.done ? '✅' : (row.na ? '➖' : '⬜');
+    const extra = row.condition ? ' <span style="color:#64748b;">(' + row.condition + ')</span>' : '';
+    safetyHtml += '<div style="padding:2px 0;font-size:12px;">' + icon + ' ' + row.task + extra + '</div>';
+  });
+});
+safetyHtml += '</div>';
+
+// Post-Job HTML
+let postJobHtml = '';
+if (postJobData.length) {
+  postJobHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#E65100;margin-bottom:8px;">✅ Post-Job Checklist</div>';
+  postJobData.forEach(row => {
+    const icon = row.done ? '✅' : (row.na ? '➖' : '⬜');
+    postJobHtml += '<div style="padding:3px 0;font-size:12px;">' + icon + ' ' + row.task + '</div>';
+  });
+  postJobHtml += '</div>';
+}
+
+// Capture all signature images
+const signatureData = [];
+
+// Safety signatures
+let sigHtml = '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:12px;">✍️ Safety Signatures</div>';
+techNames.forEach((name, i) => {
+  const canvas = document.getElementById('safeSigCanvas_' + i);
+  let sigB64 = null;
+  if (canvas) {
+    try { sigB64 = canvas.toDataURL('image/png').split(',')[1]; } catch(e) {}
+  }
+  if (sigB64) {
+    signatureData.push({ type: 'safety', name: name, image: sigB64 });
+    sigHtml += '<div style="margin:8px 0;padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">' +
+      '<div style="font-size:12px;font-weight:700;color:#1B3A5C;margin-bottom:6px;">🛡 ' + name + ' — Safety</div>' +
+      '<img src="data:image/png;base64,' + sigB64 + '" style="max-width:300px;height:60px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;" /></div>';
+  } else {
+    sigHtml += '<div style="margin:4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;display:inline-block;">✓ ' + name + ' — Safety</div>';
+  }
+});
+sigHtml += '</div>';
+
+// Completion signatures
+sigHtml += '<div style="margin:16px 0;"><div style="font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:12px;">✍️ Completion Signatures</div>';
+techNames.forEach((name, i) => {
+  const canvas = document.getElementById('compSigCanvas_' + i);
+  let sigB64 = null;
+  if (canvas) {
+    try { sigB64 = canvas.toDataURL('image/png').split(',')[1]; } catch(e) {}
+  }
+  if (sigB64) {
+    signatureData.push({ type: 'completion', name: name, image: sigB64 });
+    sigHtml += '<div style="margin:8px 0;padding:10px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;">' +
+      '<div style="font-size:12px;font-weight:700;color:#1B3A5C;margin-bottom:6px;">✅ ' + name + ' — Completion</div>' +
+      '<img src="data:image/png;base64,' + sigB64 + '" style="max-width:300px;height:60px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;" /></div>';
+  } else {
+    sigHtml += '<div style="margin:4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;display:inline-block;">✓ ' + name + ' — Completion</div>';
+  }
+});
+sigHtml += '</div>';
+
+const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;"><div style="background:#1B3A5C;color:#fff;padding:16px 20px;border-radius:10px 10px 0 0;"><h2 style="margin:0;font-size:18px;">📋 PM Work Order Report</h2><p style="margin:4px 0 0;font-size:12px;opacity:0.7;">HVAC Engineering — Local 68</p></div><div style="border:1px solid #e2e8f0;border-top:none;padding:20px;border-radius:0 0 10px 10px;">' +
+  followUpBanner +
+  '<table style="width:100%;border-collapse:collapse;font-size:14px;"><tr><td style="padding:6px 0;color:#64748b;width:140px;">Facility:</td><td style="padding:6px 0;font-weight:600;">' + facility + '</td></tr><tr><td style="padding:6px 0;color:#64748b;">Equipment:</td><td style="padding:6px 0;font-weight:600;">' + equipList + '</td></tr><tr><td style="padding:6px 0;color:#64748b;">Service:</td><td style="padding:6px 0;font-weight:600;">' + selectedFreq + '</td></tr><tr><td style="padding:6px 0;color:#64748b;">Technician(s):</td><td style="padding:6px 0;font-weight:600;">' + tech + '</td></tr><tr><td style="padding:6px 0;color:#64748b;">Date:</td><td style="padding:6px 0;font-weight:600;">' + dateFormatted + '</td></tr>' +
+  (tasksCompleted ? '<tr><td style="padding:6px 0;color:#64748b;">Tasks Completed:</td><td style="padding:6px 0;font-weight:600;">' + tasksCompleted + '</td></tr>' : '') +
+  '<tr><td style="padding:6px 0;color:#64748b;">Follow-up:</td><td style="padding:6px 0;font-weight:700;color:' + (followupYes?'#DC2626':'#16a34a') + ';">' + (followupYes?'YES':'No') + '</td></tr></table>' +
+  safetyHtml + checklistHtml +
+  photosHtml +
+  postJobHtml +
+  (generalComments ? '<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Comments / Findings</div><div style="font-size:14px;color:#1e293b;">' + generalComments.replace(/\n/g,'<br>') + '</div></div>' : '') +
+  sigHtml +
+  '<p style="color:#94a3b8;font-size:11px;margin-top:20px;">Sent from HVAC Portal at ' + new Date().toLocaleString('en-US',{timeZone:'America/New_York'}) + '</p></div></div>';
+
+// Build PDF using jsPDF (text-based, no html2canvas — fast and reliable on mobile)
+let pdfAttachment = null;
+try {
+  lt.textContent='Building PDF…';
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+  const margin = 12, pageW = 210, pageH = 297, contentW = pageW - 2*margin;
+  let y = margin;
+
+  function checkPage(needed) {
+    if (y + needed > pageH - margin) { pdf.addPage(); y = margin; }
+  }
+  // Remove emoji and other non-Latin1 characters jsPDF's core fonts can't render
+  function pdfClean(s) {
+    return String(s == null ? '' : s)
+      .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\uFE0F\u200D]/gu, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+  function addLine(text, opts = {}) {
+    text = pdfClean(text);
+    const size = opts.size || 10;
+    const bold = opts.bold || false;
+    const color = opts.color || [30, 41, 59];
+    pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+    pdf.setFontSize(size);
+    pdf.setTextColor(...color);
+    const lines = pdf.splitTextToSize(text, opts.width || contentW);
+    lines.forEach(line => {
+      checkPage(size * 0.5);
+      pdf.text(line, opts.x || margin, y);
+      y += size * 0.42 + 0.5;
+    });
+  }
+  function addSectionHeader(text, color = [27, 58, 92]) {
+    text = pdfClean(text);
+    checkPage(12);
+    y += 3;
+    pdf.setFillColor(...color);
+    pdf.rect(margin, y - 4, contentW, 7, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(text, margin + 2, y + 1);
+    y += 7;
+  }
+  function addRule() { y += 1; pdf.setDrawColor(220, 226, 232); pdf.line(margin, y, pageW - margin, y); y += 2; }
+
+  // Title
+  pdf.setFillColor(27, 58, 92);
+  pdf.rect(0, 0, pageW, 18, 'F');
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(14);
+  pdf.setTextColor(255, 255, 255);
+  pdf.text('PM Work Order Report', margin, 8);
+  pdf.setFontSize(9);
+  pdf.setFont('helvetica', 'normal');
+  pdf.text('HVAC Engineering — Local 68', margin, 13);
+  y = 24;
+
+  // Follow-up banner
+  if (followupYes) {
+    pdf.setFillColor(254, 242, 242);
+    pdf.setDrawColor(220, 38, 38);
+    pdf.rect(margin, y - 1, contentW, 14, 'FD');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(220, 38, 38);
+    pdf.text('FOLLOW-UP REQUIRED', margin + 2, y + 4);
+    pdf.setFontSize(9);
+    pdf.setTextColor(127, 29, 29);
+    pdf.setFont('helvetica', 'normal');
+    const fnotes = pdf.splitTextToSize(summaryNotes || '', contentW - 4);
+    pdf.text(fnotes, margin + 2, y + 9);
+    y += 14 + (fnotes.length - 1) * 4 + 3;
+  }
+
+  // Work order details
+  addSectionHeader('Work Order Details');
+  const details = [
+    ['Facility', facility],
+    ['Equipment', equipList],
+    ['Service', selectedFreq],
+    ['Technician(s)', tech],
+    ['Date', dateFormatted],
+    ['Tasks Completed', tasksCompleted || '—'],
+    ['Follow-up', followupYes ? 'YES' : 'No']
+  ];
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(10);
+  details.forEach(([label, val]) => {
+    checkPage(6);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(label + ':', margin, y);
+    pdf.setTextColor(30, 41, 59);
+    pdf.setFont('helvetica', 'bold');
+    const wrapped = pdf.splitTextToSize(String(val || '—'), contentW - 40);
+    pdf.text(wrapped, margin + 38, y);
+    pdf.setFont('helvetica', 'normal');
+    y += Math.max(5, wrapped.length * 4.5);
+  });
+
+  // Comments
+  if (generalComments) {
+    addSectionHeader('Comments / Findings');
+    addLine(generalComments, { size: 10 });
+  }
+
+  // Safety checklist
+  if (safetyData && safetyData.length) {
+    addSectionHeader('Safety Checklist');
+    const safetyLabels2 = ['Personal Protective Equipment (PPE)', 'Pre-Job Safety', 'Electrical Safety', 'Gas & Chemical Safety'];
+    safetyData.forEach((section, si) => {
+      checkPage(8);
+      addLine(safetyLabels2[si] || 'Section', { size: 9, bold: true, color: [100, 116, 139] });
+      section.forEach(row => {
+        const icon = row.done ? '[X]' : (row.na ? '[N/A]' : '[ ]');
+        const extra = row.condition ? ' (' + row.condition + ')' : '';
+        addLine(icon + ' ' + row.task + extra, { size: 9 });
+      });
+      y += 1;
+    });
+  }
+
+  // PM Checklist
+  if (checklistData && checklistData.length) {
+    addSectionHeader('PM Checklist');
+    checklistData.forEach(cl => {
+      checkPage(10);
+      addLine(cl.header, { size: 10, bold: true, color: [27, 58, 92] });
+      cl.tasks.forEach(t => {
+        const icon = t.done ? '[X]' : '[ ]';
+        addLine(icon + ' ' + t.text, { size: 9 });
+      });
+      if (cl.findings) {
+        y += 1;
+        addLine('Findings: ' + cl.findings, { size: 9, color: [146, 64, 14] });
+      }
+      y += 2;
+    });
+  }
+
+  // Post-Job
+  if (postJobData && postJobData.length) {
+    addSectionHeader('Post-Job Checklist', [230, 81, 0]);
+    postJobData.forEach(row => {
+      const icon = row.done ? '[X]' : (row.na ? '[N/A]' : '[ ]');
+      addLine(icon + ' ' + row.task, { size: 9 });
+    });
+  }
+
+  // Photos
+  const photosForPdf = lotoPhotos.filter(p => p.dataUrl);
+  const regPhotosForPdf = [];
+  document.querySelectorAll('.photo-slot.has-photo img').forEach(img => {
+    if (img.src && (img.src.startsWith('data:') || /^https?:\/\//i.test(img.src))) {
+      const cap = img.closest('.photo-slot')?.parentElement?.querySelector('.photo-caption input')?.value || '';
+      regPhotosForPdf.push({ dataUrl: img.src, caption: cap });
+    }
+  });
+  const allPhotos = [...photosForPdf, ...regPhotosForPdf];
+  if (allPhotos.length) {
+    addSectionHeader('Photos', [230, 81, 0]);
+    // Pre-fetch URL photos and convert to base64 (jsPDF needs base64)
+    for (const p of allPhotos) {
+      if (p.dataUrl && /^https?:\/\//i.test(p.dataUrl)) {
+        try {
+          // Use server proxy — R2 public URLs block direct browser fetch (no CORS)
+          const proxyResp = await fetch('/api/fetch-photo?url=' + encodeURIComponent(p.dataUrl));
+          const proxyData = await proxyResp.json();
+          if (proxyData.dataUrl) p.dataUrl = proxyData.dataUrl;
+        } catch (e) { console.log('Photo fetch failed:', e); }
+      }
+    }
+    for (const p of allPhotos) {
+      checkPage(80);
+      try {
+        const imgW = contentW - 10;
+        const imgH = 65;
+        pdf.addImage(p.dataUrl, 'JPEG', margin + 5, y, imgW, imgH, undefined, 'FAST');
+        y += imgH + 2;
+        addLine(p.caption || 'Photo', { size: 9, color: [100, 116, 139] });
+        y += 3;
+      } catch (e) { console.log('Photo embed failed:', e); }
+    }
+  }
+
+  // Signatures
+  if (signatureData && signatureData.length) {
+    addSectionHeader('Signatures');
+    for (const sig of signatureData) {
+      checkPage(35);
+      const label = sig.type === 'safety' ? 'Safety' : 'Completion';
+      addLine(label + ' — ' + sig.name, { size: 10, bold: true });
+      try {
+        pdf.addImage('data:image/png;base64,' + sig.image, 'PNG', margin + 5, y, 60, 20);
+        y += 22;
+      } catch (e) { y += 2; }
+    }
+  }
+
+  // Footer
+  const pageCount = pdf.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+    pdf.setFontSize(8);
+    pdf.setTextColor(150, 150, 150);
+    pdf.text('Page ' + i + ' of ' + pageCount + ' · Generated ' + new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }), margin, pageH - 5);
+  }
+
+  const pdfBase64 = pdf.output('datauristring').split(',')[1];
+  const pdfFilename = 'PM_' + equipParts[0].replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30) + '_' + selectedFreq + '_' + (dateVal || 'no-date') + '.pdf';
+  pdfAttachment = { filename: pdfFilename, content: pdfBase64, contentType: 'application/pdf' };
+  console.log('PDF built, size:', pdfBase64.length);
+} catch (pdfErr) {
+  console.error('PDF generation error:', pdfErr);
+  // Continue without PDF — email will still go through with photos
+}
+
+// Add PDF to attachments at the front so it's the first attachment
+const allAttachments = pdfAttachment ? [pdfAttachment, ...lotoAttachments] : lotoAttachments;
+
+let emailSent = false;
+try {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s for larger payload
+  const emailRes = await fetch('/api/send-email', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to: ['mateusz.targosz@versantmedia.com','sean.fanning@versantmedia.com'], subject: subject, html: emailHtml, attachments: allAttachments }),
+    signal: controller.signal
+  });
+  clearTimeout(timeoutId);
+  const emailResult = await emailRes.json();
+  if (emailResult.success) { emailSent = true; }
+  else { alert('Email failed: ' + (emailResult.error||'Unknown error')); }
+} catch(e) {
+  if(e.name === 'AbortError') { alert('Email timed out. The report may still be sent — check your inbox.'); }
+  else { console.error('Email error:', e); alert('Could not send email: ' + e.message); }
+}
+
+savePMToHistory({ technician: tech, facility: facility, equipment: equipList, frequency: selectedFreq, date: dateVal, followUp: followupYes, followUpNotes: summaryNotes, tasksCompleted: tasksCompleted, generalComments: generalComments, completedAt: new Date().toISOString(), completedBy: _currentUser.displayName || tech, emailSubject: subject, emailHtml: emailHtml, emailAttachments: allAttachments });
+clearDraft();
+try{await fetch('/api/backup-pm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({technician:tech,facility:facility,equipment:equipList,frequency:selectedFreq,followUp:followupYes,followUpNotes:summaryNotes,date:dateVal,tasksCompleted:tasksCompleted,generalComments:generalComments,emailHtml:emailHtml,safetyData:safetyData,postJobData:postJobData,checklistData:checklistData,signatureData:signatureData,lotoPhotos:lotoArchiveData})})}catch(e){}
+document.querySelector('.bottom-bar').style.display='flex';
+overlay.classList.remove('show');
+if(emailSent) alert('✓ PM Report emailed successfully!');
+}catch(err){console.error('Error:',err);alert('Error: '+err.message);document.querySelector('.bottom-bar').style.display='flex';overlay.classList.remove('show')}
+}
+
+// ═══ DRAFT + HISTORY UI ═══
+function restoreDraftAndDismiss() {
+  const d = loadDraft();
+  if (d) restoreDraft(d);
+  document.getElementById('draftBanner').style.display = 'none';
+}
+function dismissDraft() {
+  clearDraft();
+  document.getElementById('draftBanner').style.display = 'none';
+}
+
+function toggleHistory() {
+  const panel = document.getElementById('historyPanel');
+  const arrow = document.getElementById('historyArrow');
+  if (panel.style.display === 'none') {
+    renderHistory();
+    panel.style.display = 'block';
+    arrow.style.transform = 'rotate(180deg)';
+  } else {
+    panel.style.display = 'none';
+    arrow.style.transform = '';
+  }
+}
+
+async function renderHistory() {
+  const list = document.getElementById('historyList');
+  list.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">Loading…</p>';
+  const history = await getPMHistory();
+  document.getElementById('historyCount').textContent = history.length;
+  if (history.length === 0) {
+    list.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">No completed PMs yet.</p>';
+    return;
+  }
+  list.innerHTML = history.map((pm, idx) => {
+    const d = pm.date ? new Date(pm.date + 'T00:00:00').toLocaleDateString() : 'No date';
+    const time = pm.completedAt ? new Date(pm.completedAt).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+    const followUp = pm.followUp ? '<span style="background:#FEF2F2;color:#DC2626;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">⚠️ FOLLOW-UP</span>' : '';
+    const freqLabel = pm.frequency === 'Repair' ? '🔧 Repair' : '📋 ' + (pm.frequency || '') + ' PM';
+    const title = freqLabel + ' — ' + (pm.equipment || 'N/A');
+    
+    return '<div style="border-bottom:1px solid #E2E8F0;' + (idx % 2 ? 'background:#FAFBFC;' : '') + '">' +
+      '<div onclick="toggleHistoryItem(' + idx + ')" style="padding:12px;cursor:pointer;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:14px;font-weight:700;color:#1E293B;line-height:1.3;">' + title + '</div>' +
+            '<div style="font-size:12px;color:#64748b;margin-top:3px;">' + (pm.facility || '') + '</div>' +
+            '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">' + (pm.technician || '') + ' · ' + d + (time ? ' · ' + time : '') + '</div>' +
+          '</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">' +
+            followUp +
+            '<span style="font-size:18px;color:#94a3b8;" id="histArrow_' + idx + '">›</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div id="histDetail_' + idx + '" style="display:none;padding:0 12px 12px;">' +
+        '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-size:13px;">' +
+          '<div style="display:grid;grid-template-columns:100px 1fr;gap:4px 10px;color:#334155;">' +
+            '<span style="color:#64748b;">Equipment:</span><span style="font-weight:600;">' + (pm.equipment || '—') + '</span>' +
+            '<span style="color:#64748b;">Service:</span><span style="font-weight:600;">' + (pm.frequency || '—') + '</span>' +
+            '<span style="color:#64748b;">Facility:</span><span>' + (pm.facility || '—') + '</span>' +
+            '<span style="color:#64748b;">Tech(s):</span><span>' + (pm.technician || '—') + '</span>' +
+            '<span style="color:#64748b;">Date:</span><span>' + d + '</span>' +
+            (pm.tasksCompleted ? '<span style="color:#64748b;">Tasks:</span><span>' + pm.tasksCompleted + '</span>' : '') +
+            '<span style="color:#64748b;">Follow-up:</span><span style="color:' + (pm.followUp ? '#DC2626;font-weight:700' : '#16a34a') + ';">' + (pm.followUp ? 'YES' : 'No') + '</span>' +
+          '</div>' +
+          (pm.followUpNotes ? '<div style="margin-top:8px;padding:8px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;color:#7F1D1D;font-size:12px;"><b>Follow-up:</b> ' + pm.followUpNotes + '</div>' : '') +
+          (pm.generalComments ? '<div style="margin-top:8px;padding:8px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;color:#334155;font-size:12px;"><b>Comments:</b> ' + pm.generalComments + '</div>' : '') +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:10px;">' +
+          '<button onclick="resendPM(' + idx + ')" style="flex:1;padding:10px;border:none;border-radius:8px;background:#2979FF;color:#fff;font-family:DM Sans,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">📧 Resend Email</button>' +
+          (_currentUser.role === 'admin' ? '<button onclick="deletePMHistory(' + idx + ')" style="padding:10px 14px;border:1.5px solid #FECACA;border-radius:8px;background:#fff;color:#DC2626;font-family:DM Sans,sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Delete</button>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleHistoryItem(idx) {
+  const detail = document.getElementById('histDetail_' + idx);
+  const arrow = document.getElementById('histArrow_' + idx);
+  if (detail.style.display === 'none') {
+    // Close all others first
+    document.querySelectorAll('[id^="histDetail_"]').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('[id^="histArrow_"]').forEach(el => { el.textContent = '›'; el.style.transform = ''; });
+    detail.style.display = 'block';
+    arrow.textContent = '⌄';
+  } else {
+    detail.style.display = 'none';
+    arrow.textContent = '›';
+  }
+}
+
+async function resendPM(idx) {
+  const history = await getPMHistory();
+  const pm = history[idx];
+  if (!pm) return;
+
+  if (!pm.emailHtml || !pm.emailSubject) {
+    alert('This PM was saved before email data was stored. Cannot resend.');
+    return;
+  }
+
+  if (!confirm('Resend this PM report?\n\n' + pm.emailSubject)) return;
+
+  const overlay = document.getElementById('loadingOverlay');
+  const lt = document.getElementById('loadingText');
+  overlay.classList.add('show');
+  lt.textContent = 'Resending email…';
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const res = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: ['mateusz.targosz@versantmedia.com', 'sean.fanning@versantmedia.com'],
+        subject: '(Resent) ' + pm.emailSubject,
+        html: pm.emailHtml,
+        attachments: pm.emailAttachments || []
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    const result = await res.json();
+    overlay.classList.remove('show');
+    if (result.success) {
+      alert('✓ PM Report resent successfully!');
+    } else {
+      alert('Resend failed: ' + (result.error || 'Unknown error'));
+    }
+  } catch (e) {
+    overlay.classList.remove('show');
+    if (e.name === 'AbortError') alert('Resend timed out.');
+    else alert('Could not resend: ' + e.message);
+  }
+}
+
+async function deletePMHistory(idx) {
+  if (!confirm('Delete this PM from history?')) return;
+  let history = await getPMHistory();
+  history.splice(idx, 1);
+  // Get SHA and save
+  try {
+    const res = await fetch('/api/data/pm_history?t=' + Date.now());
+    let sha = null;
+    if (res.ok) { const d = await res.json(); sha = d.sha; }
+    await fetch('/api/data/pm_history', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.stringify(history), sha: sha })
+    });
+  } catch(e) { console.log('Delete error:', e); }
+  renderHistory();
+}
+
+// Init on load
+window.addEventListener('load', () => {
+  setTimeout(buildCompletionSignatures, 500);
+  // Check for draft
+  const draft = loadDraft();
+  if (draft) {
+    document.getElementById('draftBanner').style.display = 'block';
+    const savedTime = new Date(draft.savedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+    document.getElementById('draftInfo').textContent = 'Saved ' + savedTime + ' by ' + (draft.savedBy || 'Unknown');
+  }
+  // Update history count from server
+  getPMHistory().then(h => { document.getElementById('historyCount').textContent = h.length; });
+});
+</script>
+</body>
+</html>
