@@ -1,5 +1,18 @@
 [
   {
+    "id": "OT-4",
+    "employee": "Matthew Gallo",
+    "date": "2026-08-01",
+    "hours": 8,
+    "status": "worked",
+    "note": "Covering 2nd shift",
+    "shift": "2nd",
+    "coverageKey": "2026-08-01|2nd",
+    "auto": true,
+    "enteredBy": "Mateusz Targosz",
+    "createdAt": "2026-07-13T16:41:45.388Z"
+  },
+  {
     "id": "OT-3",
     "employee": "Ray Mursch",
     "date": "2026-07-22",
