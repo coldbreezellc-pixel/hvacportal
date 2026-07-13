@@ -162,6 +162,14 @@
   .bal-box.locked{background:#F1F5F9;border-color:#CBD5E1}
   .bal-box .bal-num.lock{font-size:20px;line-height:1.6}
   .anniv-alert{background:#FEF3C7;border:1.5px solid #FCD34D;color:#92400E;font-size:12px;padding:10px 12px;border-radius:8px;margin-bottom:12px;line-height:1.5}
+  .allot-nums.two{grid-template-columns:repeat(2,1fr)}
+  .tier-box{background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:8px;padding:10px;margin-top:10px}
+  .tier-hd{font-size:10px;font-weight:700;color:#1E40AF;text-transform:uppercase;letter-spacing:.4px}
+  .tier-val{font-size:13px;color:var(--text);margin-top:3px}
+  .tier-val b{color:var(--navy)}
+  .tier-next{font-size:11px;color:#1E40AF;margin-top:3px;font-weight:600}
+  .bal-box .bal-tier{font-size:9px;color:var(--accent);font-weight:700;margin-top:3px}
+  .bump-note{background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1E40AF;font-size:11px;padding:9px 11px;border-radius:8px;margin-top:11px;line-height:1.5;text-align:center}
   .hire-tag{font-size:10px;font-weight:700;color:var(--text-mid);background:#F1F5F9;padding:2px 7px;border-radius:4px;text-transform:uppercase;white-space:nowrap}
   .hire-tag.warn{color:#991B1B;background:#FEE2E2}
   .person-bal .pname{align-items:center}
@@ -252,11 +260,13 @@
           <div class="loading" style="grid-column:1/-1;padding:20px;">Loading…</div>
         </div>
         <div id="expiryWarn"></div>
+        <div id="bumpNote"></div>
         <div id="bereaveNote"></div>
         <div class="yr-note">
           <b>⚑ Vacation</b> runs on your hire-date anniversary year.
           <b>Sick/Personal</b> and <b>Floating</b> reset every Jan 1.
           <b>Bereavement</b> has no yearly bank — it's recorded as it happens.
+          <br><b>Vacation grows with service:</b> 1 yr → 2 wks · 5 yrs → 3 wks · 10 yrs → 4 wks · 15 yrs → 5 wks.
         </div>
       </div>
     </div>
@@ -381,12 +391,13 @@
         </div>
 
         <label style="margin-top:14px;">Days Available</label>
-        <div class="allot-hdr"><span>Sick/Personal</span><span>Vacation</span><span>Floating</span></div>
-        <div class="allot-nums">
+        <div class="allot-hdr"><span>Sick/Personal</span><span>Floating</span></div>
+        <div class="allot-nums two">
           <input type="number" min="0" id="e_sp" value="12">
-          <input type="number" min="0" id="e_va" value="10">
           <input type="number" min="0" id="e_fl" value="3">
         </div>
+        <div class="modal-note" style="margin-top:8px;">Vacation is calculated from the hire date —
+          none in year one, then <b>2 weeks</b> at 1 yr, <b>3</b> at 5 yrs, <b>4</b> at 10 yrs, <b>5</b> at 15 yrs.</div>
 
         <label style="margin-top:14px;">Temporary Password</label>
         <input type="text" id="e_pw" value="Local68" placeholder="Temp password">
@@ -745,10 +756,24 @@ function renderMyBalances() {
       '<div class="bal-num">' + rem + '</div>' +
       '<div class="bal-lbl">' + POOL_NAME[p] + '</div>' +
       '<div class="bal-sub">of ' + tot + (pend ? ' · ' + pend + ' pending' : '') + '</div>' +
+      (isVac && bal.vacationTier ? '<div class="bal-tier">' + bal.vacationTier.weeks + ' wk · ' +
+        bal.vacationTier.years + ' yr' + (bal.vacationTier.years === 1 ? '' : 's') + ' service</div>' : '') +
       (win ? '<div class="bal-win' + (urgent ? ' urgent' : '') + '">' +
         (isVac && bal.vacationOnAnniversary ? '⚑ ' : '') + fmtWin(win) + '</div>' : '') +
       '</div>';
   }).join('');
+
+  // Heads-up when their next service milestone bumps them up a week
+  const bump = bal.nextVacationBump;
+  const bumpBox = document.getElementById('bumpNote');
+  if (bumpBox) {
+    bumpBox.innerHTML = bump
+      ? '<div class="bump-note">📈 On <b>' + fmtDate(bump.date) + ' ' +
+        new Date(bump.date + 'T00:00:00').getFullYear() + '</b> you hit <b>' + bump.years +
+        ' years</b> — vacation goes from ' + bump.fromWeeks + ' to <b>' + bump.toWeeks +
+        ' weeks</b> (' + (bump.toWeeks * 5) + ' days).</div>'
+      : '';
+  }
 
   // Use-it-or-lose-it nudge
   const notes = [];
@@ -1317,7 +1342,6 @@ async function addEngineer() {
   const role = document.getElementById('e_role').value;
   const pw = document.getElementById('e_pw').value;
   const sickPersonal = document.getElementById('e_sp').value;
-  const vacation = document.getElementById('e_va').value;
   const floating = document.getElementById('e_fl').value;
 
   if (!displayName) return toast('Enter their name', true);
@@ -1331,7 +1355,7 @@ async function addEngineer() {
     const passwordHash = await hashPw(pw);
     const r = await fetch('/api/engineers', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName, username, email, passwordHash, role, hireDate, sickPersonal, vacation, floating })
+      body: JSON.stringify({ displayName, username, email, passwordHash, role, hireDate, sickPersonal, floating })
     });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || 'Add failed');
@@ -1339,7 +1363,6 @@ async function addEngineer() {
     ['e_name','e_user','e_email','e_hire'].forEach(id => { document.getElementById(id).value = ''; });
     document.getElementById('e_user').dataset.touched = '';
     document.getElementById('e_sp').value = 12;
-    document.getElementById('e_va').value = 10;
     document.getElementById('e_fl').value = 3;
     document.getElementById('e_pw').value = 'Local68';
     document.getElementById('e_role').value = 'crew';
@@ -1388,11 +1411,25 @@ function renderAllotEditor() {
       '<input type="date" id="a_hd_' + i + '" value="' + hire + '">' +
       (hire && vacWin
         ? '<div class="win-note">⚑ Vacation year: <b>' + fmtWin(vacWin) + '</b></div>'
-        : '<div class="win-note warn">Without a hire date, vacation falls back to the calendar year</div>') +
-      '<div class="allot-hdr" style="margin-top:10px;"><span>Sick/Personal</span><span>Vacation</span><span>Floating</span></div>' +
-      '<div class="allot-nums">' +
+        : '<div class="win-note warn">Set a hire date — vacation and service tier both depend on it</div>') +
+      (bal && bal.vacationTier
+        ? '<div class="tier-box">' +
+            '<div class="tier-hd">Vacation — earned by service</div>' +
+            '<div class="tier-val"><b>' + bal.vacationTier.weeks + ' weeks (' + bal.vacationTier.days + ' days)</b>' +
+              ' &middot; ' + bal.vacationTier.years + ' yr' + (bal.vacationTier.years === 1 ? '' : 's') + ' of service</div>' +
+            (bal.nextVacationBump
+              ? '<div class="tier-next">→ ' + bal.nextVacationBump.toWeeks + ' weeks on ' +
+                fmtDate(bal.nextVacationBump.date) + ' ' +
+                new Date(bal.nextVacationBump.date + 'T00:00:00').getFullYear() + '</div>'
+              : '') +
+            '<label style="margin-top:8px;">Override (leave blank to use the tier)</label>' +
+            '<input type="number" min="0" id="a_vo_' + i + '" value="' +
+              (cfg.vacationOverride != null ? cfg.vacationOverride : '') + '" placeholder="' + bal.vacationTier.days + ' (auto)">' +
+          '</div>'
+        : '') +
+      '<div class="allot-hdr" style="margin-top:10px;"><span>Sick/Personal</span><span>Floating</span></div>' +
+      '<div class="allot-nums two">' +
         '<input type="number" min="0" id="a_sp_' + i + '" value="' + a.sickPersonal + '">' +
-        '<input type="number" min="0" id="a_va_' + i + '" value="' + a.vacation + '">' +
         '<input type="number" min="0" id="a_fl_' + i + '" value="' + a.floating + '">' +
       '</div>' +
       '<div style="display:flex;gap:7px;margin-top:9px;">' +
@@ -1407,11 +1444,12 @@ async function saveAllot(i) {
   const name = allUsers[i] && allUsers[i].displayName;
   if (!name) return;
   try {
+    const ovEl = document.getElementById('a_vo_' + i);
     const body = {
       employee: name,
       sickPersonal: document.getElementById('a_sp_' + i).value,
-      vacation: document.getElementById('a_va_' + i).value,
       floating: document.getElementById('a_fl_' + i).value,
+      vacationOverride: ovEl ? (ovEl.value === '' ? null : ovEl.value) : null,
       hireDate: document.getElementById('a_hd_' + i).value || null
     };
     const r = await fetch('/api/time-off-allotments', {
