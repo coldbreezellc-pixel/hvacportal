@@ -38,7 +38,8 @@
   .days-preview{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;font-size:13px;color:#1E40AF;font-weight:600;margin-top:12px;text-align:center}
   .days-preview.over{background:#FEE2E2;border-color:#FCA5A5;color:#991B1B}
   /* Balance cards */
-  .bal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .bal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  @media(min-width:520px){.bal-grid{grid-template-columns:repeat(4,1fr)}}
   .bal-box{background:#F8FAFC;border:1.5px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center}
   .bal-box .bal-num{font-size:24px;font-weight:800;color:var(--navy);line-height:1}
   .bal-box .bal-lbl{font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.4px;margin-top:5px;line-height:1.3}
@@ -99,9 +100,9 @@
   .allot-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:6px;align-items:end;margin-bottom:9px}
   .allot-row input{padding:8px;font-size:14px;text-align:center}
   .allot-row .nm{font-size:13px;font-weight:700;color:var(--text);padding-bottom:9px}
-  .allot-hdr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;margin-bottom:5px;text-align:center}
-  .allot-nums{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-  .allot-nums input{padding:9px;font-size:15px;text-align:center;font-weight:700}
+  .allot-hdr{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;margin-bottom:5px;text-align:center}
+  .allot-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  .allot-nums input{padding:9px 4px;font-size:15px;text-align:center;font-weight:700}
   .emp-card{border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:#FAFBFD}
   .emp-name{font-size:14px;font-weight:800;color:var(--navy);display:flex;justify-content:space-between;align-items:center;gap:8px}
   .no-hire{font-size:10px;font-weight:700;color:#991B1B;background:#FEE2E2;padding:2px 7px;border-radius:4px;text-transform:uppercase}
@@ -237,6 +238,7 @@
             <option value="Sick">Sick</option>
             <option value="Personal">Personal</option>
             <option value="Floating Holiday">Floating Holiday</option>
+            <option value="Bereavement">Bereavement</option>
           </select>
           <button class="btn-sm btn-ghost" style="white-space:nowrap;padding:8px 12px;" onclick="applyBulkType()">Set all days</button>
         </div>
@@ -329,11 +331,12 @@
         </div>
 
         <label style="margin-top:14px;">Days Available</label>
-        <div class="allot-hdr"><span>Sick/Personal</span><span>Vacation</span><span>Floating</span></div>
+        <div class="allot-hdr"><span>Sick/Pers</span><span>Vacation</span><span>Floating</span><span>Bereave</span></div>
         <div class="allot-nums">
           <input type="number" min="0" id="e_sp" value="12">
           <input type="number" min="0" id="e_va" value="10">
           <input type="number" min="0" id="e_fl" value="3">
+          <input type="number" min="0" id="e_be" value="5">
         </div>
 
         <label style="margin-top:14px;">Temporary Password</label>
@@ -420,6 +423,7 @@
             <option value="Sick">Sick</option>
             <option value="Personal">Personal</option>
             <option value="Floating Holiday">Floating Holiday</option>
+            <option value="Bereavement">Bereavement</option>
           </select>
         </div>
         <div>
@@ -456,9 +460,11 @@ if (isAdmin) {
   document.querySelector('.tab[data-tab="balances"]').style.display = 'block';
 }
 
-const POOL_OF = { 'Sick':'sickPersonal', 'Personal':'sickPersonal', 'Vacation':'vacation', 'Floating Holiday':'floating' };
-const POOL_NAME = { sickPersonal:'Sick / Personal', vacation:'Vacation', floating:'Floating Holidays' };
-const TYPE_CLASS = { 'Sick':'t-sick', 'Personal':'t-personal', 'Vacation':'t-vacation', 'Floating Holiday':'t-floating' };
+const POOL_OF = { 'Sick':'sickPersonal', 'Personal':'sickPersonal', 'Vacation':'vacation', 'Floating Holiday':'floating', 'Bereavement':'bereavement' };
+const POOL_NAME = { sickPersonal:'Sick / Personal', vacation:'Vacation', floating:'Floating Holidays', bereavement:'Bereavement' };
+const POOL_KEYS = ['sickPersonal','vacation','floating','bereavement'];
+const DAY_TYPES = ['Vacation','Sick','Personal','Floating Holiday','Bereavement'];
+const TYPE_CLASS = { 'Sick':'t-sick', 'Personal':'t-personal', 'Vacation':'t-vacation', 'Floating Holiday':'t-floating', 'Bereavement':'t-bereave' };
 const SHIFT_INFO = {
   '1st': { label: '1st Shift', time: '6a–2p', cls: 's-1st' },
   '2nd': { label: '2nd Shift', time: '2p–10p', cls: 's-2nd' },
@@ -543,7 +549,7 @@ function renderDayEditor() {
     const lbl = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     return '<div class="day-row"><span class="dl">' + lbl + '</span>' +
       '<select onchange="setDayType(\'' + d + '\', this.value)">' +
-      ['Vacation','Sick','Personal','Floating Holiday'].map(t =>
+      DAY_TYPES.map(t =>
         '<option value="' + t + '"' + (dayTypes[d] === t ? ' selected' : '') + '>' + t + '</option>'
       ).join('') +
       '</select></div>';
@@ -586,7 +592,7 @@ function updatePreview() {
   const bal = DATA.balances[myName];
   const parts = [], shorts = [], outside = [];
 
-  ['sickPersonal','vacation','floating'].forEach(p => {
+  POOL_KEYS.forEach(p => {
     if (!use[p]) return;
     const rem = bal ? bal.remaining[p] : null;
     let s = use[p] + ' ' + POOL_NAME[p];
@@ -698,7 +704,7 @@ function renderMyBalances() {
 
   // Use-it-or-lose-it nudge
   const notes = [];
-  ['vacation','sickPersonal','floating'].forEach(p => {
+  POOL_KEYS.forEach(p => {
     const rem = bal.remaining[p];
     const win = bal.windows ? bal.windows[p] : null;
     const left = daysLeftIn(win);
@@ -1162,7 +1168,7 @@ function renderAllBalances() {
         (expiring ? ' — <span style="color:#991B1B;font-weight:700;">' + b.remaining.vacation + ' day' + (b.remaining.vacation === 1 ? '' : 's') + ' expire in ' + vacLeft + 'd</span>' : '') +
         '</div>' : '') +
       '<div class="bal-grid">' +
-      ['sickPersonal','vacation','floating'].map(p => {
+      POOL_KEYS.map(p => {
         const rem = b.remaining[p];
         return '<div class="bal-box' + (rem <= 1 ? ' low' : '') + '">' +
           '<div class="bal-num">' + rem + '</div>' +
@@ -1201,6 +1207,7 @@ async function addEngineer() {
   const sickPersonal = document.getElementById('e_sp').value;
   const vacation = document.getElementById('e_va').value;
   const floating = document.getElementById('e_fl').value;
+  const bereavement = document.getElementById('e_be').value;
 
   if (!displayName) return toast('Enter their name', true);
   if (!username) return toast('Enter a username', true);
@@ -1213,7 +1220,7 @@ async function addEngineer() {
     const passwordHash = await hashPw(pw);
     const r = await fetch('/api/engineers', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName, username, email, passwordHash, role, hireDate, sickPersonal, vacation, floating })
+      body: JSON.stringify({ displayName, username, email, passwordHash, role, hireDate, sickPersonal, vacation, floating, bereavement })
     });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || 'Add failed');
@@ -1223,6 +1230,7 @@ async function addEngineer() {
     document.getElementById('e_sp').value = 12;
     document.getElementById('e_va').value = 10;
     document.getElementById('e_fl').value = 3;
+    document.getElementById('e_be').value = 5;
     document.getElementById('e_pw').value = 'Local68';
     document.getElementById('e_role').value = 'crew';
     await load();
@@ -1256,11 +1264,10 @@ function renderAllotEditor() {
     const n = u.displayName;
     const cfg = (DATA.allotments && DATA.allotments[n]) || {};
     const bal = DATA.balances[n];
-    const a = {
-      sickPersonal: cfg.sickPersonal != null ? cfg.sickPersonal : (DATA.defaults ? DATA.defaults.sickPersonal : 12),
-      vacation: cfg.vacation != null ? cfg.vacation : (DATA.defaults ? DATA.defaults.vacation : 10),
-      floating: cfg.floating != null ? cfg.floating : (DATA.defaults ? DATA.defaults.floating : 3)
-    };
+    const a = {};
+    POOL_KEYS.forEach(k => {
+      a[k] = cfg[k] != null ? cfg[k] : ((DATA.defaults && DATA.defaults[k] != null) ? DATA.defaults[k] : 0);
+    });
     const hire = cfg.hireDate || '';
     const vacWin = bal && bal.windows ? bal.windows.vacation : null;
     return '<div class="emp-card">' +
@@ -1272,11 +1279,12 @@ function renderAllotEditor() {
       (hire && vacWin
         ? '<div class="win-note">⚑ Vacation year: <b>' + fmtWin(vacWin) + '</b></div>'
         : '<div class="win-note warn">Without a hire date, vacation falls back to the calendar year</div>') +
-      '<div class="allot-hdr" style="margin-top:10px;"><span>Sick/Personal</span><span>Vacation</span><span>Floating</span></div>' +
+      '<div class="allot-hdr" style="margin-top:10px;"><span>Sick/Pers</span><span>Vacation</span><span>Floating</span><span>Bereave</span></div>' +
       '<div class="allot-nums">' +
         '<input type="number" min="0" id="a_sp_' + i + '" value="' + a.sickPersonal + '">' +
         '<input type="number" min="0" id="a_va_' + i + '" value="' + a.vacation + '">' +
         '<input type="number" min="0" id="a_fl_' + i + '" value="' + a.floating + '">' +
+        '<input type="number" min="0" id="a_be_' + i + '" value="' + a.bereavement + '">' +
       '</div>' +
       '<div style="display:flex;gap:7px;margin-top:9px;">' +
         '<button class="btn-sm btn-approve" style="flex:1;padding:9px;" onclick="saveAllot(' + i + ')">Save</button>' +
@@ -1295,6 +1303,7 @@ async function saveAllot(i) {
       sickPersonal: document.getElementById('a_sp_' + i).value,
       vacation: document.getElementById('a_va_' + i).value,
       floating: document.getElementById('a_fl_' + i).value,
+      bereavement: document.getElementById('a_be_' + i).value,
       hireDate: document.getElementById('a_hd_' + i).value || null
     };
     const r = await fetch('/api/time-off-allotments', {
