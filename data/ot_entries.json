@@ -22,17 +22,5 @@
     "coverageKey": null,
     "enteredBy": "Mateusz Targosz",
     "createdAt": "2026-07-13T16:41:11.845Z"
-  },
-  {
-    "id": "OT-1",
-    "employee": "Brian Scudder",
-    "date": "2026-07-20",
-    "hours": 8,
-    "status": "worked",
-    "note": "Chiller alarm 904 — called in at 9pm",
-    "shift": "2nd",
-    "coverageKey": null,
-    "enteredBy": "Mateusz Targosz",
-    "createdAt": "2026-07-13T16:41:05.877Z"
   }
 ]
