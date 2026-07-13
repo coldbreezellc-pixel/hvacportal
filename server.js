@@ -986,8 +986,10 @@ async function getOtBaseline() {
   return {};
 }
 
-// Hours charged, and the rotation order
-function computeOtTotals(entries, baseline) {
+// Hours charged, and the rotation order.
+// Ties are broken by SENIORITY — the man hired first gets offered first.
+function computeOtTotals(entries, baseline, hireDates) {
+  hireDates = hireDates || {};
   const out = {};
   Object.entries(baseline).forEach(([name, b]) => {
     out[name] = {
@@ -1007,20 +1009,34 @@ function computeOtTotals(entries, baseline) {
     t.logged += h;      // every status counts against you
     t.total += h;
   });
-  // Rank ascending — lowest total is next in line. Excluded people never rank.
+  // Fewest hours goes first. Level on hours → the senior man goes first.
+  // Anyone with no hire date on file sorts last among equals rather than
+  // jumping the queue on an accident of spelling.
+  const seniority = (n) => hireDates[n] || '9999-12-31';
   const eligible = Object.entries(out).filter(([, t]) => !t.excluded);
-  eligible.sort((a, b) => a[1].total - b[1].total || a[0].localeCompare(b[0]));
-  eligible.forEach(([name], i) => { out[name].rank = i + 1; });
+  eligible.sort((a, b) =>
+    a[1].total - b[1].total ||
+    seniority(a[0]).localeCompare(seniority(b[0])) ||
+    a[0].localeCompare(b[0]));
+  eligible.forEach(([name], i) => {
+    out[name].rank = i + 1;
+    out[name].hireDate = hireDates[name] || null;
+  });
   Object.entries(out).forEach(([name, t]) => { if (t.excluded) t.rank = null; });
   return out;
 }
 
 app.get('/api/ot', async (req, res) => {
   try {
-    const [entries, baseline] = await Promise.all([getOtEntries(), getOtBaseline()]);
+    const [entries, baseline, allots] = await Promise.all([
+      getOtEntries(), getOtBaseline(), getAllotments()
+    ]);
+    // Hire dates drive the seniority tie-break
+    const hireDates = {};
+    Object.entries(allots || {}).forEach(([n, a]) => { if (a && a.hireDate) hireDates[n] = a.hireDate; });
     res.json({
-      entries, baseline,
-      totals: computeOtTotals(entries, baseline),
+      entries, baseline, hireDates,
+      totals: computeOtTotals(entries, baseline, hireDates),
       statuses: OT_STATUSES,
       defaultHours: OT_DEFAULT_HOURS
     });
