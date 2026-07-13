@@ -38,8 +38,7 @@
   .days-preview{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;font-size:13px;color:#1E40AF;font-weight:600;margin-top:12px;text-align:center}
   .days-preview.over{background:#FEE2E2;border-color:#FCA5A5;color:#991B1B}
   /* Balance cards */
-  .bal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-  @media(min-width:520px){.bal-grid{grid-template-columns:repeat(4,1fr)}}
+  .bal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .bal-box{background:#F8FAFC;border:1.5px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center}
   .bal-box .bal-num{font-size:24px;font-weight:800;color:var(--navy);line-height:1}
   .bal-box .bal-lbl{font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.4px;margin-top:5px;line-height:1.3}
@@ -100,8 +99,8 @@
   .allot-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:6px;align-items:end;margin-bottom:9px}
   .allot-row input{padding:8px;font-size:14px;text-align:center}
   .allot-row .nm{font-size:13px;font-weight:700;color:var(--text);padding-bottom:9px}
-  .allot-hdr{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;margin-bottom:5px;text-align:center}
-  .allot-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  .allot-hdr{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;margin-bottom:5px;text-align:center}
+  .allot-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
   .allot-nums input{padding:9px 4px;font-size:15px;text-align:center;font-weight:700}
   .emp-card{border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:#FAFBFD}
   .emp-name{font-size:14px;font-weight:800;color:var(--navy);display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -114,6 +113,10 @@
   .expiry-warn{background:#FEF3C7;border:1.5px solid #FCD34D;color:#92400E;font-size:12px;font-weight:700;padding:9px 11px;border-radius:8px;margin-top:11px;text-align:center;line-height:1.4}
   .yr-note{font-size:11px;color:var(--text-mid);margin-top:11px;padding-top:10px;border-top:1px solid #F1F5F9;line-height:1.5}
   .yr-note b{color:var(--navy)}
+  .bereave-note{background:#F1F5F9;border:1px solid #CBD5E1;border-radius:8px;padding:9px 11px;margin-top:10px}
+  .bn-hd{font-size:12px;font-weight:700;color:#334155}
+  .bn-dates{font-size:11px;color:var(--text-mid);margin-top:3px;line-height:1.5}
+  .bn-sub{font-size:10px;color:var(--text-light);margin-top:4px;font-style:italic}
   .hire-tag{font-size:10px;font-weight:700;color:var(--text-mid);background:#F1F5F9;padding:2px 7px;border-radius:4px;text-transform:uppercase;white-space:nowrap}
   .hire-tag.warn{color:#991B1B;background:#FEE2E2}
   .person-bal .pname{align-items:center}
@@ -204,9 +207,11 @@
           <div class="loading" style="grid-column:1/-1;padding:20px;">Loading…</div>
         </div>
         <div id="expiryWarn"></div>
+        <div id="bereaveNote"></div>
         <div class="yr-note">
           <b>⚑ Vacation</b> runs on your hire-date anniversary year.
           <b>Sick/Personal</b> and <b>Floating</b> reset every Jan 1.
+          <b>Bereavement</b> has no yearly bank — it's recorded as it happens.
         </div>
       </div>
     </div>
@@ -331,12 +336,11 @@
         </div>
 
         <label style="margin-top:14px;">Days Available</label>
-        <div class="allot-hdr"><span>Sick/Pers</span><span>Vacation</span><span>Floating</span><span>Bereave</span></div>
+        <div class="allot-hdr"><span>Sick/Personal</span><span>Vacation</span><span>Floating</span></div>
         <div class="allot-nums">
           <input type="number" min="0" id="e_sp" value="12">
           <input type="number" min="0" id="e_va" value="10">
           <input type="number" min="0" id="e_fl" value="3">
-          <input type="number" min="0" id="e_be" value="5">
         </div>
 
         <label style="margin-top:14px;">Temporary Password</label>
@@ -460,9 +464,9 @@ if (isAdmin) {
   document.querySelector('.tab[data-tab="balances"]').style.display = 'block';
 }
 
-const POOL_OF = { 'Sick':'sickPersonal', 'Personal':'sickPersonal', 'Vacation':'vacation', 'Floating Holiday':'floating', 'Bereavement':'bereavement' };
-const POOL_NAME = { sickPersonal:'Sick / Personal', vacation:'Vacation', floating:'Floating Holidays', bereavement:'Bereavement' };
-const POOL_KEYS = ['sickPersonal','vacation','floating','bereavement'];
+const POOL_OF = { 'Sick':'sickPersonal', 'Personal':'sickPersonal', 'Vacation':'vacation', 'Floating Holiday':'floating' };
+const POOL_NAME = { sickPersonal:'Sick / Personal', vacation:'Vacation', floating:'Floating Holidays' };
+const POOL_KEYS = ['sickPersonal','vacation','floating'];
 const DAY_TYPES = ['Vacation','Sick','Personal','Floating Holiday','Bereavement'];
 const TYPE_CLASS = { 'Sick':'t-sick', 'Personal':'t-personal', 'Vacation':'t-vacation', 'Floating Holiday':'t-floating', 'Bereavement':'t-bereave' };
 const SHIFT_INFO = {
@@ -719,6 +723,23 @@ function renderMyBalances() {
       ? '<div class="expiry-warn">⏳ ' + notes.join(' · ') + '</div>'
       : '';
   }
+
+  // Bereavement isn't a bank of days — it's taken as it happens, so we just
+  // record what was taken rather than counting anything down.
+  const bBox = document.getElementById('bereaveNote');
+  if (bBox) bBox.innerHTML = bereaveHtml(bal);
+}
+
+// A plain record of bereavement days taken this year — no allotment, no balance
+function bereaveHtml(bal) {
+  const n = bal.bereavementDays || 0;
+  if (!n) return '';
+  const dates = (bal.bereavementDates || []).map(d => fmtDate(d)).join(', ');
+  return '<div class="bereave-note">' +
+    '<div class="bn-hd">🕊 Bereavement — ' + n + ' day' + (n === 1 ? '' : 's') + ' taken this year</div>' +
+    (dates ? '<div class="bn-dates">' + dates + '</div>' : '') +
+    '<div class="bn-sub">Not a bank of days — recorded as it happens.</div>' +
+    '</div>';
 }
 
 // Human summary of a request's day types, e.g. "3 Vacation + 1 Floating Holiday"
@@ -1174,7 +1195,9 @@ function renderAllBalances() {
           '<div class="bal-num">' + rem + '</div>' +
           '<div class="bal-lbl">' + POOL_NAME[p] + '</div>' +
           '<div class="bal-sub">of ' + b.allotment[p] + '</div></div>';
-      }).join('') + '</div></div>';
+      }).join('') + '</div>' +
+      bereaveHtml(b) +
+      '</div>';
   }).join('');
 }
 
@@ -1207,7 +1230,6 @@ async function addEngineer() {
   const sickPersonal = document.getElementById('e_sp').value;
   const vacation = document.getElementById('e_va').value;
   const floating = document.getElementById('e_fl').value;
-  const bereavement = document.getElementById('e_be').value;
 
   if (!displayName) return toast('Enter their name', true);
   if (!username) return toast('Enter a username', true);
@@ -1220,7 +1242,7 @@ async function addEngineer() {
     const passwordHash = await hashPw(pw);
     const r = await fetch('/api/engineers', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName, username, email, passwordHash, role, hireDate, sickPersonal, vacation, floating, bereavement })
+      body: JSON.stringify({ displayName, username, email, passwordHash, role, hireDate, sickPersonal, vacation, floating })
     });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || 'Add failed');
@@ -1230,7 +1252,6 @@ async function addEngineer() {
     document.getElementById('e_sp').value = 12;
     document.getElementById('e_va').value = 10;
     document.getElementById('e_fl').value = 3;
-    document.getElementById('e_be').value = 5;
     document.getElementById('e_pw').value = 'Local68';
     document.getElementById('e_role').value = 'crew';
     await load();
@@ -1279,12 +1300,11 @@ function renderAllotEditor() {
       (hire && vacWin
         ? '<div class="win-note">⚑ Vacation year: <b>' + fmtWin(vacWin) + '</b></div>'
         : '<div class="win-note warn">Without a hire date, vacation falls back to the calendar year</div>') +
-      '<div class="allot-hdr" style="margin-top:10px;"><span>Sick/Pers</span><span>Vacation</span><span>Floating</span><span>Bereave</span></div>' +
+      '<div class="allot-hdr" style="margin-top:10px;"><span>Sick/Personal</span><span>Vacation</span><span>Floating</span></div>' +
       '<div class="allot-nums">' +
         '<input type="number" min="0" id="a_sp_' + i + '" value="' + a.sickPersonal + '">' +
         '<input type="number" min="0" id="a_va_' + i + '" value="' + a.vacation + '">' +
         '<input type="number" min="0" id="a_fl_' + i + '" value="' + a.floating + '">' +
-        '<input type="number" min="0" id="a_be_' + i + '" value="' + a.bereavement + '">' +
       '</div>' +
       '<div style="display:flex;gap:7px;margin-top:9px;">' +
         '<button class="btn-sm btn-approve" style="flex:1;padding:9px;" onclick="saveAllot(' + i + ')">Save</button>' +
@@ -1303,7 +1323,6 @@ async function saveAllot(i) {
       sickPersonal: document.getElementById('a_sp_' + i).value,
       vacation: document.getElementById('a_va_' + i).value,
       floating: document.getElementById('a_fl_' + i).value,
-      bereavement: document.getElementById('a_be_' + i).value,
       hireDate: document.getElementById('a_hd_' + i).value || null
     };
     const r = await fetch('/api/time-off-allotments', {
