@@ -276,6 +276,24 @@ function check(name, cond, detail) {
   }
   ev("switchTab('my')");
 
+  // ── Month uses the whole page, and can go full screen ──
+  ev("switchTab('month')");
+  check('Month: full-screen button exists', !!d.getElementById('calFullBtn'));
+  check('Month: Grid/List toggle still intact', (html('panel-month').match(/mv-btn/g) || []).length === 2);
+  ev('toggleCalFull()');
+  check('Month: full screen turns on', d.body.classList.contains('cal-full') && ev('calFull') === true);
+  check('Month: button flips to Close', /Close/i.test(txt('calFullBtn')));
+  check('Month: calendar still renders in full screen', (html('calGrid').match(/cs-row/g) || []).length > 0,
+        `${(html('calGrid').match(/cs-row/g) || []).length} staffing rows`);
+  ev('toggleCalFull()');
+  check('Month: full screen turns off', !d.body.classList.contains('cal-full'));
+
+  // Leaving the tab while full screen must not strand you on a blank page
+  ev('toggleCalFull()');
+  ev("switchTab('coverage')");
+  check('Month: leaving the tab drops full screen', !d.body.classList.contains('cal-full') && ev('calFull') === false);
+  check('Month: other tabs still visible after full screen', d.getElementById('panel-coverage').classList.contains('active'));
+
   // ── The call sheet: short shift → who to ring, in OT order, log yes/no ──
   ev("switchTab('month'); calMonth=7; calYear=2026; renderMonth(); selectDay('2026-08-03')");
   const dd = html('dayDetail');
