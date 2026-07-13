@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "id": "OT-1",
+    "employee": "Ray Mursch",
+    "date": "2026-07-13",
+    "hours": 8,
+    "status": "worked",
+    "note": "Covering 2nd shift",
+    "shift": "2nd",
+    "coverageKey": "2026-07-13|2nd",
+    "auto": true,
+    "enteredBy": "Coverage",
+    "createdAt": "2026-07-13T17:12:34.945Z"
+  }
+]
