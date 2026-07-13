@@ -1,5 +1,18 @@
 [
   {
+    "id": "OT-3",
+    "employee": "Brian Scudder",
+    "date": "2026-08-03",
+    "hours": 8,
+    "status": "worked",
+    "note": "Covering 1st shift",
+    "shift": "1st",
+    "coverageKey": "2026-08-03|1st",
+    "auto": true,
+    "enteredBy": "Mateusz Targosz",
+    "createdAt": "2026-07-13T17:40:55.423Z"
+  },
+  {
     "id": "OT-2",
     "employee": "Ray Sinnott",
     "date": "2026-07-14",
