@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "employee": "Ray Sinnott",
+    "type": "Vacation",
+    "shift": "1st",
+    "startDate": "2026-08-20",
+    "endDate": "2026-08-20",
+    "id": "TO-2026-0001",
+    "days": 1,
+    "status": "Pending",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T11:35:55.476Z"
+  }
+]
