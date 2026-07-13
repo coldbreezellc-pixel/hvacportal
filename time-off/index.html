@@ -300,6 +300,51 @@
   <!-- ADMIN -->
   <div class="panel" id="panel-balances">
     <div class="card">
+      <div class="card-head">Add an Engineer</div>
+      <div class="card-body">
+        <div class="row2">
+          <div>
+            <label>Full Name</label>
+            <input type="text" id="e_name" placeholder="John Smith" oninput="suggestUsername()">
+          </div>
+          <div>
+            <label>Username</label>
+            <input type="text" id="e_user" placeholder="jsmith">
+          </div>
+        </div>
+        <label>Email</label>
+        <input type="text" id="e_email" placeholder="john.smith@versantmedia.com" inputmode="email">
+        <div class="row2">
+          <div>
+            <label>Hire Date</label>
+            <input type="date" id="e_hire">
+          </div>
+          <div>
+            <label>Role</label>
+            <select id="e_role">
+              <option value="crew">Crew</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+
+        <label style="margin-top:14px;">Days Available</label>
+        <div class="allot-hdr"><span>Sick/Personal</span><span>Vacation</span><span>Floating</span></div>
+        <div class="allot-nums">
+          <input type="number" min="0" id="e_sp" value="12">
+          <input type="number" min="0" id="e_va" value="10">
+          <input type="number" min="0" id="e_fl" value="3">
+        </div>
+
+        <label style="margin-top:14px;">Temporary Password</label>
+        <input type="text" id="e_pw" value="Local68" placeholder="Temp password">
+        <div class="modal-note">They'll be <b>forced to change it</b> on first login. Vacation runs from their hire date anniversary; sick/personal and floating reset Jan 1.</div>
+
+        <button class="btn" id="addEngBtn" onclick="addEngineer()">+ Add Engineer</button>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-head">Standing Weekly Coverage Gaps</div>
       <div class="card-body">
         <div style="font-size:12px;color:var(--text-mid);margin-bottom:12px;line-height:1.5;">
@@ -329,10 +374,12 @@
         </div>
       </div>
     </div>
+
     <div class="card">
       <div class="card-head">Everyone's Balances</div>
       <div class="card-body" id="allBalances"><div class="loading">Loading…</div></div>
     </div>
+
     <div class="card">
       <div class="card-head">Allotments &amp; Hire Dates</div>
       <div class="card-body">
@@ -1125,6 +1172,80 @@ function renderAllBalances() {
   }).join('');
 }
 
+// ═══ ADD / REMOVE ENGINEERS (admin) ═══
+// Hash must match the portal login exactly, or they won't be able to sign in
+async function hashPw(pw) {
+  const enc = new TextEncoder().encode(pw + 'penguin-maint-2026');
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function suggestUsername() {
+  const name = document.getElementById('e_name').value.trim();
+  const userEl = document.getElementById('e_user');
+  if (userEl.dataset.touched === '1') return; // don't fight a manual edit
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (!parts.length) { userEl.value = ''; return; }
+  const first = parts[0].toLowerCase().replace(/[^a-z]/g, '');
+  const last = parts.length > 1 ? parts[parts.length - 1].toLowerCase().replace(/[^a-z]/g, '') : '';
+  userEl.value = last ? (first.charAt(0) + last) : first;
+}
+
+async function addEngineer() {
+  const displayName = document.getElementById('e_name').value.trim();
+  const username = document.getElementById('e_user').value.trim();
+  const email = document.getElementById('e_email').value.trim();
+  const hireDate = document.getElementById('e_hire').value;
+  const role = document.getElementById('e_role').value;
+  const pw = document.getElementById('e_pw').value;
+  const sickPersonal = document.getElementById('e_sp').value;
+  const vacation = document.getElementById('e_va').value;
+  const floating = document.getElementById('e_fl').value;
+
+  if (!displayName) return toast('Enter their name', true);
+  if (!username) return toast('Enter a username', true);
+  if (!pw || pw.length < 4) return toast('Temp password must be at least 4 characters', true);
+  if (!hireDate && !confirm('No hire date set — their vacation year falls back to the calendar year. Add anyway?')) return;
+
+  const btn = document.getElementById('addEngBtn');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  try {
+    const passwordHash = await hashPw(pw);
+    const r = await fetch('/api/engineers', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ displayName, username, email, passwordHash, role, hireDate, sickPersonal, vacation, floating })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Add failed');
+    toast(displayName + ' added — temp password: ' + pw);
+    ['e_name','e_user','e_email','e_hire'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('e_user').dataset.touched = '';
+    document.getElementById('e_sp').value = 12;
+    document.getElementById('e_va').value = 10;
+    document.getElementById('e_fl').value = 3;
+    document.getElementById('e_pw').value = 'Local68';
+    document.getElementById('e_role').value = 'crew';
+    await load();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = '+ Add Engineer';
+  }
+}
+
+async function removeEngineer(i) {
+  const u = allUsers[i];
+  if (!u) return;
+  if (!confirm('Remove ' + u.displayName + '?\n\nTheir login and allotment are deleted. Past time-off records are kept.')) return;
+  try {
+    const r = await fetch('/api/engineers/' + encodeURIComponent(u.username), { method: 'DELETE' });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Remove failed');
+    toast(u.displayName + ' removed');
+    await load();
+  } catch (e) { toast(e.message, true); }
+}
+
 function renderAllotEditor() {
   const box = document.getElementById('allotEditor');
   if (!allUsers.length) {
@@ -1157,7 +1278,10 @@ function renderAllotEditor() {
         '<input type="number" min="0" id="a_va_' + i + '" value="' + a.vacation + '">' +
         '<input type="number" min="0" id="a_fl_' + i + '" value="' + a.floating + '">' +
       '</div>' +
-      '<button class="btn-sm btn-approve" style="width:100%;margin-top:9px;padding:9px;" onclick="saveAllot(' + i + ')">Save ' + esc(n.split(' ')[0]) + '</button>' +
+      '<div style="display:flex;gap:7px;margin-top:9px;">' +
+        '<button class="btn-sm btn-approve" style="flex:1;padding:9px;" onclick="saveAllot(' + i + ')">Save</button>' +
+        '<button class="btn-sm btn-ghost" style="padding:9px 14px;color:#991B1B;border-color:#FCA5A5;" onclick="removeEngineer(' + i + ')">Remove</button>' +
+      '</div>' +
       '</div>';
   }).join('');
 }
@@ -1244,6 +1368,10 @@ const _t = new Date().toISOString().slice(0, 10);
 document.getElementById('f_start').value = _t;
 document.getElementById('f_end').value = _t;
 renderDayEditor();
+
+// Stop auto-suggest from overwriting a manually typed username
+const _eUser = document.getElementById('e_user');
+if (_eUser) _eUser.addEventListener('input', function () { this.dataset.touched = '1'; });
 
 load();
 </script>
