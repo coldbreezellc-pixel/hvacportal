@@ -99,8 +99,23 @@
   .allot-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:6px;align-items:end;margin-bottom:9px}
   .allot-row input{padding:8px;font-size:14px;text-align:center}
   .allot-row .nm{font-size:13px;font-weight:700;color:var(--text);padding-bottom:9px}
-  .allot-hdr{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:6px;font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;margin-bottom:6px;text-align:center}
-  .allot-hdr span:first-child{text-align:left}
+  .allot-hdr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;margin-bottom:5px;text-align:center}
+  .allot-nums{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .allot-nums input{padding:9px;font-size:15px;text-align:center;font-weight:700}
+  .emp-card{border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:#FAFBFD}
+  .emp-name{font-size:14px;font-weight:800;color:var(--navy);display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .no-hire{font-size:10px;font-weight:700;color:#991B1B;background:#FEE2E2;padding:2px 7px;border-radius:4px;text-transform:uppercase}
+  .win-note{font-size:11px;color:var(--text-mid);margin-top:5px;line-height:1.4}
+  .win-note.warn{color:#92400E}
+  .win-note b{color:var(--navy)}
+  .bal-box .bal-win{font-size:9px;color:var(--text-light);margin-top:4px;font-weight:600;line-height:1.3}
+  .bal-box .bal-win.urgent{color:#991B1B;font-weight:700}
+  .expiry-warn{background:#FEF3C7;border:1.5px solid #FCD34D;color:#92400E;font-size:12px;font-weight:700;padding:9px 11px;border-radius:8px;margin-top:11px;text-align:center;line-height:1.4}
+  .yr-note{font-size:11px;color:var(--text-mid);margin-top:11px;padding-top:10px;border-top:1px solid #F1F5F9;line-height:1.5}
+  .yr-note b{color:var(--navy)}
+  .hire-tag{font-size:10px;font-weight:700;color:var(--text-mid);background:#F1F5F9;padding:2px 7px;border-radius:4px;text-transform:uppercase;white-space:nowrap}
+  .hire-tag.warn{color:#991B1B;background:#FEE2E2}
+  .person-bal .pname{align-items:center}
   /* Per-day type editor */
   .day-row{display:grid;grid-template-columns:1fr 1.3fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #F1F5F9}
   .day-row:last-child{border-bottom:none}
@@ -161,10 +176,15 @@
   <!-- MY TIME OFF -->
   <div class="panel active" id="panel-my">
     <div class="card">
-      <div class="card-head">My Balance — <span id="balYear"></span></div>
+      <div class="card-head">My Balance</div>
       <div class="card-body">
         <div class="bal-grid" id="myBalances">
           <div class="loading" style="grid-column:1/-1;padding:20px;">Loading…</div>
+        </div>
+        <div id="expiryWarn"></div>
+        <div class="yr-note">
+          <b>⚑ Vacation</b> runs on your hire-date anniversary year.
+          <b>Sick/Personal</b> and <b>Floating</b> reset every Jan 1.
         </div>
       </div>
     </div>
@@ -293,9 +313,12 @@
       <div class="card-body" id="allBalances"><div class="loading">Loading…</div></div>
     </div>
     <div class="card">
-      <div class="card-head">Set Annual Allotments</div>
+      <div class="card-head">Allotments &amp; Hire Dates</div>
       <div class="card-body">
-        <div class="allot-hdr"><span>Employee</span><span>Sick/Pers</span><span>Vacation</span><span>Float</span><span></span></div>
+        <div style="font-size:12px;color:var(--text-mid);margin-bottom:12px;line-height:1.5;">
+          <b>Hire date drives the vacation year</b> — vacation must be used between anniversaries.
+          Sick/Personal and Floating reset each Jan 1.
+        </div>
         <div id="allotEditor"></div>
       </div>
     </div>
@@ -328,8 +351,6 @@ const SHIFT_ORDER = ['1st', '2nd', '3rd'];
 let DATA = { requests: [], balances: {}, allotments: {} };
 let allUsers = [];
 let curFilter = 'Pending';
-
-document.getElementById('balYear').textContent = new Date().getFullYear();
 
 function toast(msg, isErr) {
   const t = document.getElementById('toast');
@@ -445,7 +466,8 @@ function updatePreview() {
   }
   const use = formPoolUsage();
   const bal = DATA.balances[myName];
-  const parts = [], shorts = [];
+  const parts = [], shorts = [], outside = [];
+
   ['sickPersonal','vacation','floating'].forEach(p => {
     if (!use[p]) return;
     const rem = bal ? bal.remaining[p] : null;
@@ -457,14 +479,33 @@ function updatePreview() {
     }
     parts.push(s);
   });
+
+  // Flag any day that falls outside the benefit window governing its pool —
+  // e.g. vacation booked past your anniversary draws from NEXT year's bank
+  if (bal && bal.windows) {
+    Object.entries(dayTypes).forEach(([date, type]) => {
+      const p = POOL_OF[type];
+      const w = bal.windows[p];
+      if (w && (date < w.start || date > w.end)) {
+        if (!outside.includes(POOL_NAME[p])) outside.push(POOL_NAME[p]);
+      }
+    });
+  }
+
   if (shorts.length) {
     box.textContent = '⚠ ' + shorts.join(' · ');
     box.className = 'days-preview over';
     btn.disabled = true;
     return;
   }
-  box.textContent = total + (total === 1 ? ' day off' : ' days off') + ' — ' + parts.join(' + ');
-  box.className = 'days-preview';
+  let txt = total + (total === 1 ? ' day off' : ' days off') + ' — ' + parts.join(' + ');
+  if (outside.length) {
+    txt += ' · ⚠ some ' + outside.join(' & ') + ' days fall in your NEXT benefit year';
+    box.className = 'days-preview warn';
+  } else {
+    box.className = 'days-preview';
+  }
+  box.textContent = txt;
   btn.disabled = false;
 }
 
@@ -497,22 +538,63 @@ function updatePendingCount() {
   el.style.display = n ? 'inline-block' : 'none';
 }
 
+function fmtWin(w) {
+  if (!w) return '';
+  const a = new Date(w.start + 'T00:00:00'), b = new Date(w.end + 'T00:00:00');
+  const o = { month: 'short', day: 'numeric' };
+  const ay = a.getFullYear(), by = b.getFullYear();
+  return a.toLocaleDateString('en-US', o) + (ay !== by ? ' ' + String(ay).slice(2) : '') +
+         ' – ' + b.toLocaleDateString('en-US', o) + ' ' + String(by).slice(2);
+}
+
+// Days until a benefit window closes ("use it or lose it" pressure)
+function daysLeftIn(w) {
+  if (!w) return null;
+  const end = new Date(w.end + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((end - today) / 86400000);
+}
+
 function renderMyBalances() {
   const bal = DATA.balances[myName];
   const box = document.getElementById('myBalances');
   if (!bal) {
-    box.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:20px;">No allotment set yet. Ask an admin to set your days.</div>';
+    box.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:20px;">No allotment set yet. Ask an admin to set your days and hire date.</div>';
     return;
   }
   box.innerHTML = ['sickPersonal', 'vacation', 'floating'].map(p => {
     const rem = bal.remaining[p], tot = bal.allotment[p], pend = bal.pending[p];
+    const win = bal.windows ? bal.windows[p] : null;
     const low = rem <= 1;
+    const isVac = p === 'vacation';
+    const closing = daysLeftIn(win);
+    const urgent = rem > 0 && closing !== null && closing <= 60;
     return '<div class="bal-box' + (low ? ' low' : '') + '">' +
       '<div class="bal-num">' + rem + '</div>' +
       '<div class="bal-lbl">' + POOL_NAME[p] + '</div>' +
       '<div class="bal-sub">of ' + tot + (pend ? ' · ' + pend + ' pending' : '') + '</div>' +
+      (win ? '<div class="bal-win' + (urgent ? ' urgent' : '') + '">' +
+        (isVac && bal.vacationOnAnniversary ? '⚑ ' : '') + fmtWin(win) + '</div>' : '') +
       '</div>';
   }).join('');
+
+  // Use-it-or-lose-it nudge
+  const notes = [];
+  ['vacation','sickPersonal','floating'].forEach(p => {
+    const rem = bal.remaining[p];
+    const win = bal.windows ? bal.windows[p] : null;
+    const left = daysLeftIn(win);
+    if (rem > 0 && left !== null && left <= 60) {
+      notes.push(rem + ' ' + POOL_NAME[p] + ' day' + (rem === 1 ? '' : 's') +
+        ' expire' + (rem === 1 ? 's' : '') + ' in ' + left + ' day' + (left === 1 ? '' : 's'));
+    }
+  });
+  const warnBox = document.getElementById('expiryWarn');
+  if (warnBox) {
+    warnBox.innerHTML = notes.length
+      ? '<div class="expiry-warn">⏳ ' + notes.join(' · ') + '</div>'
+      : '';
+  }
 }
 
 // Human summary of a request's day types, e.g. "3 Vacation + 1 Floating Holiday"
@@ -855,7 +937,19 @@ function renderAllBalances() {
   }
   box.innerHTML = names.map(n => {
     const b = DATA.balances[n];
-    return '<div class="person-bal"><div class="pname">' + esc(n) + '</div><div class="bal-grid">' +
+    const vacWin = b.windows ? b.windows.vacation : null;
+    const vacLeft = daysLeftIn(vacWin);
+    const expiring = b.remaining.vacation > 0 && vacLeft !== null && vacLeft <= 60;
+    return '<div class="person-bal">' +
+      '<div class="pname"><span>' + esc(n) + '</span>' +
+        (b.hireDate
+          ? '<span class="hire-tag">Hired ' + fmtDate(b.hireDate) + ' ' + new Date(b.hireDate + 'T00:00:00').getFullYear() + '</span>'
+          : '<span class="hire-tag warn">No hire date</span>') +
+      '</div>' +
+      (vacWin ? '<div class="win-note" style="margin:0 0 7px;">⚑ Vacation year: <b>' + fmtWin(vacWin) + '</b>' +
+        (expiring ? ' — <span style="color:#991B1B;font-weight:700;">' + b.remaining.vacation + ' day' + (b.remaining.vacation === 1 ? '' : 's') + ' expire in ' + vacLeft + 'd</span>' : '') +
+        '</div>' : '') +
+      '<div class="bal-grid">' +
       ['sickPersonal','vacation','floating'].map(p => {
         const rem = b.remaining[p];
         return '<div class="bal-box' + (rem <= 1 ? ' low' : '') + '">' +
@@ -874,13 +968,31 @@ function renderAllotEditor() {
   }
   box.innerHTML = allUsers.map((u, i) => {
     const n = u.displayName;
-    const a = (DATA.allotments && DATA.allotments[n]) || (DATA.balances[n] && DATA.balances[n].allotment) || DATA.defaults || { sickPersonal:12, vacation:10, floating:3 };
-    return '<div class="allot-row">' +
-      '<div class="nm">' + esc(n) + '</div>' +
-      '<input type="number" min="0" id="a_sp_' + i + '" value="' + a.sickPersonal + '">' +
-      '<input type="number" min="0" id="a_va_' + i + '" value="' + a.vacation + '">' +
-      '<input type="number" min="0" id="a_fl_' + i + '" value="' + a.floating + '">' +
-      '<button class="btn-sm btn-approve" onclick="saveAllot(' + i + ')">Save</button>' +
+    const cfg = (DATA.allotments && DATA.allotments[n]) || {};
+    const bal = DATA.balances[n];
+    const a = {
+      sickPersonal: cfg.sickPersonal != null ? cfg.sickPersonal : (DATA.defaults ? DATA.defaults.sickPersonal : 12),
+      vacation: cfg.vacation != null ? cfg.vacation : (DATA.defaults ? DATA.defaults.vacation : 10),
+      floating: cfg.floating != null ? cfg.floating : (DATA.defaults ? DATA.defaults.floating : 3)
+    };
+    const hire = cfg.hireDate || '';
+    const vacWin = bal && bal.windows ? bal.windows.vacation : null;
+    return '<div class="emp-card">' +
+      '<div class="emp-name">' + esc(n) +
+        (hire ? '' : '<span class="no-hire">⚠ no hire date</span>') +
+      '</div>' +
+      '<label style="margin-top:8px;">Hire Date <span style="text-transform:none;font-weight:500;color:var(--text-light);">— sets the vacation year</span></label>' +
+      '<input type="date" id="a_hd_' + i + '" value="' + hire + '">' +
+      (hire && vacWin
+        ? '<div class="win-note">⚑ Vacation year: <b>' + fmtWin(vacWin) + '</b></div>'
+        : '<div class="win-note warn">Without a hire date, vacation falls back to the calendar year</div>') +
+      '<div class="allot-hdr" style="margin-top:10px;"><span>Sick/Personal</span><span>Vacation</span><span>Floating</span></div>' +
+      '<div class="allot-nums">' +
+        '<input type="number" min="0" id="a_sp_' + i + '" value="' + a.sickPersonal + '">' +
+        '<input type="number" min="0" id="a_va_' + i + '" value="' + a.vacation + '">' +
+        '<input type="number" min="0" id="a_fl_' + i + '" value="' + a.floating + '">' +
+      '</div>' +
+      '<button class="btn-sm btn-approve" style="width:100%;margin-top:9px;padding:9px;" onclick="saveAllot(' + i + ')">Save ' + esc(n.split(' ')[0]) + '</button>' +
       '</div>';
   }).join('');
 }
@@ -893,13 +1005,15 @@ async function saveAllot(i) {
       employee: name,
       sickPersonal: document.getElementById('a_sp_' + i).value,
       vacation: document.getElementById('a_va_' + i).value,
-      floating: document.getElementById('a_fl_' + i).value
+      floating: document.getElementById('a_fl_' + i).value,
+      hireDate: document.getElementById('a_hd_' + i).value || null
     };
     const r = await fetch('/api/time-off-allotments', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     });
-    if (!r.ok) throw new Error('Save failed');
-    toast('Saved ' + name + "'s allotment");
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Save failed');
+    toast('Saved ' + name);
     await load();
   } catch (e) { toast(e.message, true); }
 }
