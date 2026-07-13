@@ -961,6 +961,145 @@ async function emailForEmployee(displayName) {
   } catch { return null; }
 }
 
+
+// ═══════════════════════ OVERTIME (OT EQUALIZATION) ═══════════════════════
+// The crew is offered OT in order of who has the FEWEST hours charged against
+// them. Crucially, turning OT down still charges you the hours — that's what
+// keeps the rotation fair. Same for a no-call-no-show.
+//
+//   worked   → black on the old sheet — they came in
+//   declined → red   — offered, said no. Still charged.
+//   noshow   → blue  — no call, no show. Still charged.
+//
+// Total = carried-forward hours (imported from the spreadsheet) + everything logged since.
+const OT_STATUSES = ['worked', 'declined', 'noshow'];
+const OT_DEFAULT_HOURS = 8;
+
+async function getOtEntries() {
+  const d = await ghGet('data/ot_entries.json');
+  if (d && d.content) { try { return JSON.parse(d.content); } catch (e) { return []; } }
+  return [];
+}
+async function getOtBaseline() {
+  const d = await ghGet('data/ot_baseline.json');
+  if (d && d.content) { try { return JSON.parse(d.content); } catch (e) { return {}; } }
+  return {};
+}
+
+// Hours charged, and the rotation order
+function computeOtTotals(entries, baseline) {
+  const out = {};
+  Object.entries(baseline).forEach(([name, b]) => {
+    out[name] = {
+      carried: b.carriedHours || 0,
+      worked: 0, declined: 0, noshow: 0,
+      logged: 0, total: b.carriedHours || 0,
+      excluded: !!b.excluded
+    };
+  });
+  entries.forEach(e => {
+    if (!out[e.employee]) {
+      out[e.employee] = { carried: 0, worked: 0, declined: 0, noshow: 0, logged: 0, total: 0, excluded: false };
+    }
+    const h = Number(e.hours) || 0;
+    const t = out[e.employee];
+    if (OT_STATUSES.includes(e.status)) t[e.status] += h;
+    t.logged += h;      // every status counts against you
+    t.total += h;
+  });
+  // Rank ascending — lowest total is next in line. Excluded people never rank.
+  const eligible = Object.entries(out).filter(([, t]) => !t.excluded);
+  eligible.sort((a, b) => a[1].total - b[1].total || a[0].localeCompare(b[0]));
+  eligible.forEach(([name], i) => { out[name].rank = i + 1; });
+  Object.entries(out).forEach(([name, t]) => { if (t.excluded) t.rank = null; });
+  return out;
+}
+
+app.get('/api/ot', async (req, res) => {
+  try {
+    const [entries, baseline] = await Promise.all([getOtEntries(), getOtBaseline()]);
+    res.json({
+      entries, baseline,
+      totals: computeOtTotals(entries, baseline),
+      statuses: OT_STATUSES,
+      defaultHours: OT_DEFAULT_HOURS
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Log OT — worked, declined, or no-showed
+app.post('/api/ot', async (req, res) => {
+  try {
+    const { employee, date, hours, status, note, shift, coverageKey, enteredBy } = req.body;
+    if (!employee || !date) return res.status(400).json({ error: 'Missing employee or date' });
+    if (!OT_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+    const h = Number(hours);
+    if (!(h > 0)) return res.status(400).json({ error: 'Hours must be greater than 0' });
+
+    let saved = null;
+    await ghUpdateJson('data/ot_entries.json', (list) => {
+      const nums = list.map(x => { const m = (x.id || '').match(/OT-(\d+)/); return m ? parseInt(m[1]) : 0; });
+      saved = {
+        id: `OT-${(nums.length ? Math.max(...nums) : 0) + 1}`,
+        employee, date,
+        hours: h,
+        status,
+        note: note || '',
+        shift: shift || '',
+        coverageKey: coverageKey || null,
+        enteredBy: enteredBy || 'Admin',
+        createdAt: new Date().toISOString()
+      };
+      return [saved, ...list];
+    }, `OT ${status} — ${employee} ${date} (${h}h)`);
+    res.json({ success: true, entry: saved });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/ot/:id', async (req, res) => {
+  try {
+    let updated = null, notFound = false;
+    await ghUpdateJson('data/ot_entries.json', (list) => {
+      const i = list.findIndex(x => x.id === req.params.id);
+      if (i < 0) { notFound = true; return null; }
+      const p = { ...req.body };
+      delete p.id; delete p.createdAt;
+      if (p.status && !OT_STATUSES.includes(p.status)) { notFound = true; return null; }
+      if (p.hours != null) p.hours = Number(p.hours) || 0;
+      list[i] = { ...list[i], ...p, updatedAt: new Date().toISOString() };
+      updated = list[i];
+      return list;
+    }, `Update OT ${req.params.id}`);
+    if (notFound) return res.status(404).json({ error: 'Entry not found' });
+    res.json({ success: true, entry: updated });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/ot/:id', async (req, res) => {
+  try {
+    await ghUpdateJson('data/ot_entries.json', (list) => {
+      const i = list.findIndex(x => x.id === req.params.id);
+      if (i < 0) return null;
+      list.splice(i, 1);
+      return list;
+    }, `Delete OT ${req.params.id}`);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Carried-forward hours / exclude someone from the rotation
+app.post('/api/ot-baseline', async (req, res) => {
+  try {
+    const { employee, carriedHours, excluded } = req.body;
+    if (!employee) return res.status(400).json({ error: 'Missing employee' });
+    await ghUpdateJson('data/ot_baseline.json', (b) => {
+      b[employee] = { carriedHours: Number(carriedHours) || 0, excluded: !!excluded };
+      return b;
+    }, `Set OT baseline for ${employee}`, {});
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── ADD AN ENGINEER ──
 // Creates the login user AND their time-off allotment in one shot.
 // The client hashes the temp password (same SHA-256 + salt the portal login uses),
@@ -1331,18 +1470,67 @@ app.post('/api/schedules', async (req, res) => {
 
 // Assign who covers a short shift on a given date.
 // Key is "<YYYY-MM-DD>|<shift>", value is a list of covering techs.
+// Covering a shift IS overtime, so this also keeps the OT list in step:
+// newly assigned techs get 8 hours logged as worked; unassigning removes them.
 app.post('/api/coverage-assign', async (req, res) => {
   try {
-    const { date, shift, techs } = req.body;
+    const { date, shift, techs, enteredBy } = req.body;
     if (!date || !shift) return res.status(400).json({ error: 'Missing date or shift' });
     if (!SHIFTS[shift]) return res.status(400).json({ error: 'Invalid shift' });
     const key = `${date}|${shift}`;
     const list = (Array.isArray(techs) ? techs : [techs]).filter(Boolean);
+
+    let before = [];
     await ghUpdateJson('data/coverage_assignments.json', (assigns) => {
+      const cur = assigns[key];
+      before = Array.isArray(cur) ? cur : (cur ? [cur] : []);
       if (list.length) assigns[key] = list; else delete assigns[key];
       return assigns;
     }, list.length ? `Coverage for ${key}: ${list.join(', ')}` : `Clear coverage for ${key}`, {});
-    res.json({ success: true });
+
+    // Keep the OT list in step with who's actually covering
+    const added = list.filter(t => !before.includes(t));
+    const removed = before.filter(t => !list.includes(t));
+    let otAdded = [], otRemoved = [];
+
+    if (added.length || removed.length) {
+      await ghUpdateJson('data/ot_entries.json', (entries) => {
+        // Drop OT that was auto-created for anyone no longer covering
+        removed.forEach(t => {
+          for (let i = entries.length - 1; i >= 0; i--) {
+            if (entries[i].coverageKey === key && entries[i].employee === t && entries[i].auto) {
+              otRemoved.push(entries[i].id);
+              entries.splice(i, 1);
+            }
+          }
+        });
+        // Log 8 hours worked for anyone newly covering
+        const nums = entries.map(x => { const m = (x.id || '').match(/OT-(\d+)/); return m ? parseInt(m[1]) : 0; });
+        let next = (nums.length ? Math.max(...nums) : 0) + 1;
+        added.forEach(t => {
+          // Don't double-log if an entry for this slot already exists
+          if (entries.some(e => e.coverageKey === key && e.employee === t)) return;
+          const entry = {
+            id: `OT-${next++}`,
+            employee: t,
+            date,
+            hours: OT_DEFAULT_HOURS,
+            status: 'worked',
+            note: `Covering ${shift} shift`,
+            shift,
+            coverageKey: key,
+            auto: true,
+            enteredBy: enteredBy || 'Coverage',
+            createdAt: new Date().toISOString()
+          };
+          entries.unshift(entry);
+          otAdded.push(entry.id);
+        });
+        return entries;
+      }, `OT from coverage ${key}`, []);
+    }
+
+    res.json({ success: true, otAdded, otRemoved });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
