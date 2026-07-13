@@ -14,8 +14,9 @@
     "notes": "Taking my daughter to look at colleges.",
     "id": "TO-2026-0001",
     "days": 4,
-    "status": "Pending",
-    "coveringTech": "",
-    "createdAt": "2026-07-13T12:11:31.292Z"
+    "status": "Approved",
+    "coveringTech": "Brian Scudder",
+    "createdAt": "2026-07-13T12:11:31.292Z",
+    "updatedAt": "2026-07-13T12:11:43.544Z"
   }
 ]
