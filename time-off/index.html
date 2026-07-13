@@ -13,8 +13,24 @@
   .header h1{font-size:17px;font-weight:700;letter-spacing:.5px;flex:1}
   .back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none}
   .container{padding:16px;max-width:680px;margin:0 auto;padding-bottom:50px}
-  #panel-month{margin:0 -8px}
-  @media(min-width:520px){#panel-month{margin:0}}
+  /* The month is the one thing that genuinely needs the whole screen, so it
+     breaks out of the reading column the rest of the page sits in. */
+  #panel-month{width:100vw;margin-left:calc(50% - 50vw);padding:0 10px}
+  @media(min-width:1500px){#panel-month{width:1480px;margin-left:calc(50% - 740px)}}
+
+  /* Full screen — for actually working the month on a phone (turn it sideways) */
+  body.cal-full{overflow:hidden}
+  body.cal-full .topbar,body.cal-full .tabs,body.cal-full #panel-my,
+  body.cal-full #panel-requests,body.cal-full #panel-coverage,
+  body.cal-full #panel-ot,body.cal-full #panel-balances{display:none!important}
+  body.cal-full .container{padding:0;max-width:none}
+  body.cal-full #panel-month{position:fixed;inset:0;width:100vw;margin:0;padding:8px;
+    background:var(--bg);z-index:400;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  body.cal-full .cal-cell{min-height:170px}
+  .cal-full-btn{border:1.5px solid var(--border);background:#fff;color:var(--navy);
+    border-radius:8px;font-size:12px;font-weight:700;padding:7px 11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .cal-full-btn:active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  body.cal-full .cal-full-btn{background:var(--navy);color:#fff;border-color:var(--navy)}
   .tabs{display:flex;gap:6px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;border:1px solid var(--border)}
   .tab{flex:1;padding:9px 6px;border:none;border-radius:7px;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--text-mid);cursor:pointer;text-transform:uppercase;letter-spacing:.4px}
   .tab.active{background:var(--navy);color:#fff}
@@ -260,7 +276,8 @@
   .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
   .mn-btn{width:36px;height:36px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:20px;font-weight:700;color:var(--navy);cursor:pointer;line-height:1}
   .mn-title{font-size:15px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px}
-  .mv-toggle{display:flex;gap:0;background:#F1F5F9;border-radius:8px;padding:3px;margin-bottom:9px}
+  .mv-row{display:flex;gap:8px;align-items:center;margin-bottom:9px}
+  .mv-toggle{display:flex;gap:0;background:#F1F5F9;border-radius:8px;padding:3px;flex:1}
   .mv-btn{flex:1;border:none;background:none;padding:7px;font-size:12px;font-weight:700;color:var(--text-mid);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif}
   .mv-btn.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.1)}
   .month-legend{display:flex;justify-content:center;gap:10px;margin-bottom:9px;font-size:9px;color:var(--text-mid);font-weight:700}
@@ -479,9 +496,12 @@
           <div class="mn-title" id="monthTitle"></div>
           <button class="mn-btn" onclick="shiftMonth(1)">&rsaquo;</button>
         </div>
-        <div class="mv-toggle">
-          <button class="mv-btn on" data-v="grid" onclick="setMonthView('grid')">Grid</button>
-          <button class="mv-btn" data-v="list" onclick="setMonthView('list')">List</button>
+        <div class="mv-row">
+          <div class="mv-toggle">
+            <button class="mv-btn on" data-v="grid" onclick="setMonthView('grid')">Grid</button>
+            <button class="mv-btn" data-v="list" onclick="setMonthView('list')">List</button>
+          </div>
+          <button class="cal-full-btn" id="calFullBtn" onclick="toggleCalFull()">&#9974; Full screen</button>
         </div>
         <div class="month-legend">
           <span><i class="lg lg-on"></i>On duty</span>
@@ -743,6 +763,7 @@ function toast(msg, isErr) {
 }
 
 function switchTab(name) {
+  if (calFull && name !== 'month') toggleCalFull();
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
 }
@@ -1397,6 +1418,22 @@ function initials(name) {
 }
 
 let monthView = 'grid';   // 'grid' | 'list'
+
+// Full screen — the month is hard to work in a phone-sized column.
+// Turn the handset sideways and this gives you the whole glass.
+let calFull = false;
+function toggleCalFull() {
+  calFull = !calFull;
+  document.body.classList.toggle('cal-full', calFull);
+  document.getElementById('calFullBtn').innerHTML = calFull ? '&#10005; Close' : '&#9974; Full screen';
+  if (calFull) window.scrollTo(0, 0);
+  renderMonth();
+}
+
+// Esc drops out of full screen
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && calFull) toggleCalFull();
+});
 
 function setMonthView(v) {
   monthView = v;
