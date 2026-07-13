@@ -1,15 +1,1 @@
-[
-  {
-    "employee": "Ray Sinnott",
-    "type": "Vacation",
-    "startDate": "2026-08-10",
-    "endDate": "2026-08-12",
-    "notes": "E2E test",
-    "id": "TO-2026-0001",
-    "days": 3,
-    "status": "Approved",
-    "coveringTech": "Brian Scudder",
-    "createdAt": "2026-07-13T11:13:55.006Z",
-    "updatedAt": "2026-07-13T11:13:59.119Z"
-  }
-]
+[]
