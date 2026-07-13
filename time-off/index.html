@@ -302,6 +302,41 @@
   .who-cov{background:#CCFBF1;color:#0F766E}
   .cs-need{background:#DC2626;color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;line-height:13px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
   .cs-x{display:none}
+  /* Call sheet */
+  .callsheet{margin-top:10px;border-top:1px dashed var(--border);padding-top:10px}
+  .cs-title{font-size:10px;font-weight:800;color:var(--text-mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .cs-key{display:flex;gap:10px;font-size:9px;color:var(--text-light);font-weight:700;margin-bottom:8px}
+  .cs-key span{display:flex;align-items:center;gap:3px}
+  .cs-key i{font-style:normal;width:15px;height:14px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+  .k-yes{background:#F1F5F9;color:#111827;border:1px solid #475569}
+  .k-no{background:#FEE2E2;color:#DC2626;border:1px solid #DC2626}
+  .k-ns{background:#DBEAFE;color:#2563EB;border:1px solid #2563EB}
+  .cs-man{display:flex;align-items:center;gap:7px;padding:6px 7px;border:1px solid var(--border);border-radius:8px;margin-bottom:5px;background:#fff}
+  .cs-man.skip{opacity:.55;background:#F8FAFC}
+  .cs-man.answered.worked{background:#F1F5F9;border-color:#94A3B8}
+  .cs-man.answered.declined{background:#FEE2E2;border-color:#FCA5A5}
+  .cs-man.answered.noshow{background:#DBEAFE;border-color:#93C5FD}
+  .cs-rk{width:19px;height:19px;border-radius:5px;background:var(--text-light);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .cs-man:first-of-type .cs-rk{background:var(--success)}
+  .cs-info{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+  .cs-info b{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cs-info em{font-style:normal;font-size:9px;color:var(--text-light);font-weight:600}
+  .cs-btns{display:flex;gap:4px;flex-shrink:0}
+  .cs-btns button{width:30px;height:30px;border-radius:6px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;line-height:1}
+  .cs-yes{background:#F1F5F9;color:#111827;border:2px solid #475569}
+  .cs-yes:active{background:#111827;color:#fff}
+  .cs-no{background:#FEE2E2;color:#DC2626;border:2px solid #DC2626}
+  .cs-no:active{background:#DC2626;color:#fff}
+  .cs-ns{background:#DBEAFE;color:#2563EB;border:2px solid #2563EB}
+  .cs-ns:active{background:#2563EB;color:#fff}
+  .cs-ans{font-size:9px;font-weight:800;padding:3px 6px;border-radius:5px;flex-shrink:0;white-space:nowrap}
+  .cs-ans.worked{background:#111827;color:#fff}
+  .cs-ans.declined{background:#DC2626;color:#fff}
+  .cs-ans.noshow{background:#2563EB;color:#fff}
+  .cs-off{font-size:9px;font-weight:800;color:#B45309;background:#FEF3C7;padding:3px 6px;border-radius:5px;flex-shrink:0}
+  .cs-undo{width:20px;height:20px;border:none;border-radius:5px;background:rgba(0,0,0,.08);color:var(--text-mid);font-size:10px;font-weight:800;cursor:pointer;flex-shrink:0;padding:0}
+  .cs-dbl{color:#B45309;font-weight:800}
+  .cs-foot{font-size:10px;color:var(--text-light);text-align:center;margin-top:5px;line-height:1.4}
   .cov-sec-hd{font-size:12px;font-weight:800;padding:9px 11px;border-radius:8px;margin:0 0 9px;text-transform:uppercase;letter-spacing:.4px}
   .cov-sec-hd.act{background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5}
   .cov-sec-hd.ok{background:#F0FDF4;color:#065F46;border:1px solid #86EFAC}
@@ -1498,6 +1533,153 @@ function selectDay(ds) {
   renderMonth();
 }
 
+
+// ── THE CALL SHEET ───────────────────────────────────────────────────────────
+// A shift is short. This is who you ring, in OT order (fewest hours first,
+// seniority breaks a tie), with each man's current number in front of you.
+// Tap what he said. "Worked" puts him on the shift AND books his 8 hours.
+// "Said no" books the 8 hours anyway — that's what keeps the rotation fair.
+function otCallSheet(ds, shift, st) {
+  const rot = otRotation();
+  if (!rot.length) return '';
+
+  const onDuty   = new Set(st.onDuty);
+  const covering = new Set(st.covering);
+
+  // A man on approved time off must never be offered OT — and st.off only knows
+  // about men ROSTERED on this shift, so on any other shift he'd look available.
+  // Ask the time-off records directly instead.
+  const isOffToday = (n) => otOffOn(n, ds);
+
+  // Where else is he working today? He can still take OT on top (that's an 8+8),
+  // but you want to see it before you dial.
+  const worksToday = {};
+  const allStaff = dayStaffing(ds);
+  ['1st','2nd','3rd'].forEach(x => {
+    if (!allStaff[x].applies) return;
+    allStaff[x].onDuty.forEach(n => { worksToday[n] = x; });
+  });
+
+  // What has each man already said about THIS day?
+  const said = {};
+  OT.entries.filter(e => e.date === ds).forEach(e => { said[e.employee] = e; });
+
+  let rows = '';
+  let listed = 0;
+
+  rot.forEach(([name, t]) => {
+    const e = said[name];
+    const isCovering = covering.has(name);
+    const isOn = onDuty.has(name);
+
+    // Already answered — show the answer, let it be undone
+    if (e || isCovering) {
+      const status = e ? e.status : 'worked';
+      const hrs = e ? e.hours : 8;
+      const lbl = status === 'worked' ? 'Worked ' + hrs
+                : status === 'declined' ? 'Said no · ' + hrs + ' charged'
+                : 'No show · ' + hrs + ' charged';
+      rows += '<div class="cs-man answered ' + status + '">' +
+        '<span class="cs-rk">' + t.rank + '</span>' +
+        '<span class="cs-info"><b>' + esc(name) + '</b>' +
+          '<em>' + t.total + ' hrs' + (t.hireDate ? ' · since ' + t.hireDate.slice(0,4) : '') + '</em></span>' +
+        '<span class="cs-ans ' + status + '">' + lbl + '</span>' +
+        '<button class="cs-undo" onclick="undoCall(\'' + ds + '\',\'' + shift + '\',\'' + esc(name) + '\')">✕</button>' +
+        '</div>';
+      listed++;
+      return;
+    }
+
+    if (isOn) return;                      // already on this very shift — nothing to ask
+
+    // On approved time off — show him greyed out so you know why he isn't on the
+    // list, but give no buttons. Don't ring a man on his vacation.
+    if (isOffToday(name)) {
+      rows += '<div class="cs-man skip">' +
+        '<span class="cs-rk">' + t.rank + '</span>' +
+        '<span class="cs-info"><b>' + esc(name) + '</b><em>' + t.total + ' hrs</em></span>' +
+        '<span class="cs-off">Off today</span></div>';
+      listed++;
+      return;
+    }
+
+    // Working another shift today — still callable (that's a double, 8+8), but flag it
+    const elsewhere = worksToday[name];
+    rows += '<div class="cs-man">' +
+      '<span class="cs-rk">' + t.rank + '</span>' +
+      '<span class="cs-info"><b>' + esc(name) + '</b>' +
+        '<em>' + t.total + ' hrs' + (t.hireDate ? ' · since ' + t.hireDate.slice(0,4) : '') +
+        (elsewhere ? ' · <span class="cs-dbl">on ' + elsewhere + ' today</span>' : '') + '</em></span>' +
+      '<span class="cs-btns">' +
+        '<button class="cs-yes" onclick="logCall(\'' + ds + '\',\'' + shift + '\',\'' + esc(name) + '\',\'worked\')">8</button>' +
+        '<button class="cs-no" onclick="logCall(\'' + ds + '\',\'' + shift + '\',\'' + esc(name) + '\',\'declined\')">8</button>' +
+        '<button class="cs-ns" onclick="logCall(\'' + ds + '\',\'' + shift + '\',\'' + esc(name) + '\',\'noshow\')">8</button>' +
+      '</span></div>';
+    listed++;
+  });
+
+  if (!listed) return '';
+  return '<div class="callsheet">' +
+    '<div class="cs-title">Who to call &mdash; fewest OT hours first</div>' +
+    '<div class="cs-key"><span><i class="k-yes">8</i> worked</span>' +
+      '<span><i class="k-no">8</i> said no</span>' +
+      '<span><i class="k-ns">8</i> no call/show</span></div>' +
+    rows +
+    '<div class="cs-foot">Saying no still charges the 8 hours &mdash; that\'s what keeps the list fair.</div>' +
+    '</div>';
+}
+
+// He picked up the phone. Log what he said.
+async function logCall(ds, shift, name, status) {
+  try {
+    if (status === 'worked') {
+      // Put him on the shift — the server books his 8 OT hours off the back of it
+      const st = dayStaffing(ds)[shift];
+      const techs = st.covering.concat([name]);
+      const r = await fetch('/api/coverage-assign', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: ds, shift, techs, enteredBy: myName })
+      });
+      if (!r.ok) throw new Error('Could not assign');
+      toast(name.split(' ')[0] + ' is on — 8 hrs booked');
+    } else {
+      const note = status === 'declined' ? 'Offered ' + shift + ' shift — said no'
+                                         : 'Accepted ' + shift + ' shift — no call, no show';
+      const r = await fetch('/api/ot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee: name, date: ds, hours: 8, status, shift, note, enteredBy: myName })
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Could not log');
+      toast(name.split(' ')[0] + (status === 'declined' ? ' said no — 8 hrs charged' : ' no-showed — 8 hrs charged'));
+    }
+    await load();
+  } catch (err) { toast(err.message, true); }
+}
+
+// Wrong button, or he changed his mind
+async function undoCall(ds, shift, name) {
+  try {
+    const st = dayStaffing(ds)[shift];
+    if (st.covering.includes(name)) {
+      // Taking him off the shift also strips the OT that came with it
+      const techs = st.covering.filter(x => x !== name);
+      const r = await fetch('/api/coverage-assign', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: ds, shift, techs, enteredBy: myName })
+      });
+      if (!r.ok) throw new Error('Could not unassign');
+    }
+    const e = OT.entries.find(x => x.employee === name && x.date === ds && !x.auto);
+    if (e) {
+      const r = await fetch('/api/ot/' + e.id, { method: 'DELETE' });
+      if (!r.ok) throw new Error('Could not remove the OT entry');
+    }
+    toast('Undone');
+    await load();
+  } catch (err) { toast(err.message, true); }
+}
+
 function renderDayDetail() {
   const box = document.getElementById('dayDetail');
   if (!selectedDay) { box.innerHTML = ''; return; }
@@ -1541,21 +1723,9 @@ function renderDayDetail() {
       body += '<div class="sc-warn">⚠ Short ' + st.short + ' — needs ' + st.short + ' more engineer' + (st.short === 1 ? '' : 's') + '</div>';
     }
 
-    // Admin: fill each empty slot
-    if (isAdmin) {
-      const slots = st.short + st.covering.length;
-      for (let i = 0; i < slots; i++) {
-        const cur = st.covering[i] || '';
-        // Anyone not already on duty or off that day
-        const busy = new Set([...st.onDuty, ...st.off, ...st.covering.filter((_, j) => j !== i)]);
-        body += '<div class="cover-row"><label>Cover slot ' + (i + 1) + '</label>' +
-          '<select onchange="setShiftCover(\'' + selectedDay + '\',\'' + sh + '\',' + i + ', this.value)">' +
-          '<option value="">— Nobody assigned —</option>' +
-          allUsers.filter(u => !busy.has(u.displayName) || u.displayName === cur)
-            .map(u => '<option value="' + esc(u.displayName) + '"' + (cur === u.displayName ? ' selected' : '') + '>' + esc(u.displayName) + '</option>')
-            .join('') +
-          '</select></div>';
-      }
+    // Admin: the call sheet — who to ring, in OT order, and log what they said
+    if (isAdmin && (isShort || st.covering.length)) {
+      body += otCallSheet(selectedDay, sh, st);
     }
     body += '</div>';
   });
