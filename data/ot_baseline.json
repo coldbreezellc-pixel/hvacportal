@@ -1,0 +1,42 @@
+{
+  "Mateusz Targosz": {
+    "carriedHours": 0,
+    "excluded": true
+  },
+  "Christian Dell'Andrino": {
+    "carriedHours": 456,
+    "excluded": false
+  },
+  "Ray Sinnott": {
+    "carriedHours": 456,
+    "excluded": false
+  },
+  "Brian Scudder": {
+    "carriedHours": 448,
+    "excluded": false
+  },
+  "Sean Fanning": {
+    "carriedHours": 448,
+    "excluded": false
+  },
+  "Armando Martinez": {
+    "carriedHours": 456,
+    "excluded": false
+  },
+  "Ray Mursch": {
+    "carriedHours": 456,
+    "excluded": false
+  },
+  "Tyler Dellorusso": {
+    "carriedHours": 448,
+    "excluded": false
+  },
+  "Robert Roszkowski": {
+    "carriedHours": 454,
+    "excluded": false
+  },
+  "Matthew Gallo": {
+    "carriedHours": 448,
+    "excluded": false
+  }
+}
