@@ -61,6 +61,16 @@
   .t-personal{background:#EDE9FE;color:#5B21B6}
   .t-vacation{background:#DBEAFE;color:#1E40AF}
   .t-floating{background:#D1FAE5;color:#065F46}
+  .s-1st{background:#FEF9C3;color:#854D0E}
+  .s-2nd{background:#FFE4E6;color:#9F1239}
+  .s-3rd{background:#E0E7FF;color:#3730A3}
+  /* Coverage: shift grouping */
+  .shift-grp{border:1.5px solid var(--border);border-radius:9px;padding:9px 11px;margin-bottom:7px;background:#FAFBFD}
+  .shift-grp.uncovered{border-color:#FCA5A5;background:#FEF2F2}
+  .shift-grp-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .shift-grp-hd .st{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+  .shift-grp-hd .sh{font-size:10px;color:var(--text-light);font-weight:600}
+  .gap-warn{background:#FEE2E2;color:#991B1B;font-size:11px;font-weight:700;padding:5px 8px;border-radius:6px;margin-top:6px;text-align:center}
   .req-actions{display:flex;gap:7px;margin-top:11px}
   .req-actions .btn-sm{flex:1}
   .cover-row{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
@@ -128,6 +138,12 @@
           <option value="Personal">Personal</option>
           <option value="Floating Holiday">Floating Holiday</option>
         </select>
+        <label>Shift You're Taking Off</label>
+        <select id="f_shift">
+          <option value="1st">1st Shift — 6:00 AM to 2:00 PM</option>
+          <option value="2nd">2nd Shift — 2:00 PM to 10:00 PM</option>
+          <option value="3rd">3rd Shift — 10:00 PM to 6:00 AM</option>
+        </select>
         <div class="row2">
           <div>
             <label>Start Date</label>
@@ -164,6 +180,7 @@
 
   <!-- COVERAGE -->
   <div class="panel" id="panel-coverage">
+    <div id="coverageSummary"></div>
     <div class="card">
       <div class="card-head">Who's Out — Next 60 Days</div>
       <div class="card-body" id="coverageList"><div class="loading">Loading…</div></div>
@@ -202,6 +219,12 @@ if (isAdmin) {
 const POOL_OF = { 'Sick':'sickPersonal', 'Personal':'sickPersonal', 'Vacation':'vacation', 'Floating Holiday':'floating' };
 const POOL_NAME = { sickPersonal:'Sick / Personal', vacation:'Vacation', floating:'Floating Holidays' };
 const TYPE_CLASS = { 'Sick':'t-sick', 'Personal':'t-personal', 'Vacation':'t-vacation', 'Floating Holiday':'t-floating' };
+const SHIFT_INFO = {
+  '1st': { label: '1st Shift', time: '6a–2p', cls: 's-1st' },
+  '2nd': { label: '2nd Shift', time: '2p–10p', cls: 's-2nd' },
+  '3rd': { label: '3rd Shift', time: '10p–6a', cls: 's-3rd' }
+};
+const SHIFT_ORDER = ['1st', '2nd', '3rd'];
 
 let DATA = { requests: [], balances: {}, allotments: {} };
 let allUsers = [];
@@ -331,15 +354,21 @@ function renderMyBalances() {
 function reqCard(r, showActions) {
   const tcls = TYPE_CLASS[r.type] || '';
   const scls = 'b-' + (r.status || 'Pending').toLowerCase();
+  const sh = SHIFT_INFO[r.shift];
   let h = '<div class="req">';
   h += '<div class="req-top"><div>';
   h += '<div class="req-emp">' + esc(r.employee) + '</div>';
-  h += '<div class="req-meta"><span class="badge ' + tcls + '">' + esc(r.type) + '</span> &nbsp;' +
-       fmtRange(r.startDate, r.endDate) + ' · <b>' + r.days + (r.days === 1 ? ' day' : ' days') + '</b></div>';
+  h += '<div class="req-meta"><span class="badge ' + tcls + '">' + esc(r.type) + '</span> ' +
+       (sh ? '<span class="badge ' + sh.cls + '">' + sh.label + ' · ' + sh.time + '</span>' : '') +
+       '<br>' + fmtRange(r.startDate, r.endDate) + ' · <b>' + r.days + (r.days === 1 ? ' day' : ' days') + '</b></div>';
   h += '</div><span class="badge ' + scls + '">' + esc(r.status) + '</span></div>';
   if (r.notes) h += '<div class="req-notes">' + esc(r.notes) + '</div>';
-  if (r.status === 'Approved' && r.coveringTech) {
-    h += '<div class="cover-tag">🛡 Covered by ' + esc(r.coveringTech) + '</div>';
+  if (r.status === 'Approved') {
+    if (r.coveringTech) {
+      h += '<div class="cover-tag">🛡 ' + (sh ? sh.label : 'Shift') + ' covered by ' + esc(r.coveringTech) + '</div>';
+    } else {
+      h += '<div class="gap-warn">⚠ ' + (sh ? sh.label : 'Shift') + ' has no coverage assigned</div>';
+    }
   }
   if (showActions && isAdmin) {
     if (r.status === 'Pending') {
@@ -349,7 +378,7 @@ function reqCard(r, showActions) {
         '</div>';
     }
     if (r.status === 'Approved') {
-      h += '<div class="cover-row"><label>Covering Tech</label>' +
+      h += '<div class="cover-row"><label>Who covers ' + (sh ? sh.label + ' (' + sh.time + ')' : 'this shift') + '?</label>' +
         '<select onchange="setCover(\'' + r.id + '\', this.value)">' +
         '<option value="">— No coverage assigned —</option>' +
         allUsers.filter(u => u.displayName !== r.employee).map(u =>
@@ -390,7 +419,7 @@ function renderAllRequests() {
 function renderCoverage() {
   const today = new Date(); today.setHours(0,0,0,0);
   const horizon = new Date(today); horizon.setDate(horizon.getDate() + 60);
-  // Build a map: date → [{employee, type, coveringTech}]
+  // date → shift → [requests]
   const byDay = {};
   DATA.requests.filter(r => r.status === 'Approved').forEach(r => {
     let d = new Date(r.startDate + 'T00:00:00');
@@ -398,14 +427,33 @@ function renderCoverage() {
     while (d <= end) {
       if (d >= today && d <= horizon) {
         const key = d.toISOString().slice(0, 10);
-        if (!byDay[key]) byDay[key] = [];
-        byDay[key].push(r);
+        const sh = r.shift || '1st';
+        if (!byDay[key]) byDay[key] = {};
+        if (!byDay[key][sh]) byDay[key][sh] = [];
+        byDay[key][sh].push(r);
       }
       d.setDate(d.getDate() + 1);
     }
   });
   const keys = Object.keys(byDay).sort();
   const box = document.getElementById('coverageList');
+  const sumBox = document.getElementById('coverageSummary');
+
+  // Summary banner — how many approved absences still lack a covering tech
+  const openGaps = DATA.requests.filter(r => r.status === 'Approved' && !r.coveringTech).length;
+  if (openGaps) {
+    sumBox.innerHTML = '<div class="card" style="border-color:#FCA5A5;"><div class="card-body" style="background:#FEF2F2;text-align:center;">' +
+      '<div style="font-size:26px;font-weight:800;color:#991B1B;">' + openGaps + '</div>' +
+      '<div style="font-size:12px;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;">' +
+      (openGaps === 1 ? 'Shift needs' : 'Shifts need') + ' coverage</div>' +
+      '<div style="font-size:11px;color:var(--text-mid);margin-top:5px;">Assign a covering tech under the Requests tab</div>' +
+      '</div></div>';
+  } else {
+    sumBox.innerHTML = '<div class="card" style="border-color:#86EFAC;"><div class="card-body" style="background:#F0FDF4;text-align:center;">' +
+      '<div style="font-size:13px;font-weight:700;color:#065F46;">✅ Every approved shift is covered</div>' +
+      '</div></div>';
+  }
+
   if (!keys.length) {
     box.innerHTML = '<div class="empty"><span class="ic">✅</span>Nobody scheduled off in the next 60 days</div>';
     return;
@@ -413,15 +461,27 @@ function renderCoverage() {
   box.innerHTML = keys.map(k => {
     const dt = new Date(k + 'T00:00:00');
     const label = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    const rows = byDay[k].map(r =>
-      '<div class="cal-out"><span class="who">' + esc(r.employee) +
-      ' <span class="badge ' + (TYPE_CLASS[r.type]||'') + '">' + esc(r.type) + '</span></span>' +
-      (r.coveringTech
-        ? '<span class="cal-cover">🛡 ' + esc(r.coveringTech) + '</span>'
-        : '<span class="cal-nocover">⚠ No coverage</span>') +
-      '</div>'
-    ).join('');
-    return '<div class="cal-day"><div class="cal-date">' + label + '</div>' + rows + '</div>';
+    const shiftBlocks = SHIFT_ORDER.filter(s => byDay[k][s]).map(s => {
+      const info = SHIFT_INFO[s];
+      const reqs = byDay[k][s];
+      const uncovered = reqs.filter(r => !r.coveringTech).length;
+      const rows = reqs.map(r =>
+        '<div class="cal-out"><span class="who">' + esc(r.employee) +
+        ' <span class="badge ' + (TYPE_CLASS[r.type]||'') + '">' + esc(r.type) + '</span></span>' +
+        (r.coveringTech
+          ? '<span class="cal-cover">🛡 ' + esc(r.coveringTech) + '</span>'
+          : '<span class="cal-nocover">⚠ Needs coverage</span>') +
+        '</div>'
+      ).join('');
+      return '<div class="shift-grp' + (uncovered ? ' uncovered' : '') + '">' +
+        '<div class="shift-grp-hd">' +
+          '<span class="badge ' + info.cls + ' st">' + info.label + '</span>' +
+          '<span class="sh">' + info.time + '</span>' +
+        '</div>' + rows +
+        (uncovered ? '<div class="gap-warn">⚠ ' + uncovered + ' shift' + (uncovered > 1 ? 's' : '') + ' still need coverage</div>' : '') +
+        '</div>';
+    }).join('');
+    return '<div class="cal-day"><div class="cal-date">' + label + '</div>' + shiftBlocks + '</div>';
   }).join('');
 }
 
@@ -485,17 +545,19 @@ async function saveAllot(i) {
 
 async function submitRequest() {
   const type = document.getElementById('f_type').value;
+  const shift = document.getElementById('f_shift').value;
   const startDate = document.getElementById('f_start').value;
   const endDate = document.getElementById('f_end').value;
   const notes = document.getElementById('f_notes').value.trim();
   if (!startDate || !endDate) return toast('Pick your dates', true);
+  if (!shift) return toast('Pick which shift you are taking off', true);
   if (countDays(startDate, endDate) <= 0) return toast('End date must be on or after start', true);
   const btn = document.getElementById('submitBtn');
   btn.disabled = true; btn.textContent = 'Submitting…';
   try {
     const r = await fetch('/api/time-off', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employee: myName, type, startDate, endDate, notes })
+      body: JSON.stringify({ employee: myName, type, shift, startDate, endDate, notes })
     });
     if (!r.ok) throw new Error('Submit failed');
     document.getElementById('f_start').value = '';
