@@ -6,9 +6,10 @@
     "endDate": "2026-09-10",
     "id": "TO-2026-0002",
     "days": 1,
-    "status": "Pending",
+    "status": "Approved",
     "coveringTech": "",
-    "createdAt": "2026-07-13T11:14:55.591Z"
+    "createdAt": "2026-07-13T11:14:55.591Z",
+    "updatedAt": "2026-07-13T11:15:11.489Z"
   },
   {
     "employee": "Ray Sinnott",
