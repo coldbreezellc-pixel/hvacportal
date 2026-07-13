@@ -37,6 +37,31 @@ function check(name, cond, detail) {
   const timeOff = await get('/api/time-off');
   const users = await get('/api/data/pm_users');
 
+  // OT: real baseline off the live server + a realistic week of entries
+  const otLive = await get('/api/ot');
+  const otEntries = [
+    { id:'OT-1', employee:'Ray Sinnott', date:'2026-07-14', hours:8, status:'worked', note:'' },
+    { id:'OT-2', employee:'Brian Scudder', date:'2026-07-17', hours:8, status:'worked', note:'' },
+    { id:'OT-3', employee:'Sean Fanning', date:'2026-07-18', hours:8, status:'declined', note:'Called 6:15am, said no' },
+    { id:'OT-4', employee:'Ray Mursch', date:'2026-07-19', hours:8, status:'noshow', note:'No call no show' },
+    { id:'OT-5', employee:'Tyler Dellorusso', date:'2026-07-18', hours:16, status:'worked', note:'Double' },
+  ];
+  // Build totals from the BASELINE + our own entries only, so the test doesn't
+  // drift when real OT gets logged on the live server.
+  const otTotals = {};
+  Object.entries(otLive.baseline).forEach(([n, b]) => {
+    otTotals[n] = { carried: b.carriedHours || 0, worked: 0, declined: 0, noshow: 0,
+                    logged: 0, total: b.carriedHours || 0, excluded: !!b.excluded };
+  });
+  otEntries.forEach(e => {
+    const t = otTotals[e.employee];
+    t[e.status] += e.hours; t.total += e.hours; t.logged += e.hours;
+  });
+  Object.entries(otTotals).filter(([,t])=>!t.excluded)
+    .sort((a,b)=>a[1].total-b[1].total||a[0].localeCompare(b[0]))
+    .forEach(([n],i)=>{ otTotals[n].rank = i+1; });
+  const otPayload = { entries: otEntries, baseline: otLive.baseline, totals: otTotals };
+
   const dom = new JSDOM(fs.readFileSync(HTML, 'utf8'), {
     runScripts: 'dangerously',
     pretendToBeVisual: true,
@@ -55,6 +80,7 @@ function check(name, cond, detail) {
           return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
         }
         if (u.includes('/api/time-off')) return Promise.resolve({ ok: true, json: () => Promise.resolve(timeOff) });
+        if (u.includes('/api/ot')) return Promise.resolve({ ok: true, json: () => Promise.resolve(otPayload) });
         if (u.includes('/api/data/pm_users')) return Promise.resolve({ ok: true, json: () => Promise.resolve(users) });
         return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       };
@@ -147,6 +173,52 @@ function check(name, cond, detail) {
     const g = html('calGrid');
     check('Crew: no chief row on calendar', !/cs-row chief/.test(g));
   }
+
+  // ── OT tab lives on this same page now ──
+  check('OT tab button exists', !!d.querySelector('[data-tab="ot"]'));
+  check('OT panel exists', !!d.getElementById('panel-ot'));
+  ev("switchTab('ot')");
+  check('OT panel activates', d.getElementById('panel-ot').classList.contains('active'));
+
+  const og = html('otGrid');
+  check('OT grid rendered', og.length > 0);
+  check('OT grid has all 10 engineers', (og.match(/ot-nm/g) || []).length === 10,
+        `${(og.match(/ot-nm/g) || []).length} rows`);
+  check('OT: black "worked" cells', (og.match(/ot-cell worked/g) || []).length === 3);
+  check('OT: red "said no" cells', (og.match(/ot-cell declined/g) || []).length === 1);
+  check('OT: blue "no call/show" cells', (og.match(/ot-cell noshow/g) || []).length === 1);
+  check('OT: OFF cells come from THIS page\'s time off', (og.match(/ot-cell off/g) || []).length > 0,
+        `${(og.match(/ot-cell off/g) || []).length} OFF cells`);
+  check('OT: comment markers', (og.match(/class="cm"/g) || []).length === 3);
+  check('OT: call list rendered', html('callList').length > 0 && !/not set up/i.test(html('callList')));
+  const rot = ev('otRotation().map(x=>x[0])') || [];
+  check('OT: Mateusz excluded from rotation', !rot.includes('Mateusz Targosz'));
+  check('OT: declining charged (Sean 448→456)', ev("OT.totals['Sean Fanning'].total") === 456);
+  check('OT: no-show charged (Mursch 456→464)', ev("OT.totals['Ray Mursch'].total") === 464, 'got ' + ev("JSON.stringify(OT.totals['Ray Mursch'])"));
+  check('OT: week nav works', (() => {
+    const a = txt('otWkTitle'); ev('shiftOtWeek(1)');
+    const b = txt('otWkTitle'); ev('shiftOtWeek(-1)');
+    return a !== b;
+  })());
+
+  if (!AS_CREW) {
+    ev("openOtCell('Brian Scudder','2026-07-15')");
+    check('OT admin: modal opens', d.getElementById('otModal').classList.contains('show'));
+    ev("pickStatus('declined')");
+    check('OT admin: can mark "said no"', ev('mStatus') === 'declined');
+    ev('closeOtModal()');
+    ev("openOtCell('Sean Fanning','2026-07-18')");
+    check('OT admin: comment preloads on edit', /6:15am/.test(d.getElementById('otm_note').value));
+    ev('closeOtModal()');
+    ev("openOtCell('Sean Fanning','2026-07-15')");
+    check('OT admin: warns when logging on a day off', /time off/i.test(html('otOffWarn')));
+    ev('closeOtModal()');
+  } else {
+    ev("openOtCell('Brian Scudder','2026-07-15')");
+    check('OT crew: cannot log OT', !d.getElementById('otModal').classList.contains('show'));
+    check('OT crew: can still see the grid', (og.match(/ot-nm/g) || []).length === 10);
+  }
+  ev("switchTab('my')");
 
   // ── Report ──
   const role = AS_CREW ? 'CREW' : 'ADMIN';
