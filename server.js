@@ -551,6 +551,41 @@ const DEFAULT_ALLOTMENT = { sickPersonal: 12, vacation: 10, floating: 3 };
 // the schedule itself) drops a shift below this, it's flagged as needing coverage.
 const MIN_STAFF = 2;
 
+// Vacation is earned by length of service. Entitlement steps up automatically on
+// the anniversary — no one has to remember to bump it.
+//   under 1 yr → none | 1-4 yrs → 2 wks | 5-9 → 3 wks | 10-14 → 4 wks | 15+ → 5 wks
+const VACATION_TIERS = [
+  { years: 15, weeks: 5 },
+  { years: 10, weeks: 4 },
+  { years: 5,  weeks: 3 },
+  { years: 1,  weeks: 2 },
+  { years: 0,  weeks: 0 }
+];
+const DAYS_PER_WEEK = 5;
+
+function vacationWeeksFor(yearsOfService) {
+  const tier = VACATION_TIERS.find(t => yearsOfService >= t.years);
+  return tier ? tier.weeks : 0;
+}
+
+// Completed years of service as of a given date
+function yearsOfService(hireDate, asOf) {
+  const h = new Date(hireDate + 'T00:00:00');
+  const d = new Date(asOf + 'T00:00:00');
+  if (isNaN(h) || isNaN(d)) return 0;
+  let y = d.getFullYear() - h.getFullYear();
+  const beforeAnniv = (d.getMonth() < h.getMonth()) ||
+    (d.getMonth() === h.getMonth() && d.getDate() < h.getDate());
+  if (beforeAnniv) y -= 1;
+  return Math.max(0, y);
+}
+
+// Vacation days earned for the benefit year that STARTS on windowStart
+function vacationDaysFor(hireDate, windowStart) {
+  const yrs = yearsOfService(hireDate, windowStart);
+  return { years: yrs, weeks: vacationWeeksFor(yrs), days: vacationWeeksFor(yrs) * DAYS_PER_WEEK };
+}
+
 // Shifts — a day off is always tied to one shift, and that shift needs covering
 const SHIFTS = {
   '1st': { label: '1st Shift', time: '6:00 AM – 2:00 PM' },
@@ -670,6 +705,22 @@ function calendarWindow(ref) {
   return { start: `${y}-01-01`, end: `${y}-12-31` };
 }
 
+// When does this person's vacation entitlement next increase?
+function nextBump(hireDate, fromWindowStart) {
+  const h = new Date(hireDate + 'T00:00:00');
+  const startYears = yearsOfService(hireDate, fromWindowStart);
+  const current = vacationWeeksFor(startYears);
+  for (let extra = 1; extra <= 20; extra++) {
+    const svc = startYears + extra;
+    const wk = vacationWeeksFor(svc);
+    if (wk !== current) {
+      const d = new Date(h.getFullYear() + svc, h.getMonth(), h.getDate());
+      return { date: ymd(d), years: svc, fromWeeks: current, toWeeks: wk };
+    }
+  }
+  return null;
+}
+
 // Compute balances. Vacation is counted inside the anniversary window;
 // sick/personal + floating inside the calendar year.
 function computeBalances(requests, allotments, refDateStr) {
@@ -693,6 +744,16 @@ function computeBalances(requests, allotments, refDateStr) {
     // Vacation doesn't start until the 1-year mark
     const vacEligibleFrom = hireDate ? firstAnniversary(hireDate) : null;
     const vacEligible = !vacEligibleFrom || ymd(ref) >= vacEligibleFrom;
+
+    // Vacation entitlement comes from length of service, computed against the
+    // start of THIS benefit year. An explicit vacationOverride wins if set.
+    let vacTier = null;
+    if (hireDate) {
+      vacTier = vacationDaysFor(hireDate, vacWin.start);
+      allot.vacation = (cfg.vacationOverride != null && cfg.vacationOverride !== '')
+        ? Number(cfg.vacationOverride)
+        : vacTier.days;
+    }
 
     const used = {}, pending = {};
     POOL_KEYS.forEach(k => { used[k] = 0; pending[k] = 0; });
@@ -735,6 +796,9 @@ function computeBalances(requests, allotments, refDateStr) {
       vacationOnAnniversary: !!hireDate,
       vacationEligible: vacEligible,
       vacationEligibleFrom: vacEligibleFrom,
+      vacationTier: vacTier,                                   // {years, weeks, days}
+      vacationOverride: cfg.vacationOverride != null ? cfg.vacationOverride : null,
+      nextVacationBump: hireDate ? nextBump(hireDate, vacWin.start) : null,
       bereavementDays,
       bereavementDates
     };
@@ -989,7 +1053,8 @@ app.get('/api/time-off', async (req, res) => {
       balances: computeBalances(requests, allotments, asOf),
       pools: TIMEOFF_POOLS, defaults: DEFAULT_ALLOTMENT, shifts: SHIFTS,
       types: TIMEOFF_TYPES, noPoolTypes: NO_POOL_TYPES,
-      minStaff: MIN_STAFF
+      minStaff: MIN_STAFF,
+      vacationTiers: VACATION_TIERS, daysPerWeek: DAYS_PER_WEEK
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1160,7 +1225,13 @@ app.post('/api/time-off-allotments', async (req, res) => {
     let result = null;
     await ghUpdateJson('data/time_off_allotments.json', (allotments) => {
       const entry = { hireDate: hireDate || null };
-      POOL_KEYS.forEach(k => { entry[k] = Number(req.body[k]) || 0; });
+      POOL_KEYS.forEach(k => {
+        if (k === 'vacation') return;   // derived from years of service
+        entry[k] = Number(req.body[k]) || 0;
+      });
+      // Blank override = let the service tier decide
+      const ov = req.body.vacationOverride;
+      entry.vacationOverride = (ov === '' || ov == null) ? null : Number(ov);
       allotments[employee] = entry;
       result = allotments;
       return allotments;
