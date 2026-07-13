@@ -339,13 +339,20 @@ function check(name, cond, detail) {
   ev("switchTab('coverage')");
   const cov2 = html('coverageList');
   check('Coverage: has a "Needs action" section', /Needs action|No gaps caused by time off/i.test(cov2));
-  check('Coverage: has a collapsible "Roster gaps" section', /Roster gaps/i.test(cov2));
-  check('Coverage: roster gaps collapsed by default', ev('rosterOpen') === false);
-  check('Coverage: roster section can open', (() => { ev('toggleRoster()'); const o = ev('rosterOpen'); ev('toggleRoster()'); return o === true; })());
+  check('Coverage: has a "Standing OT" section', /Standing OT/i.test(cov2));
+  check('Coverage: standing OT shows the next 2 weeks up front', /to fill in the next 2 weeks/i.test(cov2));
+  check('Coverage: standing OT shifts are tappable (open the call sheet)',
+        /Standing OT[\s\S]*?cov-shift[^>]*onclick/i.test(cov2));
+  check('Coverage: far-out standing OT collapsed', ev('rosterOpen') === false);
+  check('Coverage: far-out section can open',
+        (() => { ev('toggleRoster()'); const o = ev('rosterOpen'); ev('toggleRoster()'); return o === true; })());
   check('Coverage: flags a shift with NOBODY on it', /NOBODY ON/.test(cov2),
         (cov2.match(/NOBODY ON/g) || []).length + ' shifts with nobody');
   const sumTxt = txt('coverageSummary');
-  check('Coverage: summary leads with the actionable count', /need|chase/i.test(sumTxt), sumTxt.slice(0, 60));
+  check('Coverage: summary splits time-off gaps from standing OT',
+        /Time-off gaps/i.test(sumTxt) && /Standing OT/i.test(sumTxt), sumTxt.replace(/\s+/g,' ').slice(0, 90));
+  check('Coverage: standing OT described as fillable, not a fault',
+        /fill with OT/i.test(sumTxt) && !/rota question/i.test(cov2));
   ev("switchTab('my')");
 
   // ── Report ──
