@@ -1,5 +1,22 @@
 [
   {
+    "employee": "Sean Fanning",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-09-22": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-09-22",
+    "endDate": "2026-09-22",
+    "notes": "",
+    "id": "TO-2026-0101",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T15:21:02.062Z",
+    "selfApproved": true
+  },
+  {
     "employee": "Mateusz Targosz",
     "type": "Personal",
     "dayTypes": {
