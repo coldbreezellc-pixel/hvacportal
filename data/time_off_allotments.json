@@ -4,11 +4,5 @@
     "vacation": 10,
     "floating": 3,
     "hireDate": "2015-11-20"
-  },
-  "Test Engineer": {
-    "sickPersonal": 14,
-    "vacation": 15,
-    "floating": 4,
-    "hireDate": "2022-04-18"
   }
 }
