@@ -838,6 +838,101 @@ async function emailForEmployee(displayName) {
   } catch { return null; }
 }
 
+// ── ADD AN ENGINEER ──
+// Creates the login user AND their time-off allotment in one shot.
+// The client hashes the temp password (same SHA-256 + salt the portal login uses),
+// so a plaintext password never reaches the server.
+app.post('/api/engineers', async (req, res) => {
+  try {
+    const {
+      displayName, email, username, passwordHash, role,
+      hireDate, sickPersonal, vacation, floating
+    } = req.body;
+
+    if (!displayName || !displayName.trim()) return res.status(400).json({ error: 'Name is required' });
+    if (!username || !username.trim()) return res.status(400).json({ error: 'Username is required' });
+    if (!passwordHash) return res.status(400).json({ error: 'Password is required' });
+    if (hireDate && isNaN(new Date(hireDate + 'T00:00:00'))) {
+      return res.status(400).json({ error: 'Invalid hire date' });
+    }
+
+    const uname = username.trim().toLowerCase();
+    const name = displayName.trim();
+    let conflict = null, created = null;
+
+    await ghUpdateJson('data/pm_users.json', (users) => {
+      const list = Array.isArray(users) ? users : [];
+      if (list.some(u => (u.username || '').toLowerCase() === uname)) {
+        conflict = 'That username is already taken';
+        return null;
+      }
+      if (list.some(u => (u.displayName || '').toLowerCase() === name.toLowerCase())) {
+        conflict = 'An engineer with that name already exists';
+        return null;
+      }
+      created = {
+        id: uname,
+        username: uname,
+        displayName: name,
+        email: (email || '').trim(),
+        role: role === 'admin' ? 'admin' : 'crew',
+        passwordHash,
+        createdAt: new Date().toISOString(),
+        mustResetPw: true   // forced to set their own password on first login
+      };
+      return [...list, created];
+    }, `Add engineer ${name}`, []);
+
+    if (conflict) return res.status(409).json({ error: conflict });
+
+    // Their time-off allotment + hire date
+    await ghUpdateJson('data/time_off_allotments.json', (allotments) => {
+      allotments[name] = {
+        sickPersonal: Number(sickPersonal) || 0,
+        vacation: Number(vacation) || 0,
+        floating: Number(floating) || 0,
+        hireDate: hireDate || null
+      };
+      return allotments;
+    }, `Set allotment for new engineer ${name}`, {});
+
+    res.json({ success: true, engineer: created });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Remove an engineer (login + allotment). Their time-off history is kept.
+app.delete('/api/engineers/:username', async (req, res) => {
+  try {
+    const uname = req.params.username.toLowerCase();
+    let removed = null, notFound = false, isLastAdmin = false;
+
+    await ghUpdateJson('data/pm_users.json', (users) => {
+      const list = Array.isArray(users) ? users : [];
+      const idx = list.findIndex(u => (u.username || '').toLowerCase() === uname);
+      if (idx < 0) { notFound = true; return null; }
+      // Never allow deleting the last admin — that would lock everyone out
+      if (list[idx].role === 'admin' && list.filter(u => u.role === 'admin').length <= 1) {
+        isLastAdmin = true;
+        return null;
+      }
+      removed = list[idx];
+      list.splice(idx, 1);
+      return list;
+    }, `Remove engineer ${uname}`, []);
+
+    if (notFound) return res.status(404).json({ error: 'Engineer not found' });
+    if (isLastAdmin) return res.status(400).json({ error: 'Cannot remove the last admin' });
+
+    if (removed) {
+      await ghUpdateJson('data/time_off_allotments.json', (allotments) => {
+        delete allotments[removed.displayName];
+        return allotments;
+      }, `Remove allotment for ${removed.displayName}`, {});
+    }
+    res.json({ success: true, removed: removed && removed.displayName });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // List all requests + balances + recurring gaps + gap coverage assignments
 app.get('/api/time-off', async (req, res) => {
   try {
