@@ -116,6 +116,27 @@
   .hire-tag{font-size:10px;font-weight:700;color:var(--text-mid);background:#F1F5F9;padding:2px 7px;border-radius:4px;text-transform:uppercase;white-space:nowrap}
   .hire-tag.warn{color:#991B1B;background:#FEE2E2}
   .person-bal .pname{align-items:center}
+  /* + button on calendar cells */
+  .cal-cell{position:relative}
+  .cell-add{position:absolute;top:1px;right:1px;width:15px;height:15px;border:none;border-radius:4px;background:#E8EEF6;color:var(--navy);font-size:12px;font-weight:800;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;opacity:.55}
+  .cell-add:active{background:var(--accent);color:#fff;opacity:1}
+  .cal-cell.sel .cell-add,.cal-cell.today .cell-add{opacity:1;background:var(--accent);color:#fff}
+  .head-add{background:rgba(255,255,255,.2);border:none;color:#fff;font-size:11px;font-weight:700;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
+  .head-add:active{background:rgba(255,255,255,.35)}
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:500;display:none;align-items:flex-end;justify-content:center}
+  .modal.show{display:flex}
+  .modal-box{background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;max-height:92vh;overflow-y:auto;animation:slideUp .22s ease}
+  @keyframes slideUp{from{transform:translateY(40px);opacity:.6}to{transform:translateY(0);opacity:1}}
+  .modal-head{background:linear-gradient(135deg,var(--navy),var(--navy-light));color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-radius:16px 16px 0 0;position:sticky;top:0}
+  .mh-sub{font-size:10px;text-transform:uppercase;letter-spacing:1px;opacity:.8;font-weight:700}
+  .mh-title{font-size:17px;font-weight:800;margin-top:2px}
+  .mh-x{background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;font-size:15px;cursor:pointer;flex-shrink:0}
+  .modal-body{padding:18px}
+  .modal-note{font-size:11px;color:var(--text-mid);background:#F8FAFC;border-radius:7px;padding:9px 11px;margin-top:14px;line-height:1.5}
+  .modal-note b{color:var(--success)}
+  .modal-actions{display:flex;gap:9px;margin-top:16px}
+  @media(min-width:560px){.modal{align-items:center}.modal-box{border-radius:16px}.modal-head{border-radius:16px 16px 0 0}}
   /* Per-day type editor */
   .day-row{display:grid;grid-template-columns:1fr 1.3fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #F1F5F9}
   .day-row:last-child{border-bottom:none}
@@ -326,6 +347,56 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Admin: log someone off from the calendar -->
+<div class="modal" id="addOffModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <div class="mh-sub">Log Someone Off</div>
+        <div class="mh-title" id="addOffTitle"></div>
+      </div>
+      <button class="mh-x" onclick="closeAddOff()">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>Who was off?</label>
+      <select id="ao_emp"></select>
+
+      <label>Through (for multiple days)</label>
+      <input type="date" id="ao_end">
+
+      <div class="row2">
+        <div>
+          <label>Type</label>
+          <select id="ao_type">
+            <option value="Vacation">Vacation</option>
+            <option value="Sick">Sick</option>
+            <option value="Personal">Personal</option>
+            <option value="Floating Holiday">Floating Holiday</option>
+          </select>
+        </div>
+        <div>
+          <label>Shift</label>
+          <select id="ao_shift">
+            <option value="1st">1st (6a–2p)</option>
+            <option value="2nd">2nd (2p–10p)</option>
+            <option value="3rd">3rd (10p–6a)</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Who covered the shift?</label>
+      <select id="ao_cover"></select>
+
+      <div class="modal-note">Logged by you — saved as <b>approved</b>, and the days come off their balance.</div>
+
+      <div class="modal-actions">
+        <button class="btn-sm btn-ghost" style="flex:1;padding:12px;" onclick="closeAddOff()">Cancel</button>
+        <button class="btn-sm btn-approve" style="flex:1;padding:12px;" id="aoSave" onclick="saveAddOff()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── Session ──
@@ -622,6 +693,9 @@ function reqCard(r, showActions) {
        (mix ? '<br><span style="color:var(--text-light);">' + esc(mix) + '</span>' : '') +
        '</div>';
   h += '</div><span class="badge ' + scls + '">' + esc(r.status) + '</span></div>';
+  if (r.adminEntry) {
+    h += '<div style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;margin-top:5px;">✎ Logged by ' + esc(r.enteredBy || 'admin') + '</div>';
+  }
   if (r.notes) h += '<div class="req-notes">' + esc(r.notes) + '</div>';
   if (r.status === 'Approved') {
     if (r.coveringTech) {
@@ -723,6 +797,7 @@ function renderMonth() {
     act.gaps.forEach(g => { if (!gapCovered(g.id, ds)) dots.push('<span class="dot d-gap"></span>'); });
     const cls = 'cal-cell' + (ds === todayStr ? ' today' : '') + (ds === selectedDay ? ' sel' : '');
     html += '<div class="' + cls + '" onclick="selectDay(\'' + ds + '\')">' +
+      (isAdmin ? '<button class="cell-add" onclick="event.stopPropagation();openAddOff(\'' + ds + '\')" title="Log someone off">+</button>' : '') +
       '<span class="dn">' + day + '</span>' +
       '<div class="cal-dots">' + dots.slice(0, 6).join('') + '</div>' +
       '</div>';
@@ -779,11 +854,101 @@ function renderDayDetail() {
         (a.coveringTech
           ? '<span class="cal-cover">🛡 ' + esc(a.coveringTech) + '</span>'
           : '<span class="cal-nocover">⚠ Needs coverage</span>') +
-      '</div></div>';
+      '</div>' +
+      (isAdmin
+        ? '<div class="cover-row"><label>Who covers this shift?</label>' +
+          '<select onchange="setCover(\'' + a.id + '\', this.value)">' +
+          '<option value="">— No coverage assigned —</option>' +
+          allUsers.filter(u => u.displayName !== a.employee).map(u =>
+            '<option value="' + esc(u.displayName) + '"' + (a.coveringTech === u.displayName ? ' selected' : '') + '>' + esc(u.displayName) + '</option>'
+          ).join('') +
+          '</select>' +
+          '<button class="btn-sm btn-ghost" style="width:100%;margin-top:7px;" onclick="removeEntry(\'' + a.id + '\',\'' + esc(a.employee) + '\')">Remove this entry</button>' +
+          '</div>'
+        : '') +
+      '</div>';
   });
 
   if (!body) body = '<div class="empty" style="padding:26px;"><span class="ic">✅</span>Fully staffed — nobody off</div>';
-  box.innerHTML = '<div class="card"><div class="card-head">' + label + '</div><div class="card-body">' + body + '</div></div>';
+  box.innerHTML = '<div class="card"><div class="card-head" style="display:flex;justify-content:space-between;align-items:center;">' +
+    '<span>' + label + '</span>' +
+    (isAdmin ? '<button class="head-add" onclick="openAddOff(\'' + selectedDay + '\')">+ Log Someone Off</button>' : '') +
+    '</div><div class="card-body">' + body + '</div></div>';
+}
+
+// ═══ ADMIN: log someone off straight from the calendar ═══
+let addOffDate = null;
+
+function openAddOff(ds) {
+  if (!isAdmin) return;
+  addOffDate = ds;
+  const dt = new Date(ds + 'T00:00:00');
+  const label = dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  document.getElementById('addOffTitle').textContent = label;
+  document.getElementById('ao_emp').innerHTML =
+    '<option value="">— Pick engineer —</option>' +
+    allUsers.map(u => '<option value="' + esc(u.displayName) + '">' + esc(u.displayName) + '</option>').join('');
+  document.getElementById('ao_cover').innerHTML =
+    '<option value="">— No coverage yet —</option>' +
+    allUsers.map(u => '<option value="' + esc(u.displayName) + '">' + esc(u.displayName) + '</option>').join('');
+  document.getElementById('ao_type').value = 'Vacation';
+  document.getElementById('ao_shift').value = '1st';
+  document.getElementById('ao_end').value = ds;
+  document.getElementById('ao_end').min = ds;
+  document.getElementById('addOffModal').classList.add('show');
+}
+
+function closeAddOff() {
+  document.getElementById('addOffModal').classList.remove('show');
+  addOffDate = null;
+}
+
+async function saveAddOff() {
+  const employee = document.getElementById('ao_emp').value;
+  const type = document.getElementById('ao_type').value;
+  const shift = document.getElementById('ao_shift').value;
+  const coveringTech = document.getElementById('ao_cover').value;
+  const endDate = document.getElementById('ao_end').value || addOffDate;
+  if (!employee) return toast('Pick who was off', true);
+  if (coveringTech === employee) return toast("Someone can't cover their own shift", true);
+
+  const range = datesInRange(addOffDate, endDate);
+  if (!range.length) return toast('Invalid date range', true);
+  const dt = {};
+  range.forEach(d => { dt[d] = type; });
+
+  const btn = document.getElementById('aoSave');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const r = await fetch('/api/time-off', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employee, shift, startDate: addOffDate, endDate,
+        dayTypes: dt, coveringTech,
+        adminEntry: true, enteredBy: myName
+      })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Save failed');
+    toast(employee.split(' ')[0] + ' logged off — approved');
+    closeAddOff();
+    await load();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+}
+
+async function removeEntry(id, who) {
+  if (!isAdmin) return;
+  if (!confirm('Remove this time off entry for ' + who + '? The days go back on their balance.')) return;
+  try {
+    const r = await fetch('/api/time-off/' + id, { method: 'DELETE' });
+    if (!r.ok) throw new Error('Remove failed');
+    toast('Entry removed');
+    await load();
+  } catch (e) { toast(e.message, true); }
 }
 
 async function assignGap(gapId, date, tech) {
