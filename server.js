@@ -85,18 +85,47 @@ app.get('/api/test-email', async (req, res) => {
 });
 
 // ── Helper: push file to GitHub ──
-async function ghPut(filePath, content, message) {
+// Write a file to GitHub. Retries on 409/422 (SHA conflict) — happens when two
+// people save at the same moment. Without this, one write silently wins and the
+// other is lost. Retries re-read the latest SHA before trying again.
+async function ghPut(filePath, content, message, _attempt = 0) {
   const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`;
   let sha = null;
   try {
-    const check = await fetch(url + "?ref=" + GH_BRANCH, { headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
+    const check = await fetch(url + "?ref=" + GH_BRANCH + "&t=" + Date.now(), { headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json' } });
     if (check.ok) { const d = await check.json(); sha = d.sha; }
   } catch {}
   const body = { message, content: Buffer.from(content).toString('base64'), branch: GH_BRANCH };
   if (sha) body.sha = sha;
   const resp = await fetch(url, { method: 'PUT', headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!resp.ok) throw new Error(`GitHub PUT failed: ${resp.status}`);
-  return await resp.json();
+  if (resp.ok) return await resp.json();
+  // SHA conflict — someone else wrote first. Back off and retry with a fresh SHA.
+  if ((resp.status === 409 || resp.status === 422) && _attempt < 4) {
+    await new Promise(r => setTimeout(r, 400 * Math.pow(2, _attempt) + Math.random() * 300));
+    return ghPut(filePath, content, message, _attempt + 1);
+  }
+  throw new Error(`GitHub PUT failed: ${resp.status}`);
+}
+
+// Read-modify-write with conflict retry. `mutate` receives the current parsed
+// array/object and returns the new one. Re-reads fresh data on each retry so a
+// concurrent write is merged instead of clobbered.
+async function ghUpdateJson(filePath, mutate, message, fallback = []) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const d = await ghGet(filePath);
+    let current = fallback;
+    if (d && d.content) { try { current = JSON.parse(d.content); } catch {} }
+    const next = await mutate(current);
+    if (next === null) return null; // mutate signalled "nothing to do"
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`;
+    const body = { message, content: Buffer.from(JSON.stringify(next, null, 2)).toString('base64'), branch: GH_BRANCH };
+    if (d && d.sha) body.sha = d.sha;
+    const resp = await fetch(url, { method: 'PUT', headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (resp.ok) return next;
+    if (resp.status !== 409 && resp.status !== 422) throw new Error(`GitHub PUT failed: ${resp.status}`);
+    await new Promise(r => setTimeout(r, 400 * Math.pow(2, attempt) + Math.random() * 300));
+  }
+  throw new Error('GitHub PUT failed after retries (write conflict)');
 }
 
 // ── Helper: get file from GitHub ──
@@ -589,52 +618,65 @@ app.get('/api/time-off', async (req, res) => {
 // Submit a request
 app.post('/api/time-off', async (req, res) => {
   try {
-    const requests = await getTimeOff();
     const r = req.body;
     if (!r.employee || !r.type || !r.startDate || !r.endDate) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     if (!TIMEOFF_POOLS[r.type]) return res.status(400).json({ error: 'Invalid type' });
     if (!r.shift || !SHIFTS[r.shift]) return res.status(400).json({ error: 'Invalid or missing shift' });
-    const year = new Date().getFullYear();
-    const nums = requests.map(x => { const m = (x.id || '').match(/TO-\d+-(\d+)/); return m ? parseInt(m[1]) : 0; });
-    const next = (nums.length ? Math.max(...nums) : 0) + 1;
-    r.id = `TO-${year}-${String(next).padStart(4, '0')}`;
-    r.days = countDays(r.startDate, r.endDate);
-    r.status = 'Pending';
-    r.coveringTech = r.coveringTech || '';
-    r.createdAt = new Date().toISOString();
-    requests.unshift(r);
-    await ghPut('data/time_off.json', JSON.stringify(requests, null, 2), `Time off request ${r.id} — ${r.employee} (${r.shift} shift)`);
-    res.json({ success: true, request: r });
+    let saved = null;
+    await ghUpdateJson('data/time_off.json', (requests) => {
+      // ID assigned inside the retry loop against the freshest list, so two
+      // simultaneous submissions can't collide on the same number
+      const year = new Date().getFullYear();
+      const nums = requests.map(x => { const m = (x.id || '').match(/TO-\d+-(\d+)/); return m ? parseInt(m[1]) : 0; });
+      const next = (nums.length ? Math.max(...nums) : 0) + 1;
+      saved = {
+        ...r,
+        id: `TO-${year}-${String(next).padStart(4, '0')}`,
+        days: countDays(r.startDate, r.endDate),
+        status: 'Pending',
+        coveringTech: r.coveringTech || '',
+        createdAt: new Date().toISOString()
+      };
+      return [saved, ...requests];
+    }, `Time off request — ${r.employee} (${r.shift} shift)`);
+    res.json({ success: true, request: saved });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Update a request (approve/deny, assign coverage)
 app.put('/api/time-off/:id', async (req, res) => {
   try {
-    const requests = await getTimeOff();
-    const idx = requests.findIndex(x => x.id === req.params.id);
-    if (idx < 0) return res.status(404).json({ error: 'Request not found' });
-    const patch = { ...req.body };
-    delete patch.id; delete patch.createdAt; delete patch.employee;
-    if (patch.startDate || patch.endDate) {
-      patch.days = countDays(patch.startDate || requests[idx].startDate, patch.endDate || requests[idx].endDate);
-    }
-    requests[idx] = { ...requests[idx], ...patch, updatedAt: new Date().toISOString() };
-    await ghPut('data/time_off.json', JSON.stringify(requests, null, 2), `Update time off ${requests[idx].id} → ${requests[idx].status}`);
-    res.json({ success: true, request: requests[idx] });
+    let updated = null, notFound = false;
+    await ghUpdateJson('data/time_off.json', (requests) => {
+      const idx = requests.findIndex(x => x.id === req.params.id);
+      if (idx < 0) { notFound = true; return null; }
+      const patch = { ...req.body };
+      delete patch.id; delete patch.createdAt; delete patch.employee;
+      if (patch.startDate || patch.endDate) {
+        patch.days = countDays(patch.startDate || requests[idx].startDate, patch.endDate || requests[idx].endDate);
+      }
+      requests[idx] = { ...requests[idx], ...patch, updatedAt: new Date().toISOString() };
+      updated = requests[idx];
+      return requests;
+    }, `Update time off ${req.params.id}`);
+    if (notFound) return res.status(404).json({ error: 'Request not found' });
+    res.json({ success: true, request: updated });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Delete a request
 app.delete('/api/time-off/:id', async (req, res) => {
   try {
-    const requests = await getTimeOff();
-    const idx = requests.findIndex(x => x.id === req.params.id);
-    if (idx < 0) return res.status(404).json({ error: 'Request not found' });
-    const removed = requests.splice(idx, 1)[0];
-    await ghPut('data/time_off.json', JSON.stringify(requests, null, 2), `Delete time off ${removed.id}`);
+    let notFound = false;
+    await ghUpdateJson('data/time_off.json', (requests) => {
+      const idx = requests.findIndex(x => x.id === req.params.id);
+      if (idx < 0) { notFound = true; return null; }
+      requests.splice(idx, 1);
+      return requests;
+    }, `Delete time off ${req.params.id}`);
+    if (notFound) return res.status(404).json({ error: 'Request not found' });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
