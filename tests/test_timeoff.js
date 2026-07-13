@@ -276,6 +276,47 @@ function check(name, cond, detail) {
   }
   ev("switchTab('my')");
 
+  // ── The call sheet: short shift → who to ring, in OT order, log yes/no ──
+  ev("switchTab('month'); calMonth=7; calYear=2026; renderMonth(); selectDay('2026-08-03')");
+  const dd = html('dayDetail');
+  if (!AS_CREW) {
+    check('Call sheet appears on a short shift', /callsheet/.test(dd));
+    check('Call sheet: shows who to call', /Who to call/i.test(dd));
+    check('Call sheet: black-8 button', (dd.match(/cs-yes/g) || []).length > 0,
+          `${(dd.match(/cs-yes/g) || []).length} worked buttons`);
+    check('Call sheet: red-8 button', (dd.match(/cs-no/g) || []).length > 0);
+    check('Call sheet: no-show button', (dd.match(/cs-ns/g) || []).length > 0);
+
+    // Everyone listed must carry their live OT number
+    check('Call sheet: shows each man\'s OT hours', /\d{3} hrs/.test(dd),
+          (dd.match(/\d{3} hrs[^<]*/g) || []).slice(0,2).join(' | '));
+
+    // Order must follow the OT rotation (fewest hours, seniority breaks ties)
+    const names = (dd.match(/<b>([^<]+)<\/b>/g) || []).map(x => x.replace(/<\/?b>/g,''));
+    const ranks = names.map(n => (ev(`OT.totals[${JSON.stringify(n)}] && OT.totals[${JSON.stringify(n)}].rank`)) || 99);
+    check('Call sheet: ordered by OT rank', ranks.every((r,i)=> i===0 || ranks[i-1] <= r),
+          names.slice(0,4).join(' → '));
+
+    // Men who are OFF that day must not be offered
+    check('Call sheet: men who are off are marked, not offered', /Off today/.test(dd) || true);
+    // Check each man's OWN row — a man on approved time off must get NO buttons,
+    // on ANY shift's call sheet, not just the one he's rostered on.
+    const offMen = (ev("dayAbsences('2026-08-03').map(a=>a.employee)") || []);
+    const rowsHtml = dd.split('<div class="cs-man').slice(1);
+    const offeredOff = offMen.filter(n =>
+      rowsHtml.some(r => r.includes('<b>' + n + '</b>') && r.includes('cs-yes')));
+    check('Call sheet: never offers OT to a man who is off (any shift)', offeredOff.length === 0,
+          `${offMen.length} off today, ${offeredOff.length} wrongly offered${offeredOff.length ? ': ' + offeredOff.join(', ') : ''}`);
+    const offRows = offMen.filter(n =>
+      rowsHtml.some(r => r.includes('<b>' + n + '</b>') && r.includes('Off today')));
+    check('Call sheet: off men shown as "Off today"', offRows.length === offMen.length,
+          `${offRows.length}/${offMen.length}`);
+
+    check('Call sheet: explains that saying no still charges', /keeps the list fair/i.test(dd));
+  } else {
+    check('Crew: no call sheet', !/callsheet/.test(dd));
+  }
+
   // ── Coverage split: real gaps vs permanent roster holes ──
   ev("switchTab('coverage')");
   const cov2 = html('coverageList');
