@@ -1,23 +1,1922 @@
 [
   {
+    "employee": "Sean Fanning",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-12-04": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-12-04",
+    "endDate": "2026-12-04",
+    "notes": "",
+    "id": "TO-2026-0088",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171894",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Christian Dell'Andrino",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-10-16": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-10-16",
+    "endDate": "2026-10-16",
+    "notes": "",
+    "id": "TO-2026-0038",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171582",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Robert Roszkowski",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-09-05": "Floating Holiday",
+      "2026-09-06": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-09-05",
+    "endDate": "2026-09-06",
+    "notes": "",
+    "id": "TO-2026-0078",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171846",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Sean Fanning",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-09-04": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-09-04",
+    "endDate": "2026-09-04",
+    "notes": "",
+    "id": "TO-2026-0087",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171890",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Matthew Gallo",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-08-30": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-08-30",
+    "endDate": "2026-08-30",
+    "notes": "",
+    "id": "TO-2026-0054",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171687",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Matthew Gallo",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-08-28": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-08-28",
+    "endDate": "2026-08-28",
+    "notes": "",
+    "id": "TO-2026-0053",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171683",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-08-27": "Vacation",
+      "2026-08-28": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-08-27",
+    "endDate": "2026-08-28",
+    "notes": "",
+    "id": "TO-2026-0075",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171828",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Mursch",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-08-12": "Vacation",
+      "2026-08-13": "Vacation",
+      "2026-08-14": "Vacation",
+      "2026-08-15": "Vacation",
+      "2026-08-16": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-08-12",
+    "endDate": "2026-08-16",
+    "notes": "",
+    "id": "TO-2026-0062",
+    "days": 5,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171751",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Robert Roszkowski",
+    "type": "Personal",
+    "dayTypes": {
+      "2026-08-08": "Personal",
+      "2026-08-09": "Personal"
+    },
+    "shift": "1st",
+    "startDate": "2026-08-08",
+    "endDate": "2026-08-09",
+    "notes": "",
+    "id": "TO-2026-0077",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171841",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Christian Dell'Andrino",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-08-03": "Vacation",
+      "2026-08-04": "Vacation",
+      "2026-08-05": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-08-03",
+    "endDate": "2026-08-05",
+    "notes": "",
+    "id": "TO-2026-0037",
+    "days": 3,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171577",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-08-03": "Vacation",
+      "2026-08-04": "Vacation",
+      "2026-08-05": "Vacation",
+      "2026-08-06": "Vacation",
+      "2026-08-07": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-08-03",
+    "endDate": "2026-08-07",
+    "notes": "",
+    "id": "TO-2026-0074",
+    "days": 5,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171824",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-07-31": "Vacation",
+      "2026-08-01": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-07-31",
+    "endDate": "2026-08-01",
+    "notes": "",
+    "id": "TO-2026-0073",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171818",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-07-27": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-07-27",
+    "endDate": "2026-07-27",
+    "notes": "",
+    "id": "TO-2026-0014",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171319",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-07-20": "Vacation",
+      "2026-07-21": "Vacation",
+      "2026-07-22": "Vacation",
+      "2026-07-23": "Vacation",
+      "2026-07-24": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-07-20",
+    "endDate": "2026-07-24",
+    "notes": "",
+    "id": "TO-2026-0072",
+    "days": 5,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171813",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-07-13": "Vacation",
+      "2026-07-14": "Vacation",
+      "2026-07-15": "Vacation",
+      "2026-07-16": "Vacation",
+      "2026-07-17": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-07-13",
+    "endDate": "2026-07-17",
+    "notes": "",
+    "id": "TO-2026-0013",
+    "days": 5,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171314",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Robert Roszkowski",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-07-11": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-07-11",
+    "endDate": "2026-07-11",
+    "notes": "",
+    "id": "TO-2026-0076",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171835",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Tyler Dellorusso",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-07-11": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-07-11",
+    "endDate": "2026-07-11",
+    "notes": "",
+    "id": "TO-2026-0098",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171954",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Mursch",
+    "type": "Personal",
+    "dayTypes": {
+      "2026-07-08": "Personal"
+    },
+    "shift": "1st",
+    "startDate": "2026-07-08",
+    "endDate": "2026-07-08",
+    "notes": "",
+    "id": "TO-2026-0061",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171717",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Sean Fanning",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-06-30": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-30",
+    "endDate": "2026-06-30",
+    "notes": "",
+    "id": "TO-2026-0086",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171886",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Christian Dell'Andrino",
+    "type": "Mixed",
+    "dayTypes": {
+      "2026-06-29": "Floating Holiday",
+      "2026-06-30": "Vacation",
+      "2026-07-01": "Vacation",
+      "2026-07-02": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-29",
+    "endDate": "2026-07-02",
+    "notes": "",
+    "id": "TO-2026-0036",
+    "days": 4,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171571",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-06-29": "Sick",
+      "2026-06-30": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-29",
+    "endDate": "2026-06-30",
+    "notes": "",
+    "id": "TO-2026-0071",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171802",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Mursch",
+    "type": "Personal",
+    "dayTypes": {
+      "2026-06-27": "Personal"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-27",
+    "endDate": "2026-06-27",
+    "notes": "",
+    "id": "TO-2026-0060",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171714",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-06-25": "Vacation",
+      "2026-06-26": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-25",
+    "endDate": "2026-06-26",
+    "notes": "",
+    "id": "TO-2026-0012",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171306",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-06-25": "Vacation",
+      "2026-06-26": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-25",
+    "endDate": "2026-06-26",
+    "notes": "",
+    "id": "TO-2026-0070",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171797",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Tyler Dellorusso",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-06-16": "Floating Holiday",
+      "2026-06-17": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-16",
+    "endDate": "2026-06-17",
+    "notes": "",
+    "id": "TO-2026-0097",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171948",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Mixed",
+    "dayTypes": {
+      "2026-06-15": "Vacation",
+      "2026-06-16": "Bereavement",
+      "2026-06-17": "Bereavement",
+      "2026-06-18": "Bereavement"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-15",
+    "endDate": "2026-06-18",
+    "notes": "",
+    "id": "TO-2026-0011",
+    "days": 4,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171297",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Mixed",
+    "dayTypes": {
+      "2026-06-11": "Sick",
+      "2026-06-12": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-11",
+    "endDate": "2026-06-12",
+    "notes": "",
+    "id": "TO-2026-0010",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171286",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Christian Dell'Andrino",
+    "type": "Mixed",
+    "dayTypes": {
+      "2026-06-11": "Vacation",
+      "2026-06-12": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-11",
+    "endDate": "2026-06-12",
+    "notes": "",
+    "id": "TO-2026-0035",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171562",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Sean Fanning",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-06-08": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-08",
+    "endDate": "2026-06-08",
+    "notes": "",
+    "id": "TO-2026-0085",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171883",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Matthew Gallo",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-06-06": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-06",
+    "endDate": "2026-06-06",
+    "notes": "",
+    "id": "TO-2026-0052",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171675",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-06-04": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-06-04",
+    "endDate": "2026-06-04",
+    "notes": "",
+    "id": "TO-2026-0069",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171793",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-05-28": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-28",
+    "endDate": "2026-05-28",
+    "notes": "",
+    "id": "TO-2026-0068",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171789",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-05-26": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-26",
+    "endDate": "2026-05-26",
+    "notes": "",
+    "id": "TO-2026-0031",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171535",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-05-24": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-24",
+    "endDate": "2026-05-24",
+    "notes": "",
+    "id": "TO-2026-0030",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171529",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-05-22": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-22",
+    "endDate": "2026-05-22",
+    "notes": "",
+    "id": "TO-2026-0029",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171525",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-05-17": "Vacation",
+      "2026-05-18": "Vacation",
+      "2026-05-19": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-17",
+    "endDate": "2026-05-19",
+    "notes": "",
+    "id": "TO-2026-0028",
+    "days": 3,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171521",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Mursch",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-05-15": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-15",
+    "endDate": "2026-05-15",
+    "notes": "",
+    "id": "TO-2026-0059",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171710",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-05-14": "Vacation",
+      "2026-05-15": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-14",
+    "endDate": "2026-05-15",
+    "notes": "",
+    "id": "TO-2026-0027",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171514",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Sean Fanning",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-05-12": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-12",
+    "endDate": "2026-05-12",
+    "notes": "",
+    "id": "TO-2026-0084",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171879",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Tyler Dellorusso",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-05-12": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-12",
+    "endDate": "2026-05-12",
+    "notes": "",
+    "id": "TO-2026-0096",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171938",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-05-11": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-11",
+    "endDate": "2026-05-11",
+    "notes": "",
+    "id": "TO-2026-0009",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171277",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-05-11": "Vacation",
+      "2026-05-12": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-11",
+    "endDate": "2026-05-12",
+    "notes": "",
+    "id": "TO-2026-0026",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171507",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Christian Dell'Andrino",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-05-11": "Vacation",
+      "2026-05-12": "Vacation",
+      "2026-05-13": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-11",
+    "endDate": "2026-05-13",
+    "notes": "",
+    "id": "TO-2026-0034",
+    "days": 3,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171556",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Tyler Dellorusso",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-05-03": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-03",
+    "endDate": "2026-05-03",
+    "notes": "",
+    "id": "TO-2026-0095",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171935",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Matthew Gallo",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-05-02": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-05-02",
+    "endDate": "2026-05-02",
+    "notes": "",
+    "id": "TO-2026-0051",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171669",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-04-27": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-04-27",
+    "endDate": "2026-04-27",
+    "notes": "",
+    "id": "TO-2026-0025",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171501",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Sean Fanning",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-04-23": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-04-23",
+    "endDate": "2026-04-23",
+    "notes": "",
+    "id": "TO-2026-0083",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171870",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Tyler Dellorusso",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-04-19": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-04-19",
+    "endDate": "2026-04-19",
+    "notes": "",
+    "id": "TO-2026-0094",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171925",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Christian Dell'Andrino",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-04-17": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-04-17",
+    "endDate": "2026-04-17",
+    "notes": "",
+    "id": "TO-2026-0033",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171551",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-04-14": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-04-14",
+    "endDate": "2026-04-14",
+    "notes": "",
+    "id": "TO-2026-0024",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171493",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Matthew Gallo",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-04-11": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-04-11",
+    "endDate": "2026-04-11",
+    "notes": "",
+    "id": "TO-2026-0050",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171658",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-04-07": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-04-07",
+    "endDate": "2026-04-07",
+    "notes": "",
+    "id": "TO-2026-0023",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171377",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
     "employee": "Ray Sinnott",
     "type": "Mixed",
     "dayTypes": {
-      "2026-08-10": "Vacation",
-      "2026-08-11": "Vacation",
-      "2026-08-12": "Vacation",
-      "2026-08-13": "Floating Holiday"
+      "2026-04-07": "Sick",
+      "2026-04-08": "Floating Holiday",
+      "2026-04-09": "Floating Holiday",
+      "2026-04-10": "Floating Holiday"
     },
-    "shift": "2nd",
-    "startDate": "2026-08-10",
-    "endDate": "2026-08-13",
-    "notes": "Taking my daughter to look at colleges.",
-    "id": "TO-2026-0001",
+    "shift": "1st",
+    "startDate": "2026-04-07",
+    "endDate": "2026-04-10",
+    "notes": "",
+    "id": "TO-2026-0067",
     "days": 4,
-    "status": "Denied",
-    "coveringTech": "Brian Scudder",
-    "createdAt": "2026-07-13T12:11:31.292Z",
-    "updatedAt": "2026-07-13T12:13:07.671Z",
-    "decidedBy": "Mateusz Targosz"
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171785",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Mateusz Targosz",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-04-06": "Vacation",
+      "2026-04-07": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-04-06",
+    "endDate": "2026-04-07",
+    "notes": "",
+    "id": "TO-2026-0045",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171634",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-04-01": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-04-01",
+    "endDate": "2026-04-01",
+    "notes": "",
+    "id": "TO-2026-0008",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171271",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Mateusz Targosz",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-03-31": "Vacation",
+      "2026-04-01": "Vacation",
+      "2026-04-02": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-31",
+    "endDate": "2026-04-02",
+    "notes": "",
+    "id": "TO-2026-0044",
+    "days": 3,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171628",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-03-30": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-30",
+    "endDate": "2026-03-30",
+    "notes": "",
+    "id": "TO-2026-0022",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171373",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Sean Fanning",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-03-30": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-30",
+    "endDate": "2026-03-30",
+    "notes": "",
+    "id": "TO-2026-0082",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171866",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Mursch",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-03-28": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-28",
+    "endDate": "2026-03-28",
+    "notes": "",
+    "id": "TO-2026-0058",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171707",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-03-24": "Vacation",
+      "2026-03-25": "Vacation",
+      "2026-03-26": "Vacation",
+      "2026-03-27": "Vacation",
+      "2026-03-28": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-24",
+    "endDate": "2026-03-28",
+    "notes": "",
+    "id": "TO-2026-0021",
+    "days": 5,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171364",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-03-20": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-20",
+    "endDate": "2026-03-20",
+    "notes": "",
+    "id": "TO-2026-0020",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171358",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Mursch",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-03-19": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-19",
+    "endDate": "2026-03-19",
+    "notes": "",
+    "id": "TO-2026-0057",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171701",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Tyler Dellorusso",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-03-18": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-18",
+    "endDate": "2026-03-18",
+    "notes": "",
+    "id": "TO-2026-0093",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171922",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Sean Fanning",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-03-17": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-17",
+    "endDate": "2026-03-17",
+    "notes": "",
+    "id": "TO-2026-0081",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171862",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-03-12": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-12",
+    "endDate": "2026-03-12",
+    "notes": "",
+    "id": "TO-2026-0019",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171354",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-03-10": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-10",
+    "endDate": "2026-03-10",
+    "notes": "",
+    "id": "TO-2026-0007",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171262",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Tyler Dellorusso",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-03-08": "Sick",
+      "2026-03-09": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-08",
+    "endDate": "2026-03-09",
+    "notes": "",
+    "id": "TO-2026-0092",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171917",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Matthew Gallo",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-03-07": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-03-07",
+    "endDate": "2026-03-07",
+    "notes": "",
+    "id": "TO-2026-0049",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171655",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-02-25": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-25",
+    "endDate": "2026-02-25",
+    "notes": "",
+    "id": "TO-2026-0006",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171255",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Mixed",
+    "dayTypes": {
+      "2026-02-24": "Vacation",
+      "2026-02-25": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-24",
+    "endDate": "2026-02-25",
+    "notes": "",
+    "id": "TO-2026-0018",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171350",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Christian Dell'Andrino",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-02-23": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-23",
+    "endDate": "2026-02-23",
+    "notes": "",
+    "id": "TO-2026-0032",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171547",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Mateusz Targosz",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-02-23": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-23",
+    "endDate": "2026-02-23",
+    "notes": "",
+    "id": "TO-2026-0043",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171622",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Sean Fanning",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-02-23": "Floating Holiday",
+      "2026-02-24": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-23",
+    "endDate": "2026-02-24",
+    "notes": "",
+    "id": "TO-2026-0080",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171858",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Tyler Dellorusso",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-02-23": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-23",
+    "endDate": "2026-02-23",
+    "notes": "",
+    "id": "TO-2026-0091",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171910",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Matthew Gallo",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-02-21": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-21",
+    "endDate": "2026-02-21",
+    "notes": "",
+    "id": "TO-2026-0048",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171651",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-02-20": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-20",
+    "endDate": "2026-02-20",
+    "notes": "",
+    "id": "TO-2026-0017",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171342",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-02-18": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-18",
+    "endDate": "2026-02-18",
+    "notes": "",
+    "id": "TO-2026-0066",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171780",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Mateusz Targosz",
+    "type": "Vacation",
+    "dayTypes": {
+      "2026-02-17": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-17",
+    "endDate": "2026-02-17",
+    "notes": "",
+    "id": "TO-2026-0042",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171616",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-02-09": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-09",
+    "endDate": "2026-02-09",
+    "notes": "",
+    "id": "TO-2026-0005",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171251",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Matthew Gallo",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-02-08": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-08",
+    "endDate": "2026-02-08",
+    "notes": "",
+    "id": "TO-2026-0047",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171646",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-02-03": "Sick",
+      "2026-02-04": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-03",
+    "endDate": "2026-02-04",
+    "notes": "",
+    "id": "TO-2026-0065",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171773",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Mateusz Targosz",
+    "type": "Mixed",
+    "dayTypes": {
+      "2026-02-02": "Floating Holiday",
+      "2026-02-03": "Vacation",
+      "2026-02-04": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2026-02-02",
+    "endDate": "2026-02-04",
+    "notes": "",
+    "id": "TO-2026-0041",
+    "days": 3,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171606",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Bereavement",
+    "dayTypes": {
+      "2026-01-28": "Bereavement"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-28",
+    "endDate": "2026-01-28",
+    "notes": "",
+    "id": "TO-2026-0064",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171767",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Mateusz Targosz",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-01-26": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-26",
+    "endDate": "2026-01-26",
+    "notes": "",
+    "id": "TO-2026-0040",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171592",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Sean Fanning",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-01-26": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-26",
+    "endDate": "2026-01-26",
+    "notes": "",
+    "id": "TO-2026-0079",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171853",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Tyler Dellorusso",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-01-25": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-25",
+    "endDate": "2026-01-25",
+    "notes": "",
+    "id": "TO-2026-0090",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171906",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-01-24": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-24",
+    "endDate": "2026-01-24",
+    "notes": "",
+    "id": "TO-2026-0016",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171337",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Matthew Gallo",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-01-24": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-24",
+    "endDate": "2026-01-24",
+    "notes": "",
+    "id": "TO-2026-0046",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171642",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Mursch",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-01-22": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-22",
+    "endDate": "2026-01-22",
+    "notes": "",
+    "id": "TO-2026-0056",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171696",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Sinnott",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-01-20": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-20",
+    "endDate": "2026-01-20",
+    "notes": "",
+    "id": "TO-2026-0063",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171762",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Tyler Dellorusso",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-01-18": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-18",
+    "endDate": "2026-01-18",
+    "notes": "",
+    "id": "TO-2026-0089",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171899",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Brian Scudder",
+    "type": "Mixed",
+    "dayTypes": {
+      "2026-01-14": "Floating Holiday",
+      "2026-01-15": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-14",
+    "endDate": "2026-01-15",
+    "notes": "",
+    "id": "TO-2026-0015",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171327",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Ray Mursch",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-01-08": "Sick"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-08",
+    "endDate": "2026-01-08",
+    "notes": "",
+    "id": "TO-2026-0055",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171693",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Mateusz Targosz",
+    "type": "Floating Holiday",
+    "dayTypes": {
+      "2026-01-02": "Floating Holiday"
+    },
+    "shift": "1st",
+    "startDate": "2026-01-02",
+    "endDate": "2026-01-02",
+    "notes": "",
+    "id": "TO-2026-0039",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171587",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Vacation",
+    "dayTypes": {
+      "2025-10-31": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2025-10-31",
+    "endDate": "2025-10-31",
+    "notes": "",
+    "id": "TO-2026-0004",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171245",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Vacation",
+    "dayTypes": {
+      "2025-10-24": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2025-10-24",
+    "endDate": "2025-10-24",
+    "notes": "",
+    "id": "TO-2026-0003",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171239",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Vacation",
+    "dayTypes": {
+      "2025-10-15": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2025-10-15",
+    "endDate": "2025-10-15",
+    "notes": "",
+    "id": "TO-2026-0002",
+    "days": 1,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171231",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
+  },
+  {
+    "employee": "Armando Martinez",
+    "type": "Vacation",
+    "dayTypes": {
+      "2025-08-25": "Vacation",
+      "2025-08-26": "Vacation"
+    },
+    "shift": "1st",
+    "startDate": "2025-08-25",
+    "endDate": "2025-08-26",
+    "notes": "",
+    "id": "TO-2026-0001",
+    "days": 2,
+    "status": "Approved",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T13:12:03.171215",
+    "enteredBy": "Imported from spreadsheet 7-11-26",
+    "adminEntry": true,
+    "backfill": true
   }
 ]
