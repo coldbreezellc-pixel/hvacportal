@@ -119,6 +119,20 @@ function check(name, cond, detail) {
   const bal = html('myBalances');
   check('My balances rendered', bal.length > 0 && !/No allotment/i.test(bal));
 
+  // ── Chiefs log their own days; crew request them ──
+  const head = txt('reqHead');
+  const btn = txt('submitBtn');
+  const note = html('selfApproveNote');
+  if (!AS_CREW) {
+    check('Admin: form says "Log My Time Off"', /Log My Time Off/i.test(head), head);
+    check('Admin: button says "Log Time Off"', /Log Time Off/i.test(btn), btn);
+    check('Admin: shown the no-approval note', /no approval/i.test(note));
+  } else {
+    check('Crew: form still says "Request Time Off"', /Request Time Off/i.test(head), head);
+    check('Crew: button still says "Submit Request"', /Submit Request/i.test(btn), btn);
+    check('Crew: NOT shown the no-approval note', note.length === 0);
+  }
+
   // ── Admin-only panels ──
   if (!AS_CREW) {
     check('Admin: allotment editor populated', (html('allotEditor').match(/emp-card/g) || []).length === 10);
