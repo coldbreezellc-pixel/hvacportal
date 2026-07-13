@@ -7,8 +7,9 @@
     "endDate": "2026-08-20",
     "id": "TO-2026-0001",
     "days": 1,
-    "status": "Pending",
-    "coveringTech": "",
-    "createdAt": "2026-07-13T11:31:18.795Z"
+    "status": "Approved",
+    "coveringTech": "Armando Martinez",
+    "createdAt": "2026-07-13T11:31:18.795Z",
+    "updatedAt": "2026-07-13T11:31:35.817Z"
   }
 ]
