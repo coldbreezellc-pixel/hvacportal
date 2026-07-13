@@ -3,70 +3,60 @@
     "hireDate": "2011-12-19",
     "sickPersonal": 11,
     "vacation": 20,
-    "floating": 3,
-    "bereavement": 5
+    "floating": 3
   },
   "Christian Dell'Andrino": {
     "hireDate": "2014-02-07",
     "sickPersonal": 11,
     "vacation": 20,
-    "floating": 3,
-    "bereavement": 5
+    "floating": 3
   },
   "Ray Sinnott": {
     "hireDate": "2015-11-09",
     "sickPersonal": 11,
     "vacation": 20,
-    "floating": 3,
-    "bereavement": 5
+    "floating": 3
   },
   "Brian Scudder": {
     "hireDate": "2018-02-05",
     "sickPersonal": 11,
     "vacation": 15,
-    "floating": 3,
-    "bereavement": 5
+    "floating": 3
   },
   "Sean Fanning": {
     "hireDate": "2019-03-13",
     "sickPersonal": 11,
     "vacation": 15,
-    "floating": 3,
-    "bereavement": 5
+    "floating": 3
   },
   "Armando Martinez": {
     "hireDate": "2019-08-05",
     "sickPersonal": 11,
     "vacation": 15,
-    "floating": 3,
-    "bereavement": 5
+    "floating": 3
   },
   "Ray Mursch": {
     "hireDate": "2022-01-24",
     "sickPersonal": 11,
     "vacation": 10,
-    "floating": 3,
-    "bereavement": 5
+    "floating": 3
   },
   "Tyler Dellorusso": {
     "hireDate": "2022-06-08",
     "sickPersonal": 11,
     "vacation": 10,
-    "floating": 3,
-    "bereavement": 5
+    "floating": 3
   },
   "Matthew Gallo": {
     "hireDate": "2025-04-28",
     "sickPersonal": 8,
     "vacation": 10,
-    "floating": 3,
-    "bereavement": 5
+    "floating": 3
   },
   "Robert Roszkowski": {
     "hireDate": "2026-03-23",
     "sickPersonal": 6,
     "vacation": 0,
-    "floating": 3,
-    "bereavement": 5
+    "floating": 3
   }
 }
