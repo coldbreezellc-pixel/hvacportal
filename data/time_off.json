@@ -10,17 +10,5 @@
     "coveringTech": "",
     "createdAt": "2026-07-13T11:14:55.591Z",
     "updatedAt": "2026-07-13T11:15:11.489Z"
-  },
-  {
-    "employee": "Ray Sinnott",
-    "type": "Sick",
-    "startDate": "2026-09-01",
-    "endDate": "2026-09-02",
-    "id": "TO-2026-0001",
-    "days": 2,
-    "status": "Approved",
-    "coveringTech": "",
-    "createdAt": "2026-07-13T11:14:35.435Z",
-    "updatedAt": "2026-07-13T11:14:47.379Z"
   }
 ]
