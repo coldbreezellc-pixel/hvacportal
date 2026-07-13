@@ -1,5 +1,17 @@
 [
   {
+    "employee": "Brian Scudder",
+    "type": "Sick",
+    "shift": "2nd",
+    "startDate": "2026-08-20",
+    "endDate": "2026-08-20",
+    "id": "TO-2026-0002",
+    "days": 1,
+    "status": "Pending",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T11:36:00.926Z"
+  },
+  {
     "employee": "Ray Sinnott",
     "type": "Vacation",
     "shift": "1st",
