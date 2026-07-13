@@ -1,5 +1,21 @@
 [
   {
+    "employee": "Robert Roszkowski",
+    "type": "Sick",
+    "dayTypes": {
+      "2026-09-14": "Sick"
+    },
+    "shift": "3rd",
+    "startDate": "2026-09-14",
+    "endDate": "2026-09-14",
+    "notes": "",
+    "id": "TO-2026-0100",
+    "days": 1,
+    "status": "Pending",
+    "coveringTech": "",
+    "createdAt": "2026-07-13T14:18:28.754Z"
+  },
+  {
     "employee": "Sean Fanning",
     "type": "Vacation",
     "dayTypes": {
