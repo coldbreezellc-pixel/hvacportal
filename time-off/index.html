@@ -172,6 +172,8 @@
   .tier-next{font-size:11px;color:#1E40AF;margin-top:3px;font-weight:600}
   .bal-box .bal-tier{font-size:9px;color:var(--accent);font-weight:700;margin-top:3px}
   .bump-note{background:#EFF6FF;border:1.5px solid #BFDBFE;color:#1E40AF;font-size:11px;padding:9px 11px;border-radius:8px;margin-top:11px;line-height:1.5;text-align:center}
+  .self-note{background:#F1F5F9;border:1px solid #CBD5E1;color:var(--text-mid);font-size:11px;padding:8px 10px;border-radius:7px;margin-top:9px;line-height:1.4;text-align:center}
+  .entry-tag{font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;margin-top:5px}
   .hire-tag{font-size:10px;font-weight:700;color:var(--text-mid);background:#F1F5F9;padding:2px 7px;border-radius:4px;text-transform:uppercase;white-space:nowrap}
   .hire-tag.warn{color:#991B1B;background:#FEE2E2}
   .person-bal .pname{align-items:center}
@@ -311,7 +313,7 @@
     </div>
 
     <div class="card">
-      <div class="card-head">Request Time Off</div>
+      <div class="card-head" id="reqHead">Request Time Off</div>
       <div class="card-body">
         <label>Shift You're Taking Off</label>
         <select id="f_shift">
@@ -346,6 +348,7 @@
         <label>Reason / Notes (optional)</label>
         <textarea id="f_notes" placeholder="Anything the chief should know…"></textarea>
         <div class="days-preview" id="preview">Pick your dates</div>
+        <div id="selfApproveNote"></div>
         <button class="btn" id="submitBtn" onclick="submitRequest()">Submit Request</button>
       </div>
     </div>
@@ -894,7 +897,9 @@ function reqCard(r, showActions) {
        '</div>';
   h += '</div><span class="badge ' + scls + '">' + esc(r.status) + '</span></div>';
   if (r.adminEntry) {
-    h += '<div style="font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;margin-top:5px;">✎ Logged by ' + esc(r.enteredBy || 'admin') + '</div>';
+    h += '<div class="entry-tag">✎ Logged by ' + esc(r.enteredBy || 'admin') + '</div>';
+  } else if (r.selfApproved) {
+    h += '<div class="entry-tag">🔒 Chief — no approval needed</div>';
   }
   if (r.notes) h += '<div class="req-notes">' + esc(r.notes) + '</div>';
   if (r.status === 'Approved') {
@@ -1628,7 +1633,8 @@ async function submitRequest() {
   if (!startDate || !endDate) return toast('Pick your dates', true);
   if (!Object.keys(dayTypes).length) return toast('Pick your dates', true);
   const btn = document.getElementById('submitBtn');
-  btn.disabled = true; btn.textContent = 'Submitting…';
+  const label = isAdmin ? 'Log Time Off' : 'Submit Request';
+  btn.disabled = true; btn.textContent = isAdmin ? 'Logging…' : 'Submitting…';
   try {
     const r = await fetch('/api/time-off', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1641,12 +1647,13 @@ async function submitRequest() {
     document.getElementById('f_notes').value = '';
     dayTypes = {};
     document.getElementById('dayEditor').innerHTML = '';
-    toast('Request submitted — pending approval');
+    const st = j.request && j.request.status;
+    toast(st === 'Approved' ? 'Time off logged — approved' : 'Request submitted — pending approval');
     await load();
   } catch (e) {
     toast(e.message, true);
   } finally {
-    btn.disabled = false; btn.textContent = 'Submit Request';
+    btn.disabled = false; btn.textContent = label;
   }
 }
 
@@ -1674,6 +1681,14 @@ async function setCover(id, tech) {
     toast(tech ? 'Coverage assigned to ' + tech : 'Coverage cleared');
     await load();
   } catch (e) { toast(e.message, true); }
+}
+
+// Chiefs (admins) approve everyone else, so their own days are recorded straight away
+if (isAdmin) {
+  document.getElementById('reqHead').textContent = 'Log My Time Off';
+  document.getElementById('submitBtn').textContent = 'Log Time Off';
+  document.getElementById('selfApproveNote').innerHTML =
+    '<div class="self-note">You\'re a chief — your days are recorded immediately, no approval needed.</div>';
 }
 
 // Default date range = today
