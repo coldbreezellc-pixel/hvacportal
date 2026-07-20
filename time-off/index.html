@@ -702,7 +702,7 @@
     </div>
     <div class="modal-body">
       <label>Who was off?</label>
-      <select id="ao_emp"></select>
+      <select id="ao_emp" onchange="onAoEmpChange()"></select>
 
       <label>Through (for multiple days)</label>
       <input type="date" id="ao_end">
@@ -1728,6 +1728,90 @@ async function undoCall(ds, shift, name) {
     toast('Undone');
     await load();
   } catch (err) { toast(err.message, true); }
+}
+
+
+// ── Admin: log someone off straight from the calendar ─────────────────────
+// These went missing in the schedules rewrite, which quietly broke the
+// "+ Log Someone Off" button — it threw a ReferenceError and did nothing.
+let addOffDate = null;
+
+function openAddOff(ds) {
+  if (!isAdmin) return;
+  addOffDate = ds;
+  const dt = new Date(ds + 'T00:00:00');
+  document.getElementById('addOffTitle').textContent =
+    dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const opts = allUsers.map(u =>
+    '<option value="' + esc(u.displayName) + '">' + esc(u.displayName) + '</option>').join('');
+  document.getElementById('ao_emp').innerHTML = '<option value="">— Pick engineer —</option>' + opts;
+  document.getElementById('ao_cover').innerHTML = '<option value="">— No coverage yet —</option>' + opts;
+
+  document.getElementById('ao_type').value = 'Vacation';
+  document.getElementById('ao_shift').value = '1st';
+  document.getElementById('ao_end').value = ds;
+  document.getElementById('ao_end').min = ds;
+  document.getElementById('addOffModal').classList.add('show');
+}
+
+// Default the shift to whatever the picked man actually works that day
+function shiftForOn(ds, name) {
+  if (!name) return null;
+  const sc = (DATA.schedules || {})[name];
+  if (!sc || !sc.shifts) return null;
+  const wd = new Date(ds + 'T00:00:00').getDay();
+  const key = ['sun','mon','tue','wed','thu','fri','sat'][wd];
+  return sc.shifts[key] || null;
+}
+
+// Picking the man sets the shift he actually works that day
+function onAoEmpChange() {
+  const n = document.getElementById('ao_emp').value;
+  const sh = shiftForOn(addOffDate, n);
+  if (sh) document.getElementById('ao_shift').value = sh;
+}
+
+function closeAddOff() {
+  document.getElementById('addOffModal').classList.remove('show');
+  addOffDate = null;
+}
+
+async function saveAddOff() {
+  const employee = document.getElementById('ao_emp').value;
+  const type = document.getElementById('ao_type').value;
+  const shift = document.getElementById('ao_shift').value;
+  const coveringTech = document.getElementById('ao_cover').value;
+  const endDate = document.getElementById('ao_end').value || addOffDate;
+  if (!employee) return toast('Pick who was off', true);
+  if (coveringTech === employee) return toast("Someone can't cover their own shift", true);
+
+  const range = datesInRange(addOffDate, endDate);
+  if (!range.length) return toast('Invalid date range', true);
+  const dt = {};
+  range.forEach(d => { dt[d] = type; });
+
+  const btn = document.getElementById('aoSave');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const r = await fetch('/api/time-off', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employee, shift, startDate: addOffDate, endDate,
+        dayTypes: dt, coveringTech,
+        adminEntry: true, enteredBy: myName
+      })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Save failed');
+    toast(employee.split(' ')[0] + ' logged off — approved');
+    closeAddOff();
+    await load();
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save';
+  }
 }
 
 function renderDayDetail() {
