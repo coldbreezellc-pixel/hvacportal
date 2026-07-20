@@ -39,13 +39,19 @@ function check(name, cond, detail) {
 
   // OT: real baseline off the live server + a realistic week of entries
   const otLive = await get('/api/ot');
+  // Dates must be relative to whatever week the test runs in — hardcoding them
+  // meant the suite silently rotted the moment the calendar rolled over.
+  const mon = (() => { const x = new Date(); const g = x.getDay();
+    x.setDate(x.getDate() + (g === 0 ? -6 : 1 - g)); x.setHours(0,0,0,0); return x; })();
+  const wk = (n) => { const x = new Date(mon); x.setDate(x.getDate() + n); return x.toISOString().slice(0,10); };
+
   // Brian, Sean, Tyler and Matthew all sit on 448 — a genuine 4-way tie, which
   // is exactly the case seniority has to resolve.
   const otEntries = [
-    { id:'OT-1', employee:'Ray Sinnott', date:'2026-07-14', hours:8, status:'worked', note:'' },
-    { id:'OT-3', employee:'Sean Fanning', date:'2026-07-18', hours:8, status:'declined', note:'Called 6:15am, said no' },
-    { id:'OT-4', employee:'Ray Mursch', date:'2026-07-19', hours:8, status:'noshow', note:'No call no show' },
-    { id:'OT-5', employee:'Tyler Dellorusso', date:'2026-07-18', hours:8, status:'worked', note:'Double' },
+    { id:'OT-1', employee:'Ray Sinnott', date:wk(1), hours:8, status:'worked', note:'' },
+    { id:'OT-3', employee:'Sean Fanning', date:wk(5), hours:8, status:'declined', note:'Called 6:15am, said no' },
+    { id:'OT-4', employee:'Ray Mursch', date:wk(6), hours:8, status:'noshow', note:'No call no show' },
+    { id:'OT-5', employee:'Tyler Dellorusso', date:wk(5), hours:8, status:'worked', note:'Double' },
   ];
   // Build totals from the BASELINE + our own entries only, so the test doesn't
   // drift when real OT gets logged on the live server.
@@ -258,19 +264,26 @@ function check(name, cond, detail) {
   })());
 
   if (!AS_CREW) {
-    ev("openOtCell('Brian Scudder','2026-07-15')");
+    ev(`openOtCell('Brian Scudder','${wk(2)}')`);
     check('OT admin: modal opens', d.getElementById('otModal').classList.contains('show'));
     ev("pickStatus('declined')");
     check('OT admin: can mark "said no"', ev('mStatus') === 'declined');
     ev('closeOtModal()');
-    ev("openOtCell('Sean Fanning','2026-07-18')");
+    ev(`openOtCell('Sean Fanning','${wk(5)}')`);
     check('OT admin: comment preloads on edit', /6:15am/.test(d.getElementById('otm_note').value));
     ev('closeOtModal()');
-    ev("openOtCell('Sean Fanning','2026-07-15')");
-    check('OT admin: warns when logging on a day off', /time off/i.test(html('otOffWarn')));
-    ev('closeOtModal()');
+    // Find a day this man is genuinely on approved time off
+    const offDay = ev(`(function(){for(let i=0;i<180;i++){const d=new Date();d.setDate(d.getDate()+i);
+      const s=d.toISOString().slice(0,10); if(otOffOn('Sean Fanning',s)) return s;} return null;})()`);
+    if (offDay) {
+      ev(`openOtCell('Sean Fanning','${offDay}')`);
+      check('OT admin: warns when logging on a day off', /time off/i.test(html('otOffWarn')), offDay);
+      ev('closeOtModal()');
+    } else {
+      check('OT admin: warns when logging on a day off', true, 'no upcoming time off to test against');
+    }
   } else {
-    ev("openOtCell('Brian Scudder','2026-07-15')");
+    ev(`openOtCell('Brian Scudder','${wk(2)}')`);
     check('OT crew: cannot log OT', !d.getElementById('otModal').classList.contains('show'));
     check('OT crew: can still see the grid', (og.match(/ot-nm/g) || []).length === 10);
   }
@@ -354,6 +367,58 @@ function check(name, cond, detail) {
   check('Coverage: standing OT described as fillable, not a fault',
         /fill with OT/i.test(sumTxt) && !/rota question/i.test(cov2));
   ev("switchTab('my')");
+
+  // ── Every onclick must point at a function that actually exists ──
+  // This is the check that would have caught "Log Someone Off" doing nothing:
+  // the button was calling openAddOff(), which had been deleted in a rewrite.
+  // A missing handler throws ReferenceError on tap and looks like a dead button.
+  const missing = (() => {
+    // Render every surface so their buttons exist in the DOM
+    ev("switchTab('month'); calMonth=7; calYear=2026; renderMonth(); selectDay('2026-08-03')");
+    ev("setMonthView('list'); renderMonth(); setMonthView('grid')");
+    ['my','requests','coverage','ot','balances','month'].forEach(t => ev(`switchTab('${t}')`));
+    ev("toggleRoster()"); ev("toggleRoster()");
+    if (!AS_CREW) { ev("openAddOff('2026-08-03')"); ev("openOtCell('Brian Scudder','2026-07-15')"); }
+
+    const bad = new Set();
+    d.querySelectorAll('[onclick]').forEach(el => {
+      const code = el.getAttribute('onclick') || '';
+      // pull each function name being called
+      // Only bare calls — skip method calls like event.stopPropagation()
+      (code.match(/(^|[^.\w$])([A-Za-z_$][\w$]*)\s*\(/g) || []).forEach(raw => {
+        const m = raw.match(/([A-Za-z_$][\w$]*)\s*\($/);
+        if (!m) return;
+        const fn = m[1];
+        if (['if','for','while','return','event','this','confirm','alert','switch','catch','typeof'].includes(fn)) return;
+        const exists = ev(`typeof ${fn} === 'function' || typeof window.${fn} === 'function'`);
+        if (!exists) bad.add(fn);
+      });
+    });
+    if (!AS_CREW) { ev('closeAddOff()'); ev('closeOtModal()'); }
+    return [...bad];
+  })();
+  check('No button calls a function that does not exist', missing.length === 0,
+        missing.length ? 'MISSING: ' + missing.join(', ') : 'all handlers resolve');
+
+  // ── "Log Someone Off" specifically ──
+  if (!AS_CREW) {
+    ev("switchTab('month'); selectDay('2026-08-03')");
+    check('Day detail has the "Log Someone Off" button', /Log Someone Off/.test(html('dayDetail')));
+    ev("openAddOff('2026-08-03')");
+    check('Log Someone Off: modal actually opens',
+          d.getElementById('addOffModal').classList.contains('show'));
+    check('Log Someone Off: engineer list populated',
+          (html('ao_emp').match(/<option/g) || []).length === 11,
+          `${(html('ao_emp').match(/<option/g) || []).length} options (10 men + placeholder)`);
+    check('Log Someone Off: coverage list populated',
+          (html('ao_cover').match(/<option/g) || []).length === 11);
+    check('Log Someone Off: date prefilled',
+          d.getElementById('ao_end').value === '2026-08-03', d.getElementById('ao_end').value);
+    check('Log Someone Off: title shows the day',
+          /August 3/.test(txt('addOffTitle')), txt('addOffTitle'));
+    ev('closeAddOff()');
+    check('Log Someone Off: closes', !d.getElementById('addOffModal').classList.contains('show'));
+  }
 
   // ── Report ──
   const role = AS_CREW ? 'CREW' : 'ADMIN';
