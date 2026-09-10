@@ -28,9 +28,11 @@ here depends on it except the two data files the import script reads.
    (accounts are created by admins, not self-signup).
 4. **Authentication → URL Configuration**: set *Site URL* to your Vercel URL (e.g. `https://penguin.vercel.app`)
    and add `https://penguin.vercel.app/auth/confirm` to *Redirect URLs*.
-5. **Authentication → Email Templates → Reset password**: replace the link with
-   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password`
-   so the reset email lands on the app's own reset page.
+5. **Emails**: the stock "Reset password" template works as-is (the app accepts Supabase's default
+   link). Supabase's built-in mailer is rate-limited and may only deliver to project members, so for the
+   crew to receive reset emails set up **custom SMTP** (Authentication → Emails → Set up SMTP) — Resend
+   works: host `smtp.resend.com`, port 465, user `resend`, password = your Resend API key. Until then,
+   admins can reset anyone's password from the app's Users screen.
 
 ## 2. Apply the database schema
 
