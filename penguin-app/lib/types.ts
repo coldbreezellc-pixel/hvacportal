@@ -33,6 +33,68 @@ export interface Item {
   lastUpdated: string;
 }
 
+// ── Work orders ──
+export const WO_STATUSES = ["Open", "In Progress", "On Hold", "Completed"] as const;
+export type WoStatus = (typeof WO_STATUSES)[number];
+export const WO_LOCATIONS = ["900 Sylvan Ave", "904 Sylvan Ave", "Other"];
+export const WO_TYPES = ["Cold Call", "Repair", "Preventive Maintenance", "Installation", "Inspection", "Emergency", "Other"];
+export const WO_PRIORITIES = ["Normal", "High", "Urgent", "Low"];
+
+export interface Photo { thumb: string; full: string }
+
+export interface Visit {
+  id: string;
+  workOrderId: string;
+  date: string;       // YYYY-MM-DD
+  tech: string;
+  hours: number;
+  notes: string;
+  photos: Photo[];
+  loggedBy: string | null;
+  loggedAt: string;
+}
+
+export interface WorkOrder {
+  id: string;
+  woNumber: string | null;   // null until the server assigns it (offline-created)
+  title: string;
+  location: string;
+  type: string;
+  priority: string;
+  status: WoStatus | string;
+  details: string;
+  photos: Photo[];
+  createdBy: string | null;
+  source: string | null;
+  createdAt: string;
+  updatedAt: string;
+  visits: Visit[];
+}
+
+export interface WorkOrderRow {
+  id: string; wo_number: string | null; title: string; location: string; type: string; priority: string; status: string;
+  details: string; photos: Photo[] | string[]; created_by: string | null; source: string | null;
+  slack_channel?: string | null; slack_ts?: string | null; created_at: string; updated_at: string;
+}
+export interface VisitRow {
+  id: string; work_order_id: string; visit_date: string; tech: string; hours: number | string; notes: string;
+  photos: Photo[] | string[]; logged_by: string | null; logged_at: string;
+}
+
+export const normPhotos = (p: unknown): Photo[] =>
+  Array.isArray(p) ? p.map((x) => (typeof x === "string" ? { thumb: x, full: x } : x as Photo)).filter((x) => x && x.thumb) : [];
+
+export const visitFromRow = (r: VisitRow): Visit => ({
+  id: r.id, workOrderId: r.work_order_id, date: r.visit_date, tech: r.tech ?? "", hours: Number(r.hours) || 0,
+  notes: r.notes ?? "", photos: normPhotos(r.photos), loggedBy: r.logged_by ?? null, loggedAt: r.logged_at,
+});
+
+export const workOrderFromRow = (r: WorkOrderRow, visits: Visit[] = []): WorkOrder => ({
+  id: r.id, woNumber: r.wo_number ?? null, title: r.title, location: r.location, type: r.type, priority: r.priority,
+  status: r.status, details: r.details ?? "", photos: normPhotos(r.photos), createdBy: r.created_by ?? null,
+  source: r.source ?? null, createdAt: r.created_at, updatedAt: r.updated_at, visits,
+});
+
 export interface LogEntry {
   id: string;
   action: string;

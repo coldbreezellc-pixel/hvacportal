@@ -16,13 +16,14 @@ import { useSyncExternalStore } from "react";
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { getSupabase, supabaseConfigured } from "./supabase/client";
 import {
-  itemFromRow, itemToRow, logFromRow, patchToRow, userFromRow, uid,
+  itemFromRow, itemToRow, logFromRow, patchToRow, userFromRow, uid, workOrderFromRow, visitFromRow,
   type Item, type ItemRow, type LogEntry, type LogRow, type Role, type User, type UserRow,
+  type WorkOrder, type WorkOrderRow, type Visit, type VisitRow, type Photo,
 } from "./types";
-import { loadCache, saveCache, clearCache, loadOutbox, saveOutbox, type Op, type QueuedOp, type EmailPayload } from "./offline";
+import { loadCache, saveCache, clearCache, loadOutbox, saveOutbox, type Op, type QueuedOp, type EmailPayload, type PendingPhoto } from "./offline";
 import { dataUrlToBlob, type ResizedPhoto } from "./images";
 
-export type View = "login" | "forgot" | "dashboard" | "inventory" | "users" | "logs" | "backups" | "profile";
+export type View = "login" | "forgot" | "home" | "dashboard" | "inventory" | "workorders" | "users" | "logs" | "backups" | "profile";
 export type Toast = { msg: string; type: "ok" | "err" } | null;
 
 export interface State {
@@ -33,6 +34,7 @@ export interface State {
   items: Item[];
   users: User[];
   logs: LogEntry[];
+  workOrders: WorkOrder[];
   pending: number;
   syncing: boolean;
   lastSync: string | null;
@@ -48,6 +50,7 @@ const initial: State = {
   items: [],
   users: [],
   logs: [],
+  workOrders: [],
   pending: 0,
   syncing: false,
   lastSync: null,
@@ -80,7 +83,7 @@ let persistTimer: ReturnType<typeof setTimeout> | null = null;
 function persistSoon() {
   if (persistTimer) clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
-    void saveCache({ me: state.me, items: state.items, users: state.users, logs: state.logs, savedAt: new Date().toISOString() });
+    void saveCache({ me: state.me, items: state.items, users: state.users, logs: state.logs, workOrders: state.workOrders, savedAt: new Date().toISOString() });
   }, 250);
 }
 
@@ -181,7 +184,69 @@ async function runOp(op: Op) {
       if (res.status >= 400 && res.status < 500 || res.status === 503) { flash(err.message, "err"); throw Object.assign(err, { permanent: true }); }
       throw err;
     }
+    case "wo_insert": {
+      const photos = await uploadPhotos("wo-photos", `orders/${op.row.id}`, op.photos);
+      const { error } = await sb.from("work_orders").upsert({ ...op.row, photos }, { onConflict: "id", ignoreDuplicates: true });
+      if (error) throw error;
+      swapUploadedPhotos(op.row.id, null, op.photos, photos);
+      return;
+    }
+    case "wo_update": {
+      const newPhotos = await uploadPhotos("wo-photos", `orders/${op.id}`, op.newPhotos);
+      const { error } = await sb.rpc("update_work_order", { p_id: op.id, p_patch: op.patch, p_new_photos: newPhotos });
+      if (error) throw error;
+      swapUploadedPhotos(op.id, null, op.newPhotos, newPhotos);
+      return;
+    }
+    case "wo_delete": {
+      const { error } = await sb.from("work_orders").delete().eq("id", op.id);
+      if (error) throw error;
+      return;
+    }
+    case "visit_insert": {
+      const photos = await uploadPhotos("wo-photos", `orders/${op.row.work_order_id}/visits/${op.row.id}`, op.photos);
+      const { error } = await sb.from("work_order_visits").upsert({ ...op.row, photos }, { onConflict: "id", ignoreDuplicates: true });
+      if (error) throw error;
+      swapUploadedPhotos(op.row.work_order_id, op.row.id, op.photos, photos);
+      return;
+    }
+    case "visit_delete": {
+      const { error } = await sb.from("work_order_visits").delete().eq("id", op.id);
+      if (error) throw error;
+      return;
+    }
   }
+}
+
+/** Upload device-only photos (data URLs) and return their public URLs. Already-hosted photos pass through. */
+async function uploadPhotos(bucket: string, prefix: string, photos: PendingPhoto[]): Promise<Photo[]> {
+  const sb = getSupabase();
+  const out: Photo[] = [];
+  for (const p of photos) {
+    if (!p.thumb.startsWith("data:")) { out.push(p); continue; }
+    const stamp = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const up = async (path: string, dataUrl: string) => {
+      const { error } = await sb.storage.from(bucket).upload(path, dataUrlToBlob(dataUrl), { contentType: "image/jpeg", upsert: true });
+      if (error) throw error;
+      return sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+    };
+    const [thumb, full] = await Promise.all([up(`${prefix}/${stamp}-thumb.jpg`, p.thumb), up(`${prefix}/${stamp}-full.jpg`, p.full)]);
+    out.push({ thumb, full });
+  }
+  return out;
+}
+
+/** Replace local data-URL photos with the hosted URLs once uploaded. */
+function swapUploadedPhotos(woId: string, visitId: string | null, local: PendingPhoto[], hosted: Photo[]) {
+  if (!local.some((p) => p.thumb.startsWith("data:"))) return;
+  const map = new Map(local.map((p, i) => [p.thumb, hosted[i]]));
+  const swap = (list: Photo[]) => list.map((p) => map.get(p.thumb) ?? p);
+  setState({
+    workOrders: state.workOrders.map((w) => w.id !== woId ? w : visitId
+      ? { ...w, visits: w.visits.map((v) => (v.id === visitId ? { ...v, photos: swap(v.photos) } : v)) }
+      : { ...w, photos: swap(w.photos) }),
+  });
+  persistSoon();
 }
 
 /** Push queued ops to Supabase in order. Safe to call any time. */
@@ -270,24 +335,56 @@ export async function refresh() {
   if (!state.me || !navigator.onLine || !supabaseConfigured()) return;
   const sb = getSupabase();
   try {
-    const [itemsRes, usersRes] = await Promise.all([
+    const [itemsRes, usersRes, woRes, visitRes] = await Promise.all([
       sb.from("inventory_items").select("*").order("group").order("name"),
       sb.from("users").select("*").order("display_name"),
+      sb.from("work_orders").select("*").order("created_at", { ascending: false }),
+      sb.from("work_order_visits").select("*").order("visit_date").order("logged_at"),
     ]);
     if (itemsRes.error) throw itemsRes.error;
     const items = (itemsRes.data as ItemRow[]).map(itemFromRow).map(withPending);
     const users = usersRes.error ? state.users : (usersRes.data as UserRow[]).map(userFromRow);
+    let workOrders = state.workOrders;
+    if (!woRes.error && !visitRes.error) {
+      const visits = (visitRes.data as VisitRow[]).map(visitFromRow);
+      workOrders = (woRes.data as WorkOrderRow[]).map((r) => withPendingWo(workOrderFromRow(r, visits.filter((v) => v.workOrderId === r.id))));
+      // keep offline-created orders that haven't reached the server yet
+      for (const local of state.workOrders) if (!workOrders.some((w) => w.id === local.id) && isPendingInsert(local.id)) workOrders.unshift(local);
+    } else if (woRes.error) {
+      console.error("work orders fetch failed", woRes.error.message);
+    }
     let logs = state.logs;
     if (state.me.role === "admin") {
       const logRes = await sb.from("activity_logs").select("*").order("ts", { ascending: false }).limit(500);
       if (!logRes.error) logs = (logRes.data as LogRow[]).map(logFromRow);
     }
     const me = users.find((u) => u.id === state.me?.id) ?? state.me;
-    setState({ items, users, logs, me, lastSync: new Date().toISOString() });
+    setState({ items, users, logs, me, workOrders, lastSync: new Date().toISOString() });
     persistSoon();
   } catch (e) {
     if (!isNetworkError(e)) console.error("refresh failed", e);
   }
+}
+
+const isPendingInsert = (woId: string) => outbox.some((q) => q.op.kind === "wo_insert" && q.op.row.id === woId);
+
+/** Re-apply queued edits/visits for a work order on top of a server row. */
+function withPendingWo(wo: WorkOrder): WorkOrder {
+  let out = wo;
+  const local = state.workOrders.find((w) => w.id === wo.id);
+  for (const q of outbox) {
+    const op = q.op;
+    if (op.kind === "wo_update" && op.id === wo.id) {
+      const { photos, ...rest } = op.patch;
+      out = { ...out, ...rest, photos: [...(photos ?? out.photos), ...op.newPhotos] };
+    }
+    if (op.kind === "visit_insert" && op.row.work_order_id === wo.id && !out.visits.some((v) => v.id === op.row.id)) {
+      const lv = local?.visits.find((v) => v.id === op.row.id);
+      if (lv) out = { ...out, visits: [...out.visits, lv] };
+    }
+    if (op.kind === "visit_delete" && op.workOrderId === wo.id) out = { ...out, visits: out.visits.filter((v) => v.id !== op.id) };
+  }
+  return out;
 }
 
 // ── Realtime ────────────────────────────────────────────────────────────────
@@ -326,6 +423,29 @@ function subscribeRealtime() {
       const entry = logFromRow(p.new as LogRow);
       if (state.logs.some((l) => l.id === entry.id)) return;
       setState({ logs: [entry, ...state.logs].slice(0, 500) });
+      persistSoon();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "work_orders" }, (p: RealtimePostgresChangesPayload<WorkOrderRow>) => {
+      if (p.eventType === "DELETE") {
+        const id = (p.old as Partial<WorkOrderRow>).id;
+        if (id) setState({ workOrders: state.workOrders.filter((w) => w.id !== id) });
+      } else {
+        const row = p.new as WorkOrderRow;
+        const existing = state.workOrders.find((w) => w.id === row.id);
+        const incoming = withPendingWo(workOrderFromRow(row, existing?.visits ?? []));
+        setState({ workOrders: existing ? state.workOrders.map((w) => (w.id === row.id ? incoming : w)) : [incoming, ...state.workOrders] });
+      }
+      persistSoon();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "work_order_visits" }, (p: RealtimePostgresChangesPayload<VisitRow>) => {
+      if (p.eventType === "DELETE") {
+        const old = p.old as Partial<VisitRow>;
+        setState({ workOrders: state.workOrders.map((w) => ({ ...w, visits: w.visits.filter((v) => v.id !== old.id) })) });
+      } else {
+        const v = visitFromRow(p.new as VisitRow);
+        setState({ workOrders: state.workOrders.map((w) => w.id !== v.workOrderId ? w
+          : { ...w, visits: w.visits.some((x) => x.id === v.id) ? w.visits.map((x) => (x.id === v.id ? v : x)) : [...w.visits, v] }) });
+      }
       persistSoon();
     })
     .subscribe((status) => {
@@ -375,7 +495,7 @@ export async function init() {
   const cache = await loadCache();
   const configured = supabaseConfigured();
   if (cache) {
-    setState({ items: cache.items ?? [], users: cache.users ?? [], logs: cache.logs ?? [], pending: outbox.length });
+    setState({ items: cache.items ?? [], users: cache.users ?? [], logs: cache.logs ?? [], workOrders: cache.workOrders ?? [], pending: outbox.length });
   }
   if (!configured) { setState({ ready: true, configured: false }); return; }
 
@@ -403,9 +523,9 @@ export async function init() {
 function initialView(me: User): View {
   const params = new URLSearchParams(window.location.search);
   const urlView = params.get("view") as View | null;
-  const allowed: View[] = ["dashboard", "inventory", "users", "logs", "backups", "profile"];
+  const allowed: View[] = ["home", "dashboard", "inventory", "workorders", "users", "logs", "backups", "profile"];
   const isAdmin = me.role === "admin";
-  let v: View = me.mustResetPw ? "profile" : "dashboard";
+  let v: View = me.mustResetPw ? "profile" : "home";
   if (urlView && allowed.includes(urlView)) {
     if ((urlView === "users" || urlView === "logs" || urlView === "backups") && !isAdmin) v = "dashboard";
     else v = urlView;
@@ -427,7 +547,7 @@ export async function login(username: string, password: string): Promise<boolean
   if (error || !data.user) { flash("Invalid username or password.", "err"); return false; }
   const me = await fetchProfile(data.user.id);
   if (!me) { flash("Your account has no profile — ask an admin.", "err"); await sb.auth.signOut(); return false; }
-  setState({ me, view: me.mustResetPw ? "profile" : "dashboard" });
+  setState({ me, view: me.mustResetPw ? "profile" : "home" });
   persistSoon();
   subscribeRealtime();
   addLog("Login", `${me.displayName} signed in`, me.displayName);
@@ -450,7 +570,7 @@ export async function logout(opts: { silent?: boolean } = {}) {
   unsubscribeRealtime();
   try { await getSupabase().auth.signOut(); } catch { /* offline — local session is still cleared */ }
   await clearCache();
-  setState({ me: null, view: "login", items: [], users: [], logs: [] });
+  setState({ me: null, view: "login", items: [], users: [], logs: [], workOrders: [] });
 }
 
 export async function forgotPassword(username: string): Promise<string | null> {
@@ -657,6 +777,84 @@ export function removeItemPhoto(id: string) {
 export function sendEmail(payload: EmailPayload) {
   void enqueue({ kind: "email", payload });
   flash(navigator.onLine ? "Sending report…" : "Report queued — it will send when you're back online.");
+}
+
+// ── Work orders ─────────────────────────────────────────────────────────────
+export interface WorkOrderInput { title: string; location: string; type: string; priority: string; status: string; details: string }
+
+export function createWorkOrder(data: WorkOrderInput, photos: PendingPhoto[]) {
+  const me = state.me!;
+  const id = (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : uid());
+  const ts = now();
+  const wo: WorkOrder = {
+    id, woNumber: null, ...data, photos, createdBy: me.displayName, source: null, createdAt: ts, updatedAt: ts, visits: [],
+  };
+  setState({ workOrders: [wo, ...state.workOrders] });
+  persistSoon();
+  void enqueue({ kind: "wo_insert", row: { id, wo_number: null, ...data, created_by: me.displayName, source: null, created_at: ts }, photos });
+  addLog("WO Created", `Created work order "${data.title}" (${data.location}, ${data.priority})`, me.displayName);
+  flash(navigator.onLine ? "Work order created." : "Work order saved — it gets its number when you're back online.");
+  return wo;
+}
+
+export function updateWorkOrder(id: string, patch: Partial<WorkOrderInput>, newPhotos: PendingPhoto[] = []) {
+  const me = state.me!;
+  const old = state.workOrders.find((w) => w.id === id);
+  setState({ workOrders: state.workOrders.map((w) => (w.id === id ? { ...w, ...patch, photos: [...w.photos, ...newPhotos], updatedAt: now() } : w)) });
+  persistSoon();
+  void enqueue({ kind: "wo_update", id, patch, newPhotos });
+  const changes: string[] = [];
+  if (patch.status && patch.status !== old?.status) changes.push(`status: ${old?.status} → ${patch.status}`);
+  if (patch.title && patch.title !== old?.title) changes.push("title changed");
+  if (newPhotos.length) changes.push(`${newPhotos.length} photo(s) added`);
+  addLog("WO Updated", `${old?.woNumber || "Work order"} "${patch.title ?? old?.title ?? ""}"${changes.length ? " — " + changes.join(", ") : ""}`, me.displayName);
+  flash("Work order updated.");
+}
+
+export function setWorkOrderStatus(id: string, status: string) {
+  updateWorkOrder(id, { status });
+}
+
+export function removeWorkOrderPhoto(id: string, index: number) {
+  const wo = state.workOrders.find((w) => w.id === id);
+  if (!wo) return;
+  const photos = wo.photos.filter((_, i) => i !== index);
+  setState({ workOrders: state.workOrders.map((w) => (w.id === id ? { ...w, photos } : w)) });
+  persistSoon();
+  void enqueue({ kind: "wo_update", id, patch: { photos: photos.filter((p) => !p.thumb.startsWith("data:")) }, newPhotos: photos.filter((p) => p.thumb.startsWith("data:")) });
+}
+
+export function deleteWorkOrder(id: string) {
+  const me = state.me!;
+  const wo = state.workOrders.find((w) => w.id === id);
+  setState({ workOrders: state.workOrders.filter((w) => w.id !== id) });
+  persistSoon();
+  void enqueue({ kind: "wo_delete", id });
+  addLog("WO Deleted", `Deleted ${wo?.woNumber || "work order"} "${wo?.title || ""}"`, me.displayName);
+  flash("Work order deleted.");
+}
+
+export interface VisitInput { date: string; tech: string; hours: number; notes: string }
+
+export function addVisit(workOrderId: string, data: VisitInput, photos: PendingPhoto[]) {
+  const me = state.me!;
+  const id = (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : uid());
+  const visit: Visit = { id, workOrderId, ...data, photos, loggedBy: me.displayName, loggedAt: now() };
+  const wo = state.workOrders.find((w) => w.id === workOrderId);
+  setState({ workOrders: state.workOrders.map((w) => (w.id === workOrderId ? { ...w, visits: [...w.visits, visit] } : w)) });
+  persistSoon();
+  void enqueue({ kind: "visit_insert", row: { id, work_order_id: workOrderId, visit_date: data.date, tech: data.tech, hours: data.hours, notes: data.notes, logged_by: me.displayName, logged_at: visit.loggedAt }, photos });
+  addLog("Visit Logged", `${wo?.woNumber || "Work order"}: ${data.tech || me.displayName} logged ${data.hours} h on ${data.date}`, me.displayName);
+  flash("Visit added.");
+}
+
+export function deleteVisit(workOrderId: string, visitId: string) {
+  const me = state.me!;
+  const wo = state.workOrders.find((w) => w.id === workOrderId);
+  setState({ workOrders: state.workOrders.map((w) => (w.id === workOrderId ? { ...w, visits: w.visits.filter((v) => v.id !== visitId) } : w)) });
+  persistSoon();
+  void enqueue({ kind: "visit_delete", id: visitId, workOrderId });
+  addLog("WO Updated", `${wo?.woNumber || "Work order"}: visit removed`, me.displayName);
 }
 
 // ── Backups (admin) ─────────────────────────────────────────────────────────

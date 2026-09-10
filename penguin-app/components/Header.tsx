@@ -11,6 +11,7 @@ interface Props {
   setView: (v: View) => void;
   logout: () => void;
   lowStock: number;
+  openWos: number;
   online: boolean;
   pending: number;
   syncing: boolean;
@@ -23,20 +24,26 @@ function SyncStatus({ online, pending, syncing }: { online: boolean; pending: nu
   return <span className="pg-status pg-status--online" title="Live — changes sync instantly"><span className="pg-dot" />Live</span>;
 }
 
-export function Header({ user, view, setView, logout, lowStock, online, pending, syncing }: Props) {
+export function Header({ user, view, setView, logout, lowStock, openWos, online, pending, syncing }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const isAdmin = user.role === "admin";
+  // Phone bottom bar: the five things people tap all day.
   const navItems: { key: View; label: string; icon: string }[] = [
-    { key: "dashboard", label: "Dashboard", icon: "📊" },
+    { key: "home", label: "Home", icon: "🏠" },
+    { key: "workorders", label: "Work Orders", icon: "🔧" },
     { key: "inventory", label: "Inventory", icon: "📦" },
     ...(isAdmin ? [{ key: "users" as View, label: "Users", icon: "👥" }] : []),
-    ...(isAdmin ? [{ key: "logs" as View, label: "Logs", icon: "📋" }] : []),
     { key: "profile", label: "Profile", icon: "⚙" },
   ];
-  // Backups lives in the drawer / sidebar only, so the phone's bottom bar stays 5 wide.
-  const menuItems: { key: View; label: string; icon: string }[] = isAdmin
-    ? [...navItems.slice(0, -1), { key: "backups", label: "Backups", icon: "🗄" }, navItems[navItems.length - 1]]
-    : navItems;
+  // Drawer / desktop sidebar: everything.
+  const menuItems: { key: View; label: string; icon: string }[] = [
+    { key: "home", label: "Home", icon: "🏠" },
+    { key: "workorders", label: "Work Orders", icon: "🔧" },
+    { key: "inventory", label: "Inventory", icon: "📦" },
+    { key: "dashboard", label: "Stock Dashboard", icon: "📊" },
+    ...(isAdmin ? [{ key: "users" as View, label: "Users", icon: "👥" }, { key: "logs" as View, label: "Activity Log", icon: "📋" }, { key: "backups" as View, label: "Backups", icon: "🗄" }] : []),
+    { key: "profile", label: "Profile", icon: "⚙" },
+  ];
   const go = (k: View) => { setView(k); setMenuOpen(false); };
 
   return (
@@ -54,6 +61,7 @@ export function Header({ user, view, setView, logout, lowStock, online, pending,
           <button key={n.key} className={`pg-sidebar-item${view === n.key ? " pg-sidebar-item--active" : ""}`} onClick={() => go(n.key)}>
             <span>{n.icon}</span> {n.label}
             {n.key === "dashboard" && lowStock > 0 && <span style={{ ...S.badge, marginLeft: "auto" }}>{lowStock}</span>}
+            {n.key === "workorders" && openWos > 0 && <span style={{ ...S.badge, marginLeft: "auto", background: "#0d9488" }}>{openWos}</span>}
           </button>
         ))}
         <div style={{ marginTop: "auto", borderTop: "1px solid #e2e8f0", paddingTop: 12 }}>
@@ -70,7 +78,7 @@ export function Header({ user, view, setView, logout, lowStock, online, pending,
 
       {/* Mobile header */}
       <header style={S.header}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => setView("home")}>
           <Diamond size={28} />
           <span style={{ fontFamily: F.heading, fontSize: 15, color: "#0f172a", letterSpacing: 1.5, fontWeight: 700 }}>PENGUIN</span>
           {lowStock > 0 && <span style={S.badge}>{lowStock}</span>}
