@@ -1,5 +1,6 @@
 "use client";
 import type { Item, User, WorkOrder } from "@/lib/types";
+import type { PmRecord } from "@/lib/pm/types";
 import { setView, type View } from "@/lib/store";
 import { Diamond } from "./Diamond";
 import { S, F } from "./styles";
@@ -8,18 +9,21 @@ const OLD_PORTAL = process.env.NEXT_PUBLIC_OLD_PORTAL_URL || "https://local68.up
 
 interface Tile { icon: string; title: string; desc: string; badge: string; badgeColor: string; view?: View; href?: string; adminOnly?: boolean; iconBg: string }
 
-export function HomeView({ user, items, workOrders }: { user: User; items: Item[]; workOrders: WorkOrder[] }) {
+export function HomeView({ user, items, workOrders, pmRecords }: { user: User; items: Item[]; workOrders: WorkOrder[]; pmRecords: PmRecord[] }) {
   const isAdmin = user.role === "admin";
   const openWos = workOrders.filter((w) => w.status !== "Completed").length;
   const urgent = workOrders.filter((w) => w.status !== "Completed" && w.priority === "Urgent").length;
   const lowStock = items.filter((i) => (i.qty || 0) <= (i.minQty || 0) && (i.minQty || 0) > 0).length;
   const outOfStock = items.filter((i) => (i.qty || 0) === 0).length;
+  const followUps = pmRecords.filter((r) => r.followUp).length;
+  const month = new Date().toISOString().slice(0, 7);
+  const pmsThisMonth = pmRecords.filter((r) => r.pmDate.startsWith(month)).length;
 
   const allTiles: Tile[] = [
     { icon: "🔧", title: "Work Orders", desc: "Track jobs, hours & visits", badge: openWos ? `${openWos} open` : "● Live", badgeColor: urgent ? "#dc2626" : "#16a34a", view: "workorders", iconBg: "rgba(230,81,0,.12)" },
     { icon: "📦", title: "Inventories", desc: "Equipment & parts tracking", badge: lowStock ? `${lowStock} low stock` : "● Live", badgeColor: lowStock ? "#f59e0b" : "#16a34a", view: "inventory", iconBg: "rgba(13,148,136,.12)" },
-    { icon: "📋", title: "PM Sheet", desc: "Preventive maintenance work orders", badge: "Old portal", badgeColor: "#64748b", href: `${OLD_PORTAL}/pm/index.html`, iconBg: "rgba(41,121,255,.12)" },
-    { icon: "📁", title: "PM Records", desc: "Browse all completed PMs", badge: "Old portal", badgeColor: "#64748b", href: `${OLD_PORTAL}/pm-records/`, iconBg: "rgba(46,125,50,.12)" },
+    { icon: "📋", title: "PM Sheet", desc: "Preventive maintenance work orders", badge: pmsThisMonth ? `${pmsThisMonth} this month` : "● Live", badgeColor: "#16a34a", view: "pmsheet", iconBg: "rgba(41,121,255,.12)" },
+    { icon: "📁", title: "PM Records", desc: "Browse all completed PMs", badge: followUps ? `${followUps} follow-up${followUps > 1 ? "s" : ""}` : `${pmRecords.length} archived`, badgeColor: followUps ? "#dc2626" : "#16a34a", view: "pmrecords", iconBg: "rgba(46,125,50,.12)" },
     { icon: "🌴", title: "Time Off", desc: "Days off, coverage & overtime", badge: "Old portal", badgeColor: "#64748b", href: `${OLD_PORTAL}/time-off/`, iconBg: "rgba(0,137,123,.14)" },
     { icon: "📊", title: "Dashboard", desc: "Stock levels at a glance", badge: outOfStock ? `${outOfStock} out of stock` : "● Live", badgeColor: outOfStock ? "#ef4444" : "#16a34a", view: "dashboard", iconBg: "rgba(56,189,248,.14)" },
     { icon: "👥", title: "Users", desc: "Crew logins & roles", badge: "Admin", badgeColor: "#7c3aed", view: "users", adminOnly: true, iconBg: "rgba(124,58,237,.12)" },
@@ -62,9 +66,9 @@ export function HomeView({ user, items, workOrders }: { user: User; items: Item[
           <div style={{ ...S.statNum, color: lowStock ? "#f59e0b" : "#0f172a" }}>{lowStock}</div>
           <div style={S.statLabel}>Low stock items</div>
         </div>
-        <div style={{ ...S.statCard, borderLeft: "3px solid #38bdf8" }}>
-          <div style={S.statNum}>{items.length}</div>
-          <div style={S.statLabel}>Parts tracked</div>
+        <div style={{ ...S.statCard, borderLeft: `3px solid ${followUps ? "#dc2626" : "#38bdf8"}`, cursor: "pointer" }} onClick={() => setView("pmrecords")}>
+          <div style={{ ...S.statNum, color: followUps ? "#dc2626" : "#0f172a" }}>{followUps || pmsThisMonth}</div>
+          <div style={S.statLabel}>{followUps ? "PM follow-ups needed" : "PMs this month"}</div>
         </div>
       </div>
 

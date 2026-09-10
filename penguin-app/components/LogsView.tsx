@@ -3,12 +3,12 @@ import { useState } from "react";
 import type { LogEntry } from "@/lib/types";
 import { S, F } from "./styles";
 
-const ACTION_TYPES = ["All", "Login", "Logout", "Qty Changed", "Item Added", "Item Updated", "Item Deleted", "Stock Reset", "WO Created", "WO Updated", "WO Deleted", "Visit Logged", "User Created", "User Updated", "User Deleted", "Password Reset", "Password Changed", "Backup Taken", "Backup Restored"];
+const ACTION_TYPES = ["All", "Login", "Logout", "Qty Changed", "Item Added", "Item Updated", "Item Deleted", "Stock Reset", "WO Created", "WO Updated", "WO Deleted", "Visit Logged", "PM Submitted", "PM Emailed", "PM Deleted", "PM Imported", "User Created", "User Updated", "User Deleted", "Password Reset", "Password Changed", "Backup Taken", "Backup Restored"];
 
 const actionColor = (a: string) => {
   if (a === "Login" || a === "Logout") return "#38bdf8";
   if (a.includes("Deleted")) return "#ef4444";
-  if (a.includes("Created") || a.includes("Added") || a.includes("Logged")) return "#4ade80";
+  if (a.includes("Created") || a.includes("Added") || a.includes("Logged") || a.includes("Submitted") || a.includes("Imported")) return "#4ade80";
   if (a.includes("Changed") || a.includes("Updated") || a.includes("Reset")) return "#f59e0b";
   return "#94a3b8";
 };

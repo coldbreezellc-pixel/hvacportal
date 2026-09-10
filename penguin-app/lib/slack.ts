@@ -14,40 +14,7 @@ export function verifySlackSignature(rawBody: string, headers: Headers): boolean
   try { return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(sig)); } catch { return false; }
 }
 
-export interface ParsedWo {
-  title: string; location: string; type: string; priority: string; status: string; details: string; created_by: string;
-}
-
-/** Parse a Slack message into a work order. Smart-detects location, type, priority. */
-export function parseSlackMessage(text: string, user: string): ParsedWo {
-  const t = (text || "").replace(/\s+/g, " ").trim();
-
-  let location = "Other";
-  if (/\b904\b/.test(t) || /904\s*sylvan/i.test(t)) location = "904 Sylvan Ave";
-  else if (/\b900\b/.test(t) || /900\s*sylvan/i.test(t)) location = "900 Sylvan Ave";
-
-  let type = "Cold Call";
-  if (/\bemergency\b/i.test(t)) type = "Emergency";
-  else if (/\brepair\b/i.test(t)) type = "Repair";
-  else if (/\bpm\b|preventive maintenance/i.test(t)) type = "Preventive Maintenance";
-  else if (/\binstall(ation)?\b/i.test(t)) type = "Installation";
-  else if (/\binspect(ion)?\b/i.test(t)) type = "Inspection";
-
-  let priority = "Normal";
-  if (/\b(urgent|asap|critical|emergency|down)\b/i.test(t)) priority = "Urgent";
-  else if (/\bhigh\b/i.test(t) || /priority/i.test(t)) priority = "High";
-  else if (/\blow\b|whenever|no rush/i.test(t)) priority = "Low";
-
-  let title = t
-    .replace(/^(wo|work order|create wo|new wo)[\s:.-]+/i, "")
-    .replace(/<@[A-Z0-9]+>/g, "")
-    .replace(/<#[A-Z0-9]+\|[^>]+>/g, "")
-    .trim();
-  if (!title) title = "Work order from Slack";
-  if (title.length > 100) title = title.slice(0, 97) + "…";
-
-  return { title, location, type, priority, status: "Open", details: t, created_by: user || "Slack" };
-}
+export { parseSlackMessage, parseHelpRequest, type ParsedWo } from "./wo-parse";
 
 export async function postToSlack(channel: string, text: string, threadTs?: string) {
   const token = process.env.SLACK_BOT_TOKEN;

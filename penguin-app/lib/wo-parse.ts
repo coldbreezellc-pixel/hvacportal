@@ -1,0 +1,76 @@
+// Turns a pasted help request (usually copied out of Slack) into a work order.
+// No Node imports here — this runs in the browser (paste → Generate) and on the
+// server (Slack events / slash command) with the same rules as the old portal.
+
+export interface ParsedWo {
+  title: string; location: string; type: string; priority: string; status: string; details: string; created_by: string;
+  requester: string | null;
+}
+
+const TIME_RE = /^\d{1,2}:\d{2}(\s?[AP]M)?$/i;
+const NAME_TIME_RE = /^(.{2,60}?)\s{1,}(\d{1,2}:\d{2}(?:\s?[AP]M)?)$/i;
+// "Yesterday at 3:12 PM", "Today at 9:01 AM", "Sep 9th at 10:32 AM", "[10:32 AM]"
+const STAMP_RE = /^(\[?\d{1,2}:\d{2}(\s?[AP]M)?\]?|(today|yesterday|mon|tue|wed|thu|fri|sat|sun)[a-z]*\s+at\s+\d{1,2}:\d{2}(\s?[AP]M)?|[a-z]{3,9}\s+\d{1,2}(st|nd|rd|th)?(,?\s+\d{4})?\s+at\s+\d{1,2}:\d{2}(\s?[AP]M)?)$/i;
+
+function detect(t: string) {
+  let location = "Other";
+  if (/\b904\b/.test(t) || /904\s*sylvan/i.test(t)) location = "904 Sylvan Ave";
+  else if (/\b900\b/.test(t) || /900\s*sylvan/i.test(t)) location = "900 Sylvan Ave";
+
+  let type = "Cold Call";
+  if (/\bemergency\b/i.test(t)) type = "Emergency";
+  else if (/\brepair\b/i.test(t)) type = "Repair";
+  else if (/\bpm\b|preventive maintenance/i.test(t)) type = "Preventive Maintenance";
+  else if (/\binstall(ation)?\b/i.test(t)) type = "Installation";
+  else if (/\binspect(ion)?\b/i.test(t)) type = "Inspection";
+
+  let priority = "Normal";
+  if (/\b(urgent|asap|critical|emergency|down|immediately|right away)\b/i.test(t)) priority = "Urgent";
+  else if (/\bhigh\b/i.test(t) || /priority/i.test(t)) priority = "High";
+  else if (/\blow\b|whenever|no rush/i.test(t)) priority = "Low";
+  return { location, type, priority };
+}
+
+const cleanLine = (s: string) => s
+  .replace(/<@[A-Z0-9]+>/g, "").replace(/<#[A-Z0-9]+\|[^>]+>/g, "")
+  .replace(/^(wo|work order|create wo|new wo|help|request)[\s:.-]+/i, "")
+  .replace(/\s+/g, " ").trim();
+
+/**
+ * Parse text copied from a Slack help request. Handles the "Name  10:32 AM"
+ * header Slack puts on a copied message, multi-line requests and thread noise.
+ */
+export function parseHelpRequest(text: string, createdBy: string): ParsedWo {
+  const raw = (text || "").replace(/\r/g, "").trim();
+  const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+  let requester: string | null = null;
+
+  // Slack copy formats: "Name  10:32 AM" on one line, or "Name" then "10:32 AM".
+  if (lines.length) {
+    const m = NAME_TIME_RE.exec(lines[0]);
+    if (m && !/[.!?]$/.test(m[1])) { requester = m[1].trim(); lines.shift(); }
+    else if (lines.length > 1 && TIME_RE.test(lines[1]) && lines[0].length <= 60 && !/[.!?]$/.test(lines[0])) { requester = lines[0]; lines.splice(0, 2); }
+  }
+  // Drop bare timestamps and reaction/thread noise anywhere in the paste.
+  const body = lines.filter((l) => !STAMP_RE.test(l) && !/^\d+\s+repl(y|ies)$/i.test(l) && !/^(last reply|view thread)/i.test(l) && !/^:[a-z_+-]+:\d*$/i.test(l));
+
+  const flat = body.join(" ").replace(/\s+/g, " ").trim();
+  const { location, type, priority } = detect(flat);
+
+  let title = cleanLine(body[0] || "");
+  if (title.length > 100) title = title.slice(0, 97) + "…";
+  if (!title) title = "Work order from Slack";
+
+  const details = [body.join("\n").trim(), requester ? `Requested by ${requester} (pasted from Slack)` : "Pasted from Slack"].filter(Boolean).join("\n\n");
+  return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester };
+}
+
+/** Single-line Slack event text → work order (same rules the Railway portal used). */
+export function parseSlackMessage(text: string, user: string): ParsedWo {
+  const t = (text || "").replace(/\s+/g, " ").trim();
+  const { location, type, priority } = detect(t);
+  let title = cleanLine(t);
+  if (!title) title = "Work order from Slack";
+  if (title.length > 100) title = title.slice(0, 97) + "…";
+  return { title, location, type, priority, status: "Open", details: t, created_by: user || "Slack", requester: null };
+}

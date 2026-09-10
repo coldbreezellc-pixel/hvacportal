@@ -22,8 +22,10 @@ import {
 } from "./types";
 import { loadCache, saveCache, clearCache, loadOutbox, saveOutbox, type Op, type QueuedOp, type EmailPayload, type PendingPhoto } from "./offline";
 import { dataUrlToBlob, type ResizedPhoto } from "./images";
+import { pmRecordFromRow, pmRecordToRow, type PmRecord, type PmRecordRow } from "./pm/types";
+import { buildEmailHtml, buildPdf, pdfFilenameFor, emailSubjectFor } from "./pm/report";
 
-export type View = "login" | "forgot" | "home" | "dashboard" | "inventory" | "workorders" | "users" | "logs" | "backups" | "profile";
+export type View = "login" | "forgot" | "home" | "dashboard" | "inventory" | "workorders" | "pmsheet" | "pmrecords" | "users" | "logs" | "backups" | "profile";
 export type Toast = { msg: string; type: "ok" | "err" } | null;
 
 export interface State {
@@ -35,6 +37,7 @@ export interface State {
   users: User[];
   logs: LogEntry[];
   workOrders: WorkOrder[];
+  pmRecords: PmRecord[];
   pending: number;
   syncing: boolean;
   lastSync: string | null;
@@ -51,6 +54,7 @@ const initial: State = {
   users: [],
   logs: [],
   workOrders: [],
+  pmRecords: [],
   pending: 0,
   syncing: false,
   lastSync: null,
@@ -83,7 +87,7 @@ let persistTimer: ReturnType<typeof setTimeout> | null = null;
 function persistSoon() {
   if (persistTimer) clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
-    void saveCache({ me: state.me, items: state.items, users: state.users, logs: state.logs, workOrders: state.workOrders, savedAt: new Date().toISOString() });
+    void saveCache({ me: state.me, items: state.items, users: state.users, logs: state.logs, workOrders: state.workOrders, pmRecords: state.pmRecords, savedAt: new Date().toISOString() });
   }, 250);
 }
 
@@ -215,7 +219,79 @@ async function runOp(op: Op) {
       if (error) throw error;
       return;
     }
+    case "pm_submit": {
+      await runPmSubmit(op.row, op.pdfBase64);
+      return;
+    }
+    case "pm_delete": {
+      const { error } = await sb.from("pm_records").delete().eq("id", op.id);
+      if (error) throw error;
+      return;
+    }
   }
+}
+
+/** Upload one data URL to a public bucket and return its URL. Hosted URLs pass through. */
+async function uploadDataUrl(bucket: string, path: string, dataUrl: string, contentType: string): Promise<string> {
+  if (!dataUrl.startsWith("data:")) return dataUrl;
+  const sb = getSupabase();
+  const { error } = await sb.storage.from(bucket).upload(path, dataUrlToBlob(dataUrl), { contentType, upsert: true });
+  if (error) throw error;
+  return sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+}
+
+/**
+ * Save a completed PM sheet: photos, signatures and the PDF go to the pm-files
+ * bucket, the row is upserted (so a retry never duplicates it), then the report
+ * is emailed. A rejected email (bad address, provider down) does not lose the
+ * record — it is saved and can be resent from PM Records.
+ */
+async function runPmSubmit(row: PmRecordRow, pdfBase64: string | null) {
+  const sb = getSupabase();
+  const base = `pm/${row.id}`;
+  const photos = [];
+  for (const [i, p] of row.photos.entries()) photos.push({ ...p, url: await uploadDataUrl("pm-files", `${base}/photo-${i + 1}.jpg`, p.url, "image/jpeg") });
+  const signature_data = [];
+  for (const [i, s] of row.signature_data.entries()) signature_data.push({ ...s, url: await uploadDataUrl("pm-files", `${base}/sig-${i + 1}.png`, s.url, "image/png") });
+  const record = pmRecordFromRow({ ...row, photos, signature_data });
+  const filename = pdfFilenameFor(record);
+  let pdf_url: string | null = null;
+  if (pdfBase64) {
+    try { pdf_url = await uploadDataUrl("pm-files", `${base}/${filename}`, `data:application/pdf;base64,${pdfBase64}`, "application/pdf"); }
+    catch (e) { if (isNetworkError(e)) throw e; console.error("PDF upload failed", e); }
+  }
+  const html = buildEmailHtml(record);
+  const saved: PmRecordRow = { ...row, photos, signature_data, pdf_url, email_html: html };
+  const { error } = await sb.from("pm_records").upsert(saved, { onConflict: "id" });
+  if (error) throw error;
+  const hosted = pmRecordFromRow({ ...saved, email_html: undefined });
+  setState({ pmRecords: state.pmRecords.map((r) => (r.id === row.id ? hosted : r)) });
+  persistSoon();
+
+  if (!row.email_to.length) return;
+  const res = await fetch("/api/email", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: row.email_to, subject: row.email_subject || emailSubjectFor(record), html,
+      text: `PM report: ${record.equipment} — ${record.frequency} — ${record.technician} — ${record.pmDate}. Open the attached PDF for the full report.`,
+      attachments: pdfBase64 ? [{ filename, content: pdfBase64, contentType: "application/pdf" }] : [],
+    }),
+  });
+  if (res.ok) {
+    const sentAt = now();
+    await sb.from("pm_records").update({ email_sent_at: sentAt }).eq("id", row.id);
+    setState({ pmRecords: state.pmRecords.map((r) => (r.id === row.id ? { ...r, emailSentAt: sentAt } : r)) });
+    persistSoon();
+    flash(`PM report emailed to ${row.email_to.join(", ")}`);
+    return;
+  }
+  const j = await res.json().catch(() => ({}));
+  const err = new Error(j.error || `Email failed (${res.status})`);
+  if ((res.status >= 400 && res.status < 500) || res.status === 503) {
+    flash(`PM saved, but the email failed: ${err.message}. Use Resend in PM Records.`, "err");
+    return; // record is safe on the server — don't retry the whole op
+  }
+  throw err;
 }
 
 /** Upload device-only photos (data URLs) and return their public URLs. Already-hosted photos pass through. */
@@ -335,11 +411,12 @@ export async function refresh() {
   if (!state.me || !navigator.onLine || !supabaseConfigured()) return;
   const sb = getSupabase();
   try {
-    const [itemsRes, usersRes, woRes, visitRes] = await Promise.all([
+    const [itemsRes, usersRes, woRes, visitRes, pmRes] = await Promise.all([
       sb.from("inventory_items").select("*").order("group").order("name"),
       sb.from("users").select("*").order("display_name"),
       sb.from("work_orders").select("*").order("created_at", { ascending: false }),
       sb.from("work_order_visits").select("*").order("visit_date").order("logged_at"),
+      sb.from("pm_records").select(PM_COLUMNS).order("pm_date", { ascending: false }).order("created_at", { ascending: false }),
     ]);
     if (itemsRes.error) throw itemsRes.error;
     const items = (itemsRes.data as ItemRow[]).map(itemFromRow).map(withPending);
@@ -353,13 +430,20 @@ export async function refresh() {
     } else if (woRes.error) {
       console.error("work orders fetch failed", woRes.error.message);
     }
+    let pmRecords = state.pmRecords;
+    if (!pmRes.error) {
+      pmRecords = (pmRes.data as unknown as PmRecordRow[]).map(pmRecordFromRow).filter((r) => !isPendingPmDelete(r.id));
+      for (const local of state.pmRecords) if (!pmRecords.some((r) => r.id === local.id) && isPendingPmSubmit(local.id)) pmRecords.unshift(local);
+    } else {
+      console.error("pm records fetch failed", pmRes.error.message);
+    }
     let logs = state.logs;
     if (state.me.role === "admin") {
       const logRes = await sb.from("activity_logs").select("*").order("ts", { ascending: false }).limit(500);
       if (!logRes.error) logs = (logRes.data as LogRow[]).map(logFromRow);
     }
     const me = users.find((u) => u.id === state.me?.id) ?? state.me;
-    setState({ items, users, logs, me, workOrders, lastSync: new Date().toISOString() });
+    setState({ items, users, logs, me, workOrders, pmRecords, lastSync: new Date().toISOString() });
     persistSoon();
   } catch (e) {
     if (!isNetworkError(e)) console.error("refresh failed", e);
@@ -367,6 +451,10 @@ export async function refresh() {
 }
 
 const isPendingInsert = (woId: string) => outbox.some((q) => q.op.kind === "wo_insert" && q.op.row.id === woId);
+const isPendingPmSubmit = (id: string) => outbox.some((q) => q.op.kind === "pm_submit" && q.op.row.id === id);
+const isPendingPmDelete = (id: string) => outbox.some((q) => q.op.kind === "pm_delete" && q.op.id === id);
+/** Everything except the stored email body, which is only needed to resend. */
+const PM_COLUMNS = "id, pm_date, facility, technician, technicians, equipment, frequency, follow_up, follow_up_notes, tasks_completed, general_comments, safety_data, post_job_data, checklist_data, signature_data, photos, pdf_url, email_subject, email_to, email_sent_at, created_by, legacy_path, created_at";
 
 /** Re-apply queued edits/visits for a work order on top of a server row. */
 function withPendingWo(wo: WorkOrder): WorkOrder {
@@ -448,11 +536,26 @@ function subscribeRealtime() {
       }
       persistSoon();
     })
+    .on("postgres_changes", { event: "*", schema: "public", table: "pm_records" }, (p: RealtimePostgresChangesPayload<PmRecordRow>) => {
+      if (p.eventType === "DELETE") {
+        const id = (p.old as Partial<PmRecordRow>).id;
+        if (id) setState({ pmRecords: state.pmRecords.filter((r) => r.id !== id) });
+      } else {
+        const row = p.new as PmRecordRow;
+        if (!row.id || isPendingPmDelete(row.id)) return;
+        const incoming = pmRecordFromRow({ ...row, email_html: undefined });
+        const exists = state.pmRecords.some((r) => r.id === incoming.id);
+        setState({ pmRecords: exists ? state.pmRecords.map((r) => (r.id === incoming.id ? incoming : r)) : sortPm([incoming, ...state.pmRecords]) });
+      }
+      persistSoon();
+    })
     .subscribe((status) => {
       // When the socket comes back after a drop we may have missed events.
       if (status === "SUBSCRIBED") void refresh();
     });
 }
+
+const sortPm = (list: PmRecord[]) => [...list].sort((a, b) => (b.pmDate + b.createdAt).localeCompare(a.pmDate + a.createdAt));
 
 function unsubscribeRealtime() {
   if (channel) { void getSupabase().removeChannel(channel); channel = null; }
@@ -495,7 +598,7 @@ export async function init() {
   const cache = await loadCache();
   const configured = supabaseConfigured();
   if (cache) {
-    setState({ items: cache.items ?? [], users: cache.users ?? [], logs: cache.logs ?? [], workOrders: cache.workOrders ?? [], pending: outbox.length });
+    setState({ items: cache.items ?? [], users: cache.users ?? [], logs: cache.logs ?? [], workOrders: cache.workOrders ?? [], pmRecords: cache.pmRecords ?? [], pending: outbox.length });
   }
   if (!configured) { setState({ ready: true, configured: false }); return; }
 
@@ -523,7 +626,7 @@ export async function init() {
 function initialView(me: User): View {
   const params = new URLSearchParams(window.location.search);
   const urlView = params.get("view") as View | null;
-  const allowed: View[] = ["home", "dashboard", "inventory", "workorders", "users", "logs", "backups", "profile"];
+  const allowed: View[] = ["home", "dashboard", "inventory", "workorders", "pmsheet", "pmrecords", "users", "logs", "backups", "profile"];
   const isAdmin = me.role === "admin";
   let v: View = me.mustResetPw ? "profile" : "home";
   if (urlView && allowed.includes(urlView)) {
@@ -570,7 +673,7 @@ export async function logout(opts: { silent?: boolean } = {}) {
   unsubscribeRealtime();
   try { await getSupabase().auth.signOut(); } catch { /* offline — local session is still cleared */ }
   await clearCache();
-  setState({ me: null, view: "login", items: [], users: [], logs: [], workOrders: [] });
+  setState({ me: null, view: "login", items: [], users: [], logs: [], workOrders: [], pmRecords: [] });
 }
 
 export async function forgotPassword(username: string): Promise<string | null> {
@@ -782,17 +885,18 @@ export function sendEmail(payload: EmailPayload) {
 // ── Work orders ─────────────────────────────────────────────────────────────
 export interface WorkOrderInput { title: string; location: string; type: string; priority: string; status: string; details: string }
 
-export function createWorkOrder(data: WorkOrderInput, photos: PendingPhoto[]) {
+/** `source` marks where the order came from ("slack-paste" for a pasted help request); null = typed in. */
+export function createWorkOrder(data: WorkOrderInput, photos: PendingPhoto[], source: string | null = null) {
   const me = state.me!;
   const id = (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : uid());
   const ts = now();
   const wo: WorkOrder = {
-    id, woNumber: null, ...data, photos, createdBy: me.displayName, source: null, createdAt: ts, updatedAt: ts, visits: [],
+    id, woNumber: null, ...data, photos, createdBy: me.displayName, source, createdAt: ts, updatedAt: ts, visits: [],
   };
   setState({ workOrders: [wo, ...state.workOrders] });
   persistSoon();
-  void enqueue({ kind: "wo_insert", row: { id, wo_number: null, ...data, created_by: me.displayName, source: null, created_at: ts }, photos });
-  addLog("WO Created", `Created work order "${data.title}" (${data.location}, ${data.priority})`, me.displayName);
+  void enqueue({ kind: "wo_insert", row: { id, wo_number: null, ...data, created_by: me.displayName, source, created_at: ts }, photos });
+  addLog("WO Created", `Created work order "${data.title}" (${data.location}, ${data.priority})${source === "slack-paste" ? " from a pasted Slack request" : ""}`, me.displayName);
   flash(navigator.onLine ? "Work order created." : "Work order saved — it gets its number when you're back online.");
   return wo;
 }
@@ -855,6 +959,84 @@ export function deleteVisit(workOrderId: string, visitId: string) {
   persistSoon();
   void enqueue({ kind: "visit_delete", id: visitId, workOrderId });
   addLog("WO Updated", `${wo?.woNumber || "Work order"}: visit removed`, me.displayName);
+}
+
+// ── PM sheets ───────────────────────────────────────────────────────────────
+/** Queue a completed PM sheet. Shows up in PM Records immediately (with the
+ *  on-device photos) and is uploaded + emailed as soon as there is service. */
+export function submitPm(record: PmRecord, pdfBase64: string | null) {
+  const me = state.me!;
+  setState({ pmRecords: sortPm([record, ...state.pmRecords.filter((r) => r.id !== record.id)]) });
+  persistSoon();
+  const row = pmRecordToRow(record);
+  row.email_html = null;
+  void enqueue({ kind: "pm_submit", row, pdfBase64 });
+  addLog("PM Submitted", `${record.frequency === "Repair" ? "Repair" : record.frequency + " PM"}: ${record.equipment} at ${record.facility} by ${record.technician}${record.followUp ? " — FOLLOW-UP REQUIRED" : ""}`, me.displayName);
+  flash(navigator.onLine ? "PM saved — emailing the report…" : "PM saved on this phone — it uploads and emails when you're back online.");
+}
+
+export function deletePmRecord(id: string) {
+  const me = state.me!;
+  const target = state.pmRecords.find((r) => r.id === id);
+  setState({ pmRecords: state.pmRecords.filter((r) => r.id !== id) });
+  persistSoon();
+  void enqueue({ kind: "pm_delete", id });
+  addLog("PM Deleted", `Deleted PM record: ${target?.equipment || id} (${target?.pmDate || ""})`, me.displayName);
+  flash("PM record deleted.");
+}
+
+/** Rebuild the PDF from the stored record and email it again (needs a connection). */
+export async function resendPm(record: PmRecord, onStatus: (s: string) => void = () => {}): Promise<boolean> {
+  const me = state.me!;
+  if (!navigator.onLine) { flash("Resending needs a connection.", "err"); return false; }
+  const to = record.emailTo.length ? record.emailTo : PM_REPORT_RECIPIENTS;
+  try {
+    onStatus("Building PDF…");
+    let pdf: string | null = null;
+    try { pdf = await buildPdf(record); } catch (e) { console.error("PDF failed", e); }
+    onStatus("Sending…");
+    const filename = pdfFilenameFor(record);
+    const res = await fetch("/api/email", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to, subject: record.emailSubject || emailSubjectFor(record), html: buildEmailHtml(record),
+        text: `PM report: ${record.equipment} — ${record.frequency} — ${record.technician} — ${record.pmDate}. Open the attached PDF for the full report.`,
+        attachments: pdf ? [{ filename, content: pdf, contentType: "application/pdf" }] : [],
+      }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(j.error || `Email failed (${res.status})`);
+    const sentAt = now();
+    await getSupabase().from("pm_records").update({ email_sent_at: sentAt, email_to: to }).eq("id", record.id);
+    setState({ pmRecords: state.pmRecords.map((r) => (r.id === record.id ? { ...r, emailSentAt: sentAt, emailTo: to } : r)) });
+    persistSoon();
+    addLog("PM Emailed", `Resent PM report: ${record.equipment} (${record.pmDate}) to ${to.join(", ")}`, me.displayName);
+    flash(`PM report emailed to ${to.join(", ")}`);
+    return true;
+  } catch (e) {
+    flash(e instanceof Error ? e.message : "Could not send the report.", "err");
+    return false;
+  }
+}
+
+/** Default recipients for PM reports (comma-separated; override with NEXT_PUBLIC_REPORT_RECIPIENTS). */
+export const PM_REPORT_RECIPIENTS_TEXT = process.env.NEXT_PUBLIC_REPORT_RECIPIENTS || "mateusz.targosz@versantmedia.com, sean.fanning@versantmedia.com";
+export const PM_REPORT_RECIPIENTS = PM_REPORT_RECIPIENTS_TEXT.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+
+/** Admin: pull the PMs archived on the old portal into Supabase (idempotent). */
+export async function importLegacyPm(): Promise<{ imported: number; skipped: number; errors: string[] } | null> {
+  const me = state.me!;
+  try {
+    const res = await adminFetch("/api/admin/import-legacy-pm", "POST");
+    if (res.error) throw new Error(res.error);
+    if (res.imported > 0) addLog("PM Imported", `Imported ${res.imported} PM record(s) from the old portal`, me.displayName);
+    if (res.errors?.length) { console.error("PM import errors", res.errors); flash(`${res.errors.length} record(s) could not be imported — see the console.`, "err"); }
+    await refresh();
+    return { imported: res.imported ?? 0, skipped: res.skipped ?? 0, errors: res.errors ?? [] };
+  } catch (e) {
+    flash(e instanceof Error ? e.message : "Import failed.", "err");
+    return null;
+  }
 }
 
 // ── Backups (admin) ─────────────────────────────────────────────────────────

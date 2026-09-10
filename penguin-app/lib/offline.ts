@@ -2,6 +2,7 @@
 // here, so the app opens instantly from cache and queued edits survive reloads.
 import { createStore, get, set, del } from "idb-keyval";
 import type { Item, ItemRow, LogRow, LogEntry, User, WorkOrder, WorkOrderRow, VisitRow, Photo } from "./types";
+import type { PmRecord, PmRecordRow } from "./pm/types";
 
 const store = typeof indexedDB !== "undefined" ? createStore("penguin-maintenance", "kv") : undefined;
 
@@ -11,6 +12,7 @@ export interface Cache {
   users: User[];
   logs: LogEntry[];
   workOrders?: WorkOrder[];
+  pmRecords?: PmRecord[];
   savedAt: string | null;
 }
 
@@ -29,12 +31,16 @@ export type Op =
   | { kind: "wo_update"; id: string; patch: Partial<Pick<WorkOrderRow, "title" | "location" | "type" | "priority" | "status" | "details">> & { photos?: Photo[] }; newPhotos: PendingPhoto[] }
   | { kind: "wo_delete"; id: string }
   | { kind: "visit_insert"; row: Omit<VisitRow, "photos">; photos: PendingPhoto[] }
-  | { kind: "visit_delete"; id: string; workOrderId: string };
+  | { kind: "visit_delete"; id: string; workOrderId: string }
+  // PM sheet: photos/signatures in `row` may still be data URLs; the PDF is base64.
+  | { kind: "pm_submit"; row: PmRecordRow; pdfBase64: string | null }
+  | { kind: "pm_delete"; id: string };
 
 export interface EmailPayload {
   to: string[];
   subject: string;
   text: string;
+  html?: string;
   attachments: { filename: string; content: string; contentType?: string }[];
 }
 

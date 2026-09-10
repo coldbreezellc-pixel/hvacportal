@@ -57,3 +57,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #0d9488
 @media (min-width: 1280px) {
   .pg-page { max-width: 1200px; }
 }
+
+/* ── Print: PM record detail prints as a clean sheet ── */
+@media print {
+  body, .pg-shell { background: #fff !important; padding: 0 !important; }
+  .pg-sidebar, .pg-bottomnav, .pg-drawer, .pg-overlay, header, .pg-offline-banner, .pg-no-print { display: none !important; }
+  .pg-page { max-width: none !important; padding: 0 !important; animation: none; }
+  .pg-print-area { box-shadow: none !important; border: none !important; }
+  .pg-print-area * { break-inside: avoid; }
+}
