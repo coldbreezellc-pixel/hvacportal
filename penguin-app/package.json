@@ -1,0 +1,35 @@
+{
+  "name": "penguin-maintenance",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "seed:sql": "node scripts/gen-seed-sql.mjs",
+    "seed:users": "node scripts/seed-users.mjs",
+    "import:live": "node scripts/import-live.mjs"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
+    "idb-keyval": "^6.3.0",
+    "next": "15.5.25",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.25",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
