@@ -13,6 +13,8 @@ import { LogsView } from "./LogsView";
 import { BackupsView } from "./BackupsView";
 import { HomeView } from "./HomeView";
 import { WorkOrdersView } from "./WorkOrdersView";
+import { PmSheetView } from "./pm/PmSheetView";
+import { PmRecordsView } from "./pm/PmRecordsView";
 
 // Sessions never time out: crews fill in paperwork over long stretches and must
 // not be bounced to the login screen. Supabase refresh tokens keep the session
@@ -69,8 +71,10 @@ export function App() {
             </div>
           ) : (
             <>
-              {s.view === "home" && <HomeView user={me} items={s.items} workOrders={s.workOrders} />}
+              {s.view === "home" && <HomeView user={me} items={s.items} workOrders={s.workOrders} pmRecords={s.pmRecords} />}
               {s.view === "workorders" && <WorkOrdersView workOrders={s.workOrders} user={me} />}
+              {s.view === "pmsheet" && <PmSheetView user={me} online={s.online} records={s.pmRecords} />}
+              {s.view === "pmrecords" && <PmRecordsView records={s.pmRecords} user={me} online={s.online} />}
               {s.view === "dashboard" && <Dashboard items={s.items} lowStock={lowStock} />}
               {s.view === "inventory" && <InventoryView allItems={s.items} isAdmin={me.role === "admin"} online={s.online} />}
               {s.view === "users" && me.role === "admin" && <UsersView users={s.users} currentUserId={me.id} />}

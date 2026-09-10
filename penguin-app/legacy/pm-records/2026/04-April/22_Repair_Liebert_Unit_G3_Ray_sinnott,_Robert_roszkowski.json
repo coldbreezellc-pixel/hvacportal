@@ -1,0 +1,173 @@
+{
+  "id": "2026-04-22T15-01-42_h7fe",
+  "technician": "Ray sinnott, Robert roszkowski",
+  "facility": "900 Sylvan Ave, Englewood Cliffs",
+  "equipment": "Liebert Unit #G-3",
+  "frequency": "Repair",
+  "followUp": false,
+  "followUpNotes": "",
+  "tasksCompleted": "",
+  "generalComments": "",
+  "safetyData": [
+    [
+      {
+        "task": "Safety Glasses",
+        "done": true,
+        "na": false,
+        "condition": "Good"
+      },
+      {
+        "task": "Gloves",
+        "done": true,
+        "na": false,
+        "condition": "Good"
+      },
+      {
+        "task": "Ear Protection",
+        "done": false,
+        "na": true,
+        "condition": ""
+      },
+      {
+        "task": "Dust Mask/Respirator",
+        "done": false,
+        "na": true,
+        "condition": ""
+      },
+      {
+        "task": "Safety Shoes",
+        "done": true,
+        "na": false,
+        "condition": "Good"
+      },
+      {
+        "task": "Hard Hat",
+        "done": false,
+        "na": true,
+        "condition": ""
+      }
+    ],
+    [
+      {
+        "task": "Review job order for specific hazards",
+        "done": true,
+        "na": false,
+        "condition": ""
+      },
+      {
+        "task": "Inspect work area for tripping hazards",
+        "done": true,
+        "na": false,
+        "condition": ""
+      },
+      {
+        "task": "Ensure adequate lighting",
+        "done": true,
+        "na": false,
+        "condition": ""
+      },
+      {
+        "task": "Verify that all tools are in good condition",
+        "done": true,
+        "na": false,
+        "condition": ""
+      },
+      {
+        "task": "Check the accessibility of fire extinguisher",
+        "done": false,
+        "na": true,
+        "condition": ""
+      }
+    ],
+    [
+      {
+        "task": "Ensure power is disconnected before starting work",
+        "done": true,
+        "na": false,
+        "condition": ""
+      },
+      {
+        "task": "Use appropriate lockout/tagout procedures",
+        "done": true,
+        "na": false,
+        "condition": ""
+      },
+      {
+        "task": "Inspect electrical cords and tools for damage",
+        "done": true,
+        "na": false,
+        "condition": ""
+      },
+      {
+        "task": "Test for live wires using a non-contact voltage tester",
+        "done": true,
+        "na": false,
+        "condition": ""
+      }
+    ],
+    [
+      {
+        "task": "Check for gas leaks using a gas detector",
+        "done": false,
+        "na": true,
+        "condition": ""
+      },
+      {
+        "task": "Ensure proper ventilation in the work area",
+        "done": false,
+        "na": true,
+        "condition": ""
+      },
+      {
+        "task": "Use refrigerant handling equipment according to EPA guidelines",
+        "done": false,
+        "na": true,
+        "condition": ""
+      },
+      {
+        "task": "Store chemicals and gases according to manufacturer's instructions",
+        "done": false,
+        "na": true,
+        "condition": ""
+      }
+    ]
+  ],
+  "postJobData": [
+    {
+      "task": "Clean work area and remove all debris",
+      "done": true,
+      "na": false
+    },
+    {
+      "task": "Put away all tools",
+      "done": true,
+      "na": false
+    },
+    {
+      "task": "Inspect installation or repair area",
+      "done": true,
+      "na": false
+    },
+    {
+      "task": "Test Equipment operation",
+      "done": true,
+      "na": false
+    },
+    {
+      "task": "Send Email Regarding Findings and completion",
+      "done": true,
+      "na": false
+    }
+  ],
+  "checklistData": [
+    {
+      "header": "🔧 Liebert Unit #G-3 — Repair",
+      "tasks": [],
+      "findings": "Replaced motor bearings and belts"
+    }
+  ],
+  "emailHtml": "<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;\"><div style=\"background:#1B3A5C;color:#fff;padding:16px 20px;border-radius:10px 10px 0 0;\"><h2 style=\"margin:0;font-size:18px;\">📋 PM Work Order Report</h2><p style=\"margin:4px 0 0;font-size:12px;opacity:0.7;\">HVAC Engineering — Local 68</p></div><div style=\"border:1px solid #e2e8f0;border-top:none;padding:20px;border-radius:0 0 10px 10px;\"><table style=\"width:100%;border-collapse:collapse;font-size:14px;\"><tr><td style=\"padding:6px 0;color:#64748b;width:140px;\">Facility:</td><td style=\"padding:6px 0;font-weight:600;\">900 Sylvan Ave, Englewood Cliffs</td></tr><tr><td style=\"padding:6px 0;color:#64748b;\">Equipment:</td><td style=\"padding:6px 0;font-weight:600;\">Liebert Unit #G-3</td></tr><tr><td style=\"padding:6px 0;color:#64748b;\">Service:</td><td style=\"padding:6px 0;font-weight:600;\">Repair</td></tr><tr><td style=\"padding:6px 0;color:#64748b;\">Technician(s):</td><td style=\"padding:6px 0;font-weight:600;\">Ray sinnott, Robert roszkowski</td></tr><tr><td style=\"padding:6px 0;color:#64748b;\">Date:</td><td style=\"padding:6px 0;font-weight:600;\">4/22/2026</td></tr><tr><td style=\"padding:6px 0;color:#64748b;\">Follow-up:</td><td style=\"padding:6px 0;font-weight:700;color:#16a34a;\">No</td></tr></table><div style=\"margin:16px 0;\"><div style=\"font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;\">Safety Checklist</div><div style=\"font-size:12px;font-weight:700;color:#64748b;margin:8px 0 4px;text-transform:uppercase;\">PPE Condition</div><div style=\"padding:2px 0;font-size:12px;\">✅ Safety Glasses <span style=\"color:#64748b;\">(Good)</span></div><div style=\"padding:2px 0;font-size:12px;\">✅ Gloves <span style=\"color:#64748b;\">(Good)</span></div><div style=\"padding:2px 0;font-size:12px;\">➖ Ear Protection</div><div style=\"padding:2px 0;font-size:12px;\">➖ Dust Mask/Respirator</div><div style=\"padding:2px 0;font-size:12px;\">✅ Safety Shoes <span style=\"color:#64748b;\">(Good)</span></div><div style=\"padding:2px 0;font-size:12px;\">➖ Hard Hat</div><div style=\"font-size:12px;font-weight:700;color:#64748b;margin:8px 0 4px;text-transform:uppercase;\">Pre-Job Safety</div><div style=\"padding:2px 0;font-size:12px;\">✅ Review job order for specific hazards</div><div style=\"padding:2px 0;font-size:12px;\">✅ Inspect work area for tripping hazards</div><div style=\"padding:2px 0;font-size:12px;\">✅ Ensure adequate lighting</div><div style=\"padding:2px 0;font-size:12px;\">✅ Verify that all tools are in good condition</div><div style=\"padding:2px 0;font-size:12px;\">➖ Check the accessibility of fire extinguisher</div><div style=\"font-size:12px;font-weight:700;color:#64748b;margin:8px 0 4px;text-transform:uppercase;\">Electrical Safety</div><div style=\"padding:2px 0;font-size:12px;\">✅ Ensure power is disconnected before starting work</div><div style=\"padding:2px 0;font-size:12px;\">✅ Use appropriate lockout/tagout procedures</div><div style=\"padding:2px 0;font-size:12px;\">✅ Inspect electrical cords and tools for damage</div><div style=\"padding:2px 0;font-size:12px;\">✅ Test for live wires using a non-contact voltage tester</div><div style=\"font-size:12px;font-weight:700;color:#64748b;margin:8px 0 4px;text-transform:uppercase;\">Gas & Chemical Safety</div><div style=\"padding:2px 0;font-size:12px;\">➖ Check for gas leaks using a gas detector</div><div style=\"padding:2px 0;font-size:12px;\">➖ Ensure proper ventilation in the work area</div><div style=\"padding:2px 0;font-size:12px;\">➖ Use refrigerant handling equipment according to EPA guidelines</div><div style=\"padding:2px 0;font-size:12px;\">➖ Store chemicals and gases according to manufacturer's instructions</div></div><div style=\"margin:16px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;\"><div style=\"background:#1B3A5C;color:#fff;padding:8px 12px;font-size:13px;font-weight:700;\">🔧 Liebert Unit #G-3 — Repair</div><div style=\"padding:8px 12px;\"><div style=\"margin-top:8px;padding:8px;background:#FFF8E1;border-radius:6px;border:1px solid #FFE082;font-size:13px;color:#92400E;\"><b>Findings:</b> Replaced motor bearings and belts</div></div></div><div style=\"margin:16px 0;\"><div style=\"font-size:14px;font-weight:700;color:#E65100;margin-bottom:8px;\">✅ Post-Job Checklist</div><div style=\"padding:3px 0;font-size:12px;\">✅ Clean work area and remove all debris</div><div style=\"padding:3px 0;font-size:12px;\">✅ Put away all tools</div><div style=\"padding:3px 0;font-size:12px;\">✅ Inspect installation or repair area</div><div style=\"padding:3px 0;font-size:12px;\">✅ Test Equipment operation</div><div style=\"padding:3px 0;font-size:12px;\">✅ Send Email Regarding Findings and completion</div></div><div style=\"margin:16px 0;\"><div style=\"font-size:14px;font-weight:700;color:#1B3A5C;margin-bottom:8px;\">Technician Signatures</div><span style=\"display:inline-block;margin:4px 8px 4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;\">✓ Ray sinnott</span><span style=\"display:inline-block;margin:4px 8px 4px 0;padding:6px 12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;font-size:13px;font-weight:600;color:#2E7D32;\">✓ Robert roszkowski</span></div><p style=\"color:#94a3b8;font-size:11px;margin-top:20px;\">Sent from HVAC Portal at 4/22/2026, 11:01:42 AM</p></div></div>",
+  "createdAt": "2026-04-22T15:01:42.863Z",
+  "dateFormatted": "4/22/2026",
+  "archivedBy": "Ray sinnott, Robert roszkowski"
+}

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { WO_LOCATIONS, WO_PRIORITIES, WO_STATUSES, WO_TYPES, type Photo, type User, type WorkOrder } from "@/lib/types";
 import { createWorkOrder, updateWorkOrder, deleteWorkOrder, addVisit, deleteVisit, removeWorkOrderPhoto, flash, type WorkOrderInput, type VisitInput } from "@/lib/store";
+import { parseHelpRequest } from "@/lib/wo-parse";
 import { PhotoGrid } from "./PhotoGrid";
 import { Lightbox } from "./Lightbox";
 import { S, F } from "./styles";
@@ -38,10 +39,10 @@ function Sheet({ title, onClose, children, footer }: { title: string; onClose: (
 }
 
 // ── New / edit work order ──
-function WorkOrderForm({ wo, onClose }: { wo: WorkOrder | null; onClose: () => void }) {
+function WorkOrderForm({ wo, onClose, initial, source = null }: { wo: WorkOrder | null; onClose: () => void; initial?: Partial<WorkOrderInput>; source?: string | null }) {
   const [f, setF] = useState<WorkOrderInput>({
-    title: wo?.title || "", location: wo?.location || WO_LOCATIONS[0], type: wo?.type || WO_TYPES[0],
-    priority: wo?.priority || "Normal", status: wo?.status || "Open", details: wo?.details || "",
+    title: wo?.title || initial?.title || "", location: wo?.location || initial?.location || WO_LOCATIONS[0], type: wo?.type || initial?.type || WO_TYPES[0],
+    priority: wo?.priority || initial?.priority || "Normal", status: wo?.status || initial?.status || "Open", details: wo?.details || initial?.details || "",
   });
   const [newPhotos, setNewPhotos] = useState<Photo[]>([]);
   const [lightbox, setLightbox] = useState<Photo | null>(null);
@@ -49,7 +50,7 @@ function WorkOrderForm({ wo, onClose }: { wo: WorkOrder | null; onClose: () => v
   const save = () => {
     if (!f.title.trim()) { flash("Please enter a title/description.", "err"); return; }
     if (wo) updateWorkOrder(wo.id, { ...f, title: f.title.trim(), details: f.details.trim() }, newPhotos);
-    else createWorkOrder({ ...f, title: f.title.trim(), details: f.details.trim() }, newPhotos);
+    else createWorkOrder({ ...f, title: f.title.trim(), details: f.details.trim() }, newPhotos, source);
     onClose();
   };
   const sel = (label: string, key: "location" | "type" | "priority" | "status", opts: readonly string[]) => (
@@ -62,6 +63,11 @@ function WorkOrderForm({ wo, onClose }: { wo: WorkOrder | null; onClose: () => v
     <Sheet title={wo ? `Edit ${wo.woNumber || "Work Order"}` : "New Work Order"} onClose={onClose}
       footer={<><button style={S.btnSecondary} onClick={onClose}>Cancel</button><button style={{ ...S.btnPrimary, flex: 1 }} onClick={save}>Save</button></>}>
       {lightbox && <Lightbox src={lightbox.full} onClose={() => setLightbox(null)} />}
+      {source === "slack-paste" && (
+        <div style={{ background: "#F3E8FF", border: "1.5px solid #c4b5fd", borderRadius: 10, padding: "10px 12px", fontFamily: F.body, fontSize: 12, color: "#5b21b6", marginBottom: 4 }}>
+          ⚡ Generated from the pasted Slack request — location, type and priority were guessed from the text. Check them before saving.
+        </div>
+      )}
       <label style={S.label}>Title / Description *</label>
       <input style={S.input} value={f.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. AC not cooling in Studio B" autoFocus={!wo} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -74,6 +80,29 @@ function WorkOrderForm({ wo, onClose }: { wo: WorkOrder | null; onClose: () => v
       <textarea style={{ ...S.input, minHeight: 80, resize: "vertical" }} value={f.details} onChange={(e) => set("details", e.target.value)} placeholder="Describe the issue, equipment involved, etc." />
       <label style={S.label}>Photos{wo && wo.photos.length ? ` (${wo.photos.length} already attached)` : ""}</label>
       <PhotoGrid photos={newPhotos} onAdd={(p) => setNewPhotos((x) => [...x, ...p])} onRemove={(i) => setNewPhotos((x) => x.filter((_, j) => j !== i))} onOpen={setLightbox} />
+    </Sheet>
+  );
+}
+
+// ── Paste a Slack help request → generate a work order ──
+function PasteSheet({ user, onClose, onGenerate }: { user: User; onClose: () => void; onGenerate: (initial: WorkOrderInput) => void }) {
+  const [text, setText] = useState("");
+  const generate = () => {
+    if (!text.trim()) { flash("Paste the Slack message first.", "err"); return; }
+    const p = parseHelpRequest(text, user.displayName);
+    onGenerate({ title: p.title, location: p.location, type: p.type, priority: p.priority, status: p.status, details: p.details });
+  };
+  return (
+    <Sheet title="⚡ Work Order from Slack" onClose={onClose}
+      footer={<><button style={S.btnSecondary} onClick={onClose}>Cancel</button><button style={{ ...S.btnPrimary, flex: 1 }} onClick={generate}>Generate Work Order</button></>}>
+      <p style={{ fontFamily: F.body, fontSize: 13, color: "#475569", margin: "0 0 10px", lineHeight: 1.5 }}>
+        Copy the help request in Slack (long-press the message → Copy text), paste it below and tap <b>Generate</b>. The title, building (900/904), type and priority are filled in for you to check.
+      </p>
+      <textarea style={{ ...S.input, minHeight: 150, resize: "vertical" }} value={text} onChange={(e) => setText(e.target.value)} autoFocus
+        placeholder={"Paste here… e.g.\nJohn Smith  10:32 AM\nAC is down in Studio B at 904, please look at it ASAP"} />
+      <button type="button" style={{ ...S.btnLink, textAlign: "left", marginTop: 6, fontSize: 12 }} onClick={async () => {
+        try { const t = await navigator.clipboard.readText(); if (t) setText(t); else flash("Clipboard is empty.", "err"); } catch { flash("Tap the box and paste instead — clipboard access was blocked.", "err"); }
+      }}>📋 Paste from clipboard</button>
     </Sheet>
   );
 }
@@ -123,6 +152,8 @@ export function WorkOrdersView({ workOrders, user }: { workOrders: WorkOrder[]; 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editing, setEditing] = useState<WorkOrder | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [showPaste, setShowPaste] = useState(false);
+  const [generated, setGenerated] = useState<WorkOrderInput | null>(null);
   const [visitFor, setVisitFor] = useState<WorkOrder | null>(null);
   const [lightbox, setLightbox] = useState<Photo | null>(null);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
@@ -142,11 +173,14 @@ export function WorkOrdersView({ workOrders, user }: { workOrders: WorkOrder[]; 
     <div className="pg-page">
       {lightbox && <Lightbox src={lightbox.full} onClose={() => setLightbox(null)} />}
       {showNew && <WorkOrderForm wo={null} onClose={() => setShowNew(false)} />}
+      {showPaste && <PasteSheet user={user} onClose={() => setShowPaste(false)} onGenerate={(g) => { setShowPaste(false); setGenerated(g); }} />}
+      {generated && <WorkOrderForm wo={null} initial={generated} source="slack-paste" onClose={() => setGenerated(null)} />}
       {editing && <WorkOrderForm wo={editing} onClose={() => setEditing(null)} />}
       {visitFor && <VisitForm wo={visitFor} user={user} onClose={() => setVisitFor(null)} />}
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <h2 style={{ ...S.pageTitle, margin: 0, flex: 1 }}>🔧 Work Orders</h2>
+        <button style={{ ...S.btnSecondary, whiteSpace: "nowrap", padding: "10px 12px", color: "#5b21b6", borderColor: "#c4b5fd" }} onClick={() => setShowPaste(true)} title="Paste a Slack help request and generate a work order">⚡ From Slack</button>
         <button style={{ ...S.btnPrimary, width: "auto", padding: "10px 16px" }} onClick={() => setShowNew(true)}>+ New</button>
       </div>
       <input style={S.input} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search WO#, title, location…" />

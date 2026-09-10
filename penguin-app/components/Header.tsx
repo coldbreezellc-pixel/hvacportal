@@ -31,14 +31,16 @@ export function Header({ user, view, setView, logout, lowStock, openWos, online,
   const navItems: { key: View; label: string; icon: string }[] = [
     { key: "home", label: "Home", icon: "🏠" },
     { key: "workorders", label: "Work Orders", icon: "🔧" },
+    { key: "pmsheet", label: "PM Sheet", icon: "📋" },
     { key: "inventory", label: "Inventory", icon: "📦" },
-    ...(isAdmin ? [{ key: "users" as View, label: "Users", icon: "👥" }] : []),
     { key: "profile", label: "Profile", icon: "⚙" },
   ];
   // Drawer / desktop sidebar: everything.
   const menuItems: { key: View; label: string; icon: string }[] = [
     { key: "home", label: "Home", icon: "🏠" },
     { key: "workorders", label: "Work Orders", icon: "🔧" },
+    { key: "pmsheet", label: "PM Sheet", icon: "📋" },
+    { key: "pmrecords", label: "PM Records", icon: "📁" },
     { key: "inventory", label: "Inventory", icon: "📦" },
     { key: "dashboard", label: "Stock Dashboard", icon: "📊" },
     ...(isAdmin ? [{ key: "users" as View, label: "Users", icon: "👥" }, { key: "logs" as View, label: "Activity Log", icon: "📋" }, { key: "backups" as View, label: "Backups", icon: "🗄" }] : []),
