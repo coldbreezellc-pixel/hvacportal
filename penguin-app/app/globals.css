@@ -30,7 +30,13 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #0d9488
 .pg-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .pg-offline-banner { background: #1e293b; color: #fde68a; font-size: 12px; font-weight: 600; text-align: center; padding: 6px 12px; }
 
+/* ── Bottom sheet on phones, centered modal on desktop ── */
+.pg-sheet-overlay { position: fixed; inset: 0; z-index: 250; background: rgba(15,23,42,0.55); display: flex; align-items: flex-end; justify-content: center; }
+.pg-sheet { width: 100%; max-width: 560px; max-height: 92vh; background: #fff; border-radius: 16px 16px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -10px 40px rgba(0,0,0,0.25); animation: slideUp .25s ease; }
+
 @media (min-width: 900px) {
+  .pg-sheet-overlay { align-items: center; padding: 24px; }
+  .pg-sheet { border-radius: 16px; max-height: 88vh; }
   .pg-shell { padding-left: 240px; padding-bottom: 24px; }
   .pg-sidebar {
     display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; width: 240px;

@@ -62,6 +62,7 @@ export const S = {
 
   // Detail
   detailLine: { fontFamily: F.body, fontSize: 13, color: "#64748b", margin: "5px 0" },
+  detailLabel: { fontFamily: F.body, fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, margin: "12px 0 4px", fontWeight: 700 },
 
   // Big action buttons
   btnExport: { width: "100%", padding: "14px", marginTop: 12, background: "linear-gradient(135deg, #0d9488, #0f766e)", border: "none", borderRadius: 10, color: "#fff", fontFamily: F.heading, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: ".5px", boxShadow: "0 4px 16px rgba(13,148,136,0.3)" },

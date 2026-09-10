@@ -11,6 +11,8 @@ import { UsersView } from "./UsersView";
 import { ProfileView } from "./ProfileView";
 import { LogsView } from "./LogsView";
 import { BackupsView } from "./BackupsView";
+import { HomeView } from "./HomeView";
+import { WorkOrdersView } from "./WorkOrdersView";
 
 // Sessions never time out: crews fill in paperwork over long stretches and must
 // not be bounced to the login screen. Supabase refresh tokens keep the session
@@ -45,6 +47,7 @@ export function App() {
 
   const me = s.me;
   const lowStock = s.items.filter((i) => (i.qty || 0) <= (i.minQty || 0) && (i.minQty || 0) > 0);
+  const openWos = s.workOrders.filter((w) => w.status !== "Completed").length;
 
   return (
     <div className="pg-shell">
@@ -54,7 +57,7 @@ export function App() {
         s.view === "forgot" ? <ForgotScreen onBack={() => setView("login")} /> : <LoginScreen onForgot={() => setView("forgot")} />
       ) : (
         <>
-          <Header user={me} view={s.view} setView={setView} logout={() => void logout()} lowStock={lowStock.length}
+          <Header user={me} view={s.view} setView={setView} logout={() => void logout()} lowStock={lowStock.length} openWos={openWos}
             online={s.online} pending={s.pending} syncing={s.syncing} />
           {!s.online && <div className="pg-offline-banner">📡 No service — changes are saved on this phone and will upload automatically.</div>}
           {me.mustResetPw && s.view !== "profile" ? (
@@ -66,6 +69,8 @@ export function App() {
             </div>
           ) : (
             <>
+              {s.view === "home" && <HomeView user={me} items={s.items} workOrders={s.workOrders} />}
+              {s.view === "workorders" && <WorkOrdersView workOrders={s.workOrders} user={me} />}
               {s.view === "dashboard" && <Dashboard items={s.items} lowStock={lowStock} />}
               {s.view === "inventory" && <InventoryView allItems={s.items} isAdmin={me.role === "admin"} online={s.online} />}
               {s.view === "users" && me.role === "admin" && <UsersView users={s.users} currentUserId={me.id} />}

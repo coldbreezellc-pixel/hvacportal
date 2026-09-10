@@ -1,7 +1,7 @@
 // IndexedDB cache + outbox. Everything the UI needs to work with no service lives
 // here, so the app opens instantly from cache and queued edits survive reloads.
 import { createStore, get, set, del } from "idb-keyval";
-import type { Item, ItemRow, LogRow, LogEntry, User } from "./types";
+import type { Item, ItemRow, LogRow, LogEntry, User, WorkOrder, WorkOrderRow, VisitRow, Photo } from "./types";
 
 const store = typeof indexedDB !== "undefined" ? createStore("penguin-maintenance", "kv") : undefined;
 
@@ -10,8 +10,12 @@ export interface Cache {
   items: Item[];
   users: User[];
   logs: LogEntry[];
+  workOrders?: WorkOrder[];
   savedAt: string | null;
 }
+
+/** Photo still on this device only (data URLs); uploaded when the op runs. */
+export type PendingPhoto = Photo;
 
 export type Op =
   | { kind: "adjust"; id: string; delta: number; by: string }
@@ -20,7 +24,12 @@ export type Op =
   | { kind: "delete"; id: string }
   | { kind: "log"; row: LogRow }
   | { kind: "photo"; id: string; thumb: string; full: string; by: string }
-  | { kind: "email"; payload: EmailPayload };
+  | { kind: "email"; payload: EmailPayload }
+  | { kind: "wo_insert"; row: Omit<WorkOrderRow, "photos" | "updated_at">; photos: PendingPhoto[] }
+  | { kind: "wo_update"; id: string; patch: Partial<Pick<WorkOrderRow, "title" | "location" | "type" | "priority" | "status" | "details">> & { photos?: Photo[] }; newPhotos: PendingPhoto[] }
+  | { kind: "wo_delete"; id: string }
+  | { kind: "visit_insert"; row: Omit<VisitRow, "photos">; photos: PendingPhoto[] }
+  | { kind: "visit_delete"; id: string; workOrderId: string };
 
 export interface EmailPayload {
   to: string[];

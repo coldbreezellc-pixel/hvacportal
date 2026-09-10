@@ -11,6 +11,8 @@ here depends on it except the two data files the import script reads.
 | Area | Details |
 |---|---|
 | Sign-in | Username + password (Supabase Auth under the hood). Admins create logins; every new login must change its password on first sign-in. "Forgot password" emails a reset link. **Sessions never time out** — a phone or PC stays signed in until someone taps Sign Out, so long paperwork sessions are never interrupted. Several people (and several devices per person) can be signed in at once. |
+| Home | Landing screen with tiles for every tool, open-work-order and low-stock counts. Tools not yet moved (PM Sheet, PM Records, Time Off) open the old Railway portal in a new tab. |
+| Work Orders | List with search and status chips, WO numbers assigned by the database (`WO-2026-0007`), priority, type, location, details, photos, visit log with hours and photos, complete/reopen, admin delete. Works offline: a new order shows "WO-pending" until it syncs and gets its number. Slack → work order (Events API + `/wo` slash command) ported from the old server. |
 | Inventory | Group cards → spreadsheet rows with +/−, tap-to-type qty, inline edit, full edit, delete, low-stock alerts, search, sort. Air-filter groups keep the Unit ID / Units / Per Unit / Total / Stock / Order layout with subtotals. On phones the tables collapse to the columns that matter (Stock and +/− always on screen); the rest shows when a row is tapped. On a PC the full table shows with a sidebar. |
 | Photos | Any crew member can attach a photo from the camera. It is resized on the phone (small thumbnail + larger view), stored in Supabase Storage, and tapping the thumbnail pops it up full size. |
 | Reports | "Export & Email Report" builds the CSV and emails it with the file attached straight from the phone (Resend). A download button is there too. |
@@ -50,7 +52,12 @@ npx supabase db query < supabase/seed.sql   # or paste seed.sql into the SQL edi
 
 1. `supabase/migrations/20260910000000_init.sql` – tables, RLS, functions, realtime
 2. `supabase/migrations/20260910000001_photos_backups.sql` – photo bucket, backups, hourly job
-3. `supabase/seed.sql` – the 398 seed items (Plumbing 238, Faucet Parts 98, Air Filters 900 51, Air Filters 904 11)
+3. `supabase/migrations/20260910000002_work_orders.sql` – work orders, visits, numbering, photos bucket
+4. `supabase/seed.sql` – the 398 seed items (Plumbing 238, Faucet Parts 98, Air Filters 900 51, Air Filters 904 11)
+5. `supabase/import-work-orders.sql` – the existing work orders from the old portal
+
+`supabase/setup-all.sql` is steps 1–4 in one file for the SQL editor. `supabase/import-live.sql` carries over
+the old portal's current stock counts, photos and activity log.
 
 Then check **Database → Extensions** shows `pg_cron` enabled and **Integrations → Cron** lists
 `penguin-hourly-backup`. (If pg_cron is off in your plan, enable it there and re-run the last block of
@@ -101,6 +108,8 @@ npm run import:live -- --overwrite  # live JSON wins for every item it contains
    | `RESEND_API_KEY` | from resend.com (same account the Railway portal uses) |
    | `EMAIL_FROM` | `Penguin Maintenance <noreply@coldbreezellc.com>` (a verified Resend domain) |
    | `NEXT_PUBLIC_REPORT_RECIPIENTS` | default "To:" for reports |
+   | `NEXT_PUBLIC_APP_URL` | the app's own URL (used in Slack confirmations) |
+   | `SLACK_SIGNING_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_ALLOWED_CHANNELS` | optional — same values the Railway portal used; point the Slack app's Event URL at `/api/slack/events` and the `/wo` command at `/api/slack/command` |
 
 4. Deploy. Open the URL on a phone → **Add to Home Screen** to install it like an app.
 
