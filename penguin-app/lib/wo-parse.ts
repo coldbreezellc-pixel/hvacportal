@@ -5,7 +5,71 @@
 export interface ParsedWo {
   title: string; location: string; type: string; priority: string; status: string; details: string; created_by: string;
   requester: string | null;
+  /** Labelled fields found in the paste (Slack workflow form), keyed by normalised label. */
+  fields: Record<string, string>;
 }
+
+// Labels the Facilities Help Request workflow (and similar Slack forms) use.
+// Longer labels first so "Request Priority" wins over "Priority". No word
+// boundary before a label: when a form message is copied out of Slack the
+// fields run together ("Medium PriorityFloor #: ground").
+const FIELD_LABELS = [
+  "Description of issues", "Description of issue", "Description of the issue", "Description of problem", "Description",
+  "Request Priority", "Priority level", "Priority",
+  "Request Type", "Type of request", "Type of issue", "Issue Type", "Category",
+  "Floor #", "Floor number", "Floor", "Room #", "Room number", "Room", "Suite", "Area",
+  "Building", "Location", "Site", "Facility",
+  "Submitted by", "Requested by", "Requester", "Your name", "Full name", "Contact name", "Contact", "Email", "Phone", "Department",
+  "Preferred date", "Date needed", "Deadline", "Notes", "Additional notes", "Additional details",
+];
+const LABEL_RE = new RegExp("(" + FIELD_LABELS.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s*")).join("|") + ")\\s*:\\s*", "gi");
+const EMOJI_RE = /[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]/gu;
+const normLabel = (l: string) => l.toLowerCase().replace(/\s+/g, " ").replace(/\s*#$/, "").trim();
+const canon = (l: string) => {
+  const n = normLabel(l);
+  if (n.startsWith("description")) return "description";
+  if (n.includes("priority")) return "priority";
+  if (n === "request type" || n === "type of request" || n === "type of issue" || n === "issue type" || n === "category") return "category";
+  if (n.startsWith("floor")) return "floor";
+  if (n.startsWith("room") || n === "suite" || n === "area") return "room";
+  if (n === "building" || n === "location" || n === "site" || n === "facility") return "building";
+  if (["submitted by", "requested by", "requester", "your name", "full name", "contact name", "contact"].includes(n)) return "requester";
+  if (n === "notes" || n === "additional notes" || n === "additional details") return "notes";
+  return n;
+};
+
+/** Pull "Label: value" pairs out of a copied Slack form message. Returns {} unless at least two fields are present. */
+export function parseFormFields(text: string): Record<string, string> {
+  const t = text.replace(/\s+/g, " ");
+  const hits: { key: string; start: number; end: number }[] = [];
+  for (const m of t.matchAll(LABEL_RE)) hits.push({ key: canon(m[1]), start: m.index!, end: m.index! + m[0].length });
+  if (hits.length < 2) return {};
+  const out: Record<string, string> = {};
+  hits.forEach((h, i) => {
+    const value = t.slice(h.end, i + 1 < hits.length ? hits[i + 1].start : undefined).replace(EMOJI_RE, "").replace(/\s+/g, " ").trim().replace(/[\s,;]+$/, "");
+    if (value && !(h.key in out)) out[h.key] = value;
+  });
+  return out;
+}
+
+const mapPriority = (label: string, fallback: string) => {
+  const l = label.toLowerCase();
+  if (/urgent|critical|emergency|immediate|highest/.test(l)) return "Urgent";
+  if (/high/.test(l)) return "High";
+  if (/medium|normal|standard/.test(l)) return "Normal";
+  if (/low|minor|whenever/.test(l)) return "Low";
+  return fallback;
+};
+const mapType = (category: string, fallback: string) => {
+  const c = category.toLowerCase();
+  if (/emergency/.test(c)) return "Emergency";
+  if (/inspect/.test(c)) return "Inspection";
+  if (/install/.test(c)) return "Installation";
+  if (/preventive|\bpm\b/.test(c)) return "Preventive Maintenance";
+  if (/hvac|temperature|heat|cool|air|plumb|leak|water|electric|light|power|repair|broken|noise|door|ceiling/.test(c)) return "Repair";
+  return fallback;
+};
+const buildingFrom = (s: string) => (/\b904\b/.test(s) ? "904 Sylvan Ave" : /\b900\b/.test(s) ? "900 Sylvan Ave" : null);
 
 const TIME_RE = /^\d{1,2}:\d{2}(\s?[AP]M)?$/i;
 const NAME_TIME_RE = /^(.{2,60}?)\s{1,}(\d{1,2}:\d{2}(?:\s?[AP]M)?)$/i;
@@ -55,14 +119,42 @@ export function parseHelpRequest(text: string, createdBy: string): ParsedWo {
   const body = lines.filter((l) => !STAMP_RE.test(l) && !/^\d+\s+repl(y|ies)$/i.test(l) && !/^(last reply|view thread)/i.test(l) && !/^:[a-z_+-]+:\d*$/i.test(l));
 
   const flat = body.join(" ").replace(/\s+/g, " ").trim();
-  const { location, type, priority } = detect(flat);
+  const guessed = detect(flat);
 
+  // ── Slack workflow form ("🏢 New Facilities Help Request Submitted for Englewood Cliffs!" + labelled fields) ──
+  const fields = parseFormFields(flat);
+  if (fields.description || fields.category) {
+    const site = /help request submitted for ([^!.\n]+)/i.exec(flat)?.[1]?.trim() ?? null;
+    if (fields.requester) requester = fields.requester.replace(/^@/, "");
+    const description = fields.description || "";
+    const locText = [fields.building, fields.room, fields.floor, description, site ?? ""].join(" ");
+    const location = buildingFrom(locText) ?? (fields.building && !/englewood/i.test(fields.building) ? "Other" : "Other");
+    const priority = fields.priority ? mapPriority(fields.priority, guessed.priority) : detect(description).priority;
+    const type = fields.category ? mapType(fields.category, guessed.type) : detect(description).type;
+
+    let title = cleanLine(description.split(/(?<=[.!?])\s+/)[0] || description) || [fields.category, fields.room || fields.floor].filter(Boolean).join(" — ") || "Facilities help request";
+    if (title.length > 100) title = title.slice(0, 97) + "…";
+
+    const where = [fields.building, fields.room && `Room ${fields.room}`, fields.floor && `Floor ${fields.floor}`].filter(Boolean).join(", ");
+    const lines = [
+      [fields.category, where].filter(Boolean).join(" · "),
+      description,
+      fields.notes,
+      "",
+      `Slack help request${site ? ` — ${site}` : ""}${fields.priority ? ` · Priority: ${fields.priority.replace(/\s*priority$/i, "")}` : ""}`,
+      requester ? `Requested by ${requester}` : null,
+    ].filter((l) => l !== null && l !== undefined).map((l) => (l as string).trim());
+    const details = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester, fields };
+  }
+
+  const { location, type, priority } = guessed;
   let title = cleanLine(body[0] || "");
   if (title.length > 100) title = title.slice(0, 97) + "…";
   if (!title) title = "Work order from Slack";
 
   const details = [body.join("\n").trim(), requester ? `Requested by ${requester} (pasted from Slack)` : "Pasted from Slack"].filter(Boolean).join("\n\n");
-  return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester };
+  return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester, fields };
 }
 
 /** Single-line Slack event text → work order (same rules the Railway portal used). */
@@ -72,5 +164,5 @@ export function parseSlackMessage(text: string, user: string): ParsedWo {
   let title = cleanLine(t);
   if (!title) title = "Work order from Slack";
   if (title.length > 100) title = title.slice(0, 97) + "…";
-  return { title, location, type, priority, status: "Open", details: t, created_by: user || "Slack", requester: null };
+  return { title, location, type, priority, status: "Open", details: t, created_by: user || "Slack", requester: null, fields: {} };
 }
