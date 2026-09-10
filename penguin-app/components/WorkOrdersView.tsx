@@ -65,7 +65,7 @@ function WorkOrderForm({ wo, onClose, initial, source = null }: { wo: WorkOrder 
       {lightbox && <Lightbox src={lightbox.full} onClose={() => setLightbox(null)} />}
       {source === "slack-paste" && (
         <div style={{ background: "#F3E8FF", border: "1.5px solid #c4b5fd", borderRadius: 10, padding: "10px 12px", fontFamily: F.body, fontSize: 12, color: "#5b21b6", marginBottom: 4 }}>
-          ⚡ Generated from the pasted Slack request — location, type and priority were guessed from the text. Check them before saving.
+          ⚡ Generated from the pasted Slack request — check the fields before saving.{initial?.location === "Other" ? " The text doesn't say 900 or 904, so pick the building." : ""}
         </div>
       )}
       <label style={S.label}>Title / Description *</label>
