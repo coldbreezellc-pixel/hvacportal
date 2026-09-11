@@ -49,9 +49,10 @@ export async function POST(req: Request) {
     const ignored = messages.length - wanted.length;
     if (!wanted.length) return Response.json({ created: [], skipped: 0, ignored, ignored_not_maintenance: 0 });
 
-    const { data: existing, error: exErr } = await admin.from("work_orders").select("slack_ts").eq("slack_channel", channel).in("slack_ts", wanted.map((m) => m.ts));
+    const { data: existing, error: exErr } = await admin.from("work_orders").select("slack_ts, wo_number, title, status").eq("slack_channel", channel).in("slack_ts", wanted.map((m) => m.ts));
     if (exErr) throw exErr;
-    const seen = new Set((existing ?? []).map((r: { slack_ts: string }) => r.slack_ts));
+    const existingRows = (existing ?? []) as { slack_ts: string; wo_number: string | null; title: string; status: string }[];
+    const seen = new Set(existingRows.map((r) => r.slack_ts));
 
     const created: { wo_number: string | null; title: string; location: string; priority: string }[] = [];
     let skipped = 0, ignoredType = 0;
@@ -82,7 +83,8 @@ export async function POST(req: Request) {
         detail: `Created ${created.length} work order(s) from Slack help requests: ${created.map((c) => c.wo_number).filter(Boolean).join(", ")}`,
       });
     }
-    return Response.json({ created, skipped, ignored: ignored + ignoredType, ignored_not_maintenance: ignoredType });
+    // `existing` says which work order already holds each skipped Slack message
+    return Response.json({ created, skipped, ignored: ignored + ignoredType, ignored_not_maintenance: ignoredType, existing: existingRows });
   } catch (e) {
     return errorResponse(e);
   }
