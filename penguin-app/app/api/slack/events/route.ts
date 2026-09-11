@@ -17,8 +17,8 @@ export const runtime = "nodejs";
 const allowedChannels = () => (process.env.SLACK_ALLOWED_CHANNELS || "").split(",").map((s) => s.trim()).filter(Boolean);
 const triggerKeywords = () => (process.env.SLACK_TRIGGER_KEYWORDS || "wo,work order,cold call,repair,emergency").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
 
-// Dedup recently processed event ids (best effort — serverless instances are short-lived,
-// so the DB unique check on slack_ts is the real guard)
+// Dedup recently processed event ids (best effort — serverless instances are short-lived;
+// the unique index on (slack_channel, slack_ts) is the real guard)
 const recent: string[] = [];
 
 interface SlackEvent { type?: string; subtype?: string; bot_id?: string; text?: string; channel?: string; ts?: string; user?: string; thread_ts?: string; blocks?: unknown[] }

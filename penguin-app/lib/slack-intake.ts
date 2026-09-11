@@ -69,7 +69,7 @@ export async function importSlackMessages(admin: SupabaseClient, channel: string
       slack_channel: channel, slack_ts: m.ts, created_at: createdAt,
     }).select("wo_number, title, location, priority, type").single();
     if (error) {
-      if (error.code === "23505") { skipped++; continue; } // raced with another run on the same ts
+      if (error.code === "23505") { skipped++; continue; } // another intake path inserted this message first (work_orders_slack_msg_uidx)
       throw error;
     }
     created.push(data as CreatedWo);
@@ -108,21 +108,27 @@ interface StoredToken { access_token: string; refresh_token?: string | null; exp
 
 export class SlackError extends Error { constructor(public code: string, message?: string) { super(message || code); } }
 
-/** Current user token: the persisted (rotated) one if any, else SLACK_USER_TOKEN. */
-async function loadToken(admin: SupabaseClient): Promise<{ token: StoredToken | null; persisted: boolean }> {
-  try {
-    const { data } = await admin.from("app_settings").select("value").eq("key", "slack_user_token").maybeSingle();
-    const v = (data as { value?: StoredToken } | null)?.value;
-    if (v?.access_token) return { token: v, persisted: true };
-  } catch { /* table not created yet — fall back to the env token */ }
+/** Current user token: the persisted (rotated) one if any, else SLACK_USER_TOKEN.
+ *  `canPersist` is false when public.app_settings does not exist yet — then a
+ *  rotating token must NOT be refreshed, because Slack invalidates the old refresh
+ *  token on use and the new one would be lost with the request. */
+async function loadToken(admin: SupabaseClient): Promise<{ token: StoredToken | null; persisted: boolean; canPersist: boolean }> {
+  let canPersist = true;
+  const { data, error } = await admin.from("app_settings").select("value").eq("key", "slack_user_token").maybeSingle();
+  if (error) canPersist = false;                       // 42P01 undefined_table (migration not run) or no grant
+  const v = (data as { value?: StoredToken } | null)?.value;
+  if (v?.access_token) return { token: v, persisted: true, canPersist };
   const env = process.env.SLACK_USER_TOKEN?.trim();
-  return { token: env ? { access_token: env, refresh_token: process.env.SLACK_REFRESH_TOKEN?.trim() || null, expires_at: null } : null, persisted: false };
+  return { token: env ? { access_token: env, refresh_token: process.env.SLACK_REFRESH_TOKEN?.trim() || null, expires_at: null } : null, persisted: false, canPersist };
 }
 
 const canRefresh = (t: StoredToken | null) => !!(t?.refresh_token && process.env.SLACK_CLIENT_ID && process.env.SLACK_CLIENT_SECRET);
+const PERSIST_HINT = "the renewed token could not be stored — run supabase/update-slack.sql (creates public.app_settings) and, if the refresh token was already used, issue a fresh token in the Slack app";
 
-/** Exchange the refresh token for a new access token (Slack token rotation) and persist both. */
-async function refreshToken(admin: SupabaseClient, t: StoredToken): Promise<StoredToken> {
+/** Exchange the refresh token for a new access token (Slack token rotation) and persist both.
+ *  Persistence is verified before the exchange, since the exchange burns the old refresh token. */
+async function refreshToken(admin: SupabaseClient, t: StoredToken, canPersist: boolean): Promise<StoredToken> {
+  if (!canPersist) throw new SlackError("app_settings_missing", `Slack token needs renewing but ${PERSIST_HINT}`);
   const body = new URLSearchParams({ client_id: process.env.SLACK_CLIENT_ID!, client_secret: process.env.SLACK_CLIENT_SECRET!, grant_type: "refresh_token", refresh_token: t.refresh_token! });
   const res = await fetch(`${slackApi()}/oauth.v2.access`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
   const j = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; access_token?: string; refresh_token?: string; expires_in?: number; authed_user?: { access_token?: string; refresh_token?: string; expires_in?: number } };
@@ -132,7 +138,7 @@ async function refreshToken(admin: SupabaseClient, t: StoredToken): Promise<Stor
   if (!j.ok || !access) throw new SlackError(j.error || "refresh_failed", `Slack token refresh failed: ${j.error || "no token returned"}`);
   const next: StoredToken = { access_token: access, refresh_token: refresh, expires_at: Date.now() + expiresIn * 1000 };
   const { error } = await admin.from("app_settings").upsert({ key: "slack_user_token", value: next, updated_at: new Date().toISOString() }, { onConflict: "key" });
-  if (error) console.error("Could not persist the rotated Slack token (run the app_settings migration):", error.message);
+  if (error) throw new SlackError("persist_failed", `Slack token renewed but ${PERSIST_HINT} (${error.message})`);
   return next;
 }
 
@@ -150,7 +156,7 @@ export async function fetchSlackHistory(admin: SupabaseClient, channel: string, 
   const loaded = await loadToken(admin);
   let t = loaded.token;
   if (!t) throw new SlackError("not_configured", "SLACK_USER_TOKEN is not set on the server");
-  if (t.expires_at && canRefresh(t) && Date.now() > t.expires_at - 5 * 60 * 1000) t = await refreshToken(admin, t);
+  if (t.expires_at && canRefresh(t) && Date.now() > t.expires_at - 5 * 60 * 1000) t = await refreshToken(admin, t, loaded.canPersist);
 
   const all: SlackMessage[] = [];
   let cursor = "";
@@ -160,7 +166,7 @@ export async function fetchSlackHistory(admin: SupabaseClient, channel: string, 
     if (cursor) params.cursor = cursor;
     const j = await slackGet(t.access_token, "conversations.history", params);
     if (!j.ok) {
-      if ((j.error === "token_expired" || j.error === "invalid_auth") && !refreshed && canRefresh(t)) { t = await refreshToken(admin, t); refreshed = true; page--; continue; }
+      if ((j.error === "token_expired" || j.error === "invalid_auth") && !refreshed && canRefresh(t)) { t = await refreshToken(admin, t, loaded.canPersist); refreshed = true; page--; continue; }
       const hints: Record<string, string> = {
         not_in_channel: "the Slack user must be a member of #help-facilities",
         channel_not_found: "the channel ID is wrong or the token belongs to another workspace",
