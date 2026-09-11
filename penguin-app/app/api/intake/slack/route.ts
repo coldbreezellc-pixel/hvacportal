@@ -1,5 +1,5 @@
 import { createAdminClient, errorResponse, HttpError } from "@/lib/supabase/server";
-import { parseHelpRequest, requestSite } from "@/lib/wo-parse";
+import { parseHelpRequest, requestSite, isMaintenanceRequest } from "@/lib/wo-parse";
 
 export const runtime = "nodejs";
 
@@ -13,6 +13,9 @@ export const runtime = "nodejs";
 // messages never creates duplicates. Only requests for our sites are taken:
 // SLACK_INTAKE_SITES (comma-separated, default "Englewood Cliffs"); the channel
 // also carries New York / Los Angeles / DC / Orlando requests, which are ignored.
+// Only maintenance-type requests (HVAC / temperature, plumbing / leaks,
+// electrical) become work orders; janitorial, furniture, artwork and the like
+// are Facilities' and are ignored. Set SLACK_INTAKE_ALL_TYPES=true to take everything.
 
 interface InMsg { ts: string; text: string; user?: string | null; posted_at?: string | null }
 
@@ -44,19 +47,21 @@ export async function POST(req: Request) {
       return !site || sites.some((x) => site.toLowerCase().includes(x));   // no site named → let the parser decide
     });
     const ignored = messages.length - wanted.length;
-    if (!wanted.length) return Response.json({ created: [], skipped: 0, ignored });
+    if (!wanted.length) return Response.json({ created: [], skipped: 0, ignored, ignored_not_maintenance: 0 });
 
     const { data: existing, error: exErr } = await admin.from("work_orders").select("slack_ts").eq("slack_channel", channel).in("slack_ts", wanted.map((m) => m.ts));
     if (exErr) throw exErr;
     const seen = new Set((existing ?? []).map((r: { slack_ts: string }) => r.slack_ts));
 
     const created: { wo_number: string | null; title: string; location: string; priority: string }[] = [];
-    let skipped = 0;
+    let skipped = 0, ignoredType = 0;
+    const allTypes = /^(1|true|yes)$/i.test(process.env.SLACK_INTAKE_ALL_TYPES || "");
     // oldest first so WO numbers follow the order the requests came in
     for (const m of [...wanted].sort((a, b) => Number(a.ts) - Number(b.ts))) {
       if (seen.has(m.ts)) { skipped++; continue; }
       const who = (m.user || "").trim();
       const p = parseHelpRequest(m.text, who ? `Slack: ${who}` : "Slack");
+      if (!allTypes && !isMaintenanceRequest(p)) { ignoredType++; continue; }
       const createdAt = m.posted_at && !isNaN(Date.parse(m.posted_at)) ? new Date(m.posted_at).toISOString()
         : /^\d+(\.\d+)?$/.test(m.ts) ? new Date(Number(m.ts) * 1000).toISOString() : new Date().toISOString();
       const { data, error } = await admin.from("work_orders").insert({
@@ -77,7 +82,7 @@ export async function POST(req: Request) {
         detail: `Created ${created.length} work order(s) from Slack help requests: ${created.map((c) => c.wo_number).filter(Boolean).join(", ")}`,
       });
     }
-    return Response.json({ created, skipped, ignored });
+    return Response.json({ created, skipped, ignored: ignored + ignoredType, ignored_not_maintenance: ignoredType });
   } catch (e) {
     return errorResponse(e);
   }

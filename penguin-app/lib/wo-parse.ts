@@ -78,9 +78,23 @@ const mapType = (category: string, fallback: string) => {
   if (/inspect/.test(c)) return "Inspection";
   if (/install/.test(c)) return "Installation";
   if (/preventive|\bpm\b/.test(c)) return "Preventive Maintenance";
-  if (/hvac|temperature|heat|cool|air|plumb|leak|water|electric|light|power|repair|broken|noise|door|ceiling/.test(c)) return "Repair";
+  if (/hvac|temperature|heat|cool|air/.test(c)) return "Cold Call";   // a too-hot / too-cold complaint is a cold call, as on the old portal
+  if (/plumb|leak|water|electric|light|power|repair|broken|noise|door|ceiling/.test(c)) return "Repair";
   return fallback;
 };
+
+// ── Which help requests are the building engineers' ──
+// Only Temperature / HVAC and Plumbing / Leaks requests (plus mechanical / boiler /
+// sprinkler if the form ever offers them) become work orders. Janitorial,
+// Electrical, Furniture, Wall Mounting, "Other" and everything else belong to
+// Facilities and are ignored. The Request Type field decides; no keyword guessing.
+const MAINT_CATEGORY_RE = /hvac|temperature|heat|cool|air\s*cond|plumb|leak|mechanical|boiler|sprinkler|fire\s*(alarm|suppression)/i;
+
+/** True when the request's type is one the maintenance / engineering crew handles. */
+export function isMaintenanceRequest(p: Pick<ParsedWo, "fields">): boolean {
+  const category = p.fields.category || "";
+  return !!category && MAINT_CATEGORY_RE.test(category);
+}
 const buildingFrom = (s: string) => (/\b904\b/.test(s) ? "904 Sylvan Ave" : /\b900\b/.test(s) ? "900 Sylvan Ave" : null);
 
 const TIME_RE = /^\d{1,2}:\d{2}(\s?[AP]M)?$/i;
