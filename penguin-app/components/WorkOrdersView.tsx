@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { WO_LOCATIONS, WO_PRIORITIES, WO_STATUSES, WO_TYPES, type Photo, type User, type WorkOrder } from "@/lib/types";
 import { createWorkOrder, updateWorkOrder, deleteWorkOrder, addVisit, deleteVisit, removeWorkOrderPhoto, flash, type WorkOrderInput, type VisitInput } from "@/lib/store";
-import { parseHelpRequest } from "@/lib/wo-parse";
+import { parseHelpRequest, DEFAULT_LOCATION } from "@/lib/wo-parse";
 import { PhotoGrid } from "./PhotoGrid";
 import { Lightbox } from "./Lightbox";
 import { S, F } from "./styles";
@@ -39,7 +39,7 @@ function Sheet({ title, onClose, children, footer }: { title: string; onClose: (
 }
 
 // ── New / edit work order ──
-function WorkOrderForm({ wo, onClose, initial, source = null }: { wo: WorkOrder | null; onClose: () => void; initial?: Partial<WorkOrderInput>; source?: string | null }) {
+function WorkOrderForm({ wo, onClose, initial, source = null, note }: { wo: WorkOrder | null; onClose: () => void; initial?: Partial<WorkOrderInput>; source?: string | null; note?: string }) {
   const [f, setF] = useState<WorkOrderInput>({
     title: wo?.title || initial?.title || "", location: wo?.location || initial?.location || WO_LOCATIONS[0], type: wo?.type || initial?.type || WO_TYPES[0],
     priority: wo?.priority || initial?.priority || "Normal", status: wo?.status || initial?.status || "Open", details: wo?.details || initial?.details || "",
@@ -65,7 +65,7 @@ function WorkOrderForm({ wo, onClose, initial, source = null }: { wo: WorkOrder 
       {lightbox && <Lightbox src={lightbox.full} onClose={() => setLightbox(null)} />}
       {source === "slack-paste" && (
         <div style={{ background: "#F3E8FF", border: "1.5px solid #c4b5fd", borderRadius: 10, padding: "10px 12px", fontFamily: F.body, fontSize: 12, color: "#5b21b6", marginBottom: 4 }}>
-          ⚡ Generated from the pasted Slack request — check the fields before saving.{initial?.location === "Other" ? " The text doesn't say 900 or 904, so pick the building." : ""}
+          ⚡ Generated from the pasted Slack request — check the fields before saving.{note ? ` ${note}` : ""}
         </div>
       )}
       <label style={S.label}>Title / Description *</label>
@@ -85,12 +85,13 @@ function WorkOrderForm({ wo, onClose, initial, source = null }: { wo: WorkOrder 
 }
 
 // ── Paste a Slack help request → generate a work order ──
-function PasteSheet({ user, onClose, onGenerate }: { user: User; onClose: () => void; onGenerate: (initial: WorkOrderInput) => void }) {
+function PasteSheet({ user, onClose, onGenerate }: { user: User; onClose: () => void; onGenerate: (initial: WorkOrderInput, note?: string) => void }) {
   const [text, setText] = useState("");
   const generate = () => {
     if (!text.trim()) { flash("Paste the Slack message first.", "err"); return; }
     const p = parseHelpRequest(text, user.displayName);
-    onGenerate({ title: p.title, location: p.location, type: p.type, priority: p.priority, status: p.status, details: p.details });
+    onGenerate({ title: p.title, location: p.location, type: p.type, priority: p.priority, status: p.status, details: p.details },
+      p.locationDefaulted ? `The text doesn't name a building, so it's set to ${DEFAULT_LOCATION} (904 is closed).` : undefined);
   };
   return (
     <Sheet title="⚡ Work Order from Slack" onClose={onClose}
@@ -153,7 +154,7 @@ export function WorkOrdersView({ workOrders, user }: { workOrders: WorkOrder[]; 
   const [editing, setEditing] = useState<WorkOrder | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showPaste, setShowPaste] = useState(false);
-  const [generated, setGenerated] = useState<WorkOrderInput | null>(null);
+  const [generated, setGenerated] = useState<{ initial: WorkOrderInput; note?: string } | null>(null);
   const [visitFor, setVisitFor] = useState<WorkOrder | null>(null);
   const [lightbox, setLightbox] = useState<Photo | null>(null);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
@@ -173,8 +174,8 @@ export function WorkOrdersView({ workOrders, user }: { workOrders: WorkOrder[]; 
     <div className="pg-page">
       {lightbox && <Lightbox src={lightbox.full} onClose={() => setLightbox(null)} />}
       {showNew && <WorkOrderForm wo={null} onClose={() => setShowNew(false)} />}
-      {showPaste && <PasteSheet user={user} onClose={() => setShowPaste(false)} onGenerate={(g) => { setShowPaste(false); setGenerated(g); }} />}
-      {generated && <WorkOrderForm wo={null} initial={generated} source="slack-paste" onClose={() => setGenerated(null)} />}
+      {showPaste && <PasteSheet user={user} onClose={() => setShowPaste(false)} onGenerate={(initial, note) => { setShowPaste(false); setGenerated({ initial, note }); }} />}
+      {generated && <WorkOrderForm wo={null} initial={generated.initial} note={generated.note} source="slack-paste" onClose={() => setGenerated(null)} />}
       {editing && <WorkOrderForm wo={editing} onClose={() => setEditing(null)} />}
       {visitFor && <VisitForm wo={visitFor} user={user} onClose={() => setVisitFor(null)} />}
 
