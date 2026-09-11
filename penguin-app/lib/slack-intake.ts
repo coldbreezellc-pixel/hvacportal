@@ -76,10 +76,11 @@ export async function importSlackMessages(admin: SupabaseClient, channel: string
     seen.add(m.ts);
   }
   if (created.length) {
-    await admin.from("activity_logs").insert({
+    const { error: logErr } = await admin.from("activity_logs").insert({
       action: "WO Created", user_name: opts.actor || "Slack intake", user_id: null,
       detail: `Created ${created.length} work order(s) from Slack help requests: ${created.map((c) => c.wo_number).filter(Boolean).join(", ")}`,
     });
+    if (logErr) console.error("Slack intake: activity log insert failed:", logErr.message);
   }
   return { created, skipped, ignored: ignored + ignoredType, ignored_not_maintenance: ignoredType, existing: existingRows };
 }
@@ -104,7 +105,13 @@ export function blocksText(blocks: SlackBlock[] | undefined): string {
 }
 
 interface SlackMessage { type?: string; subtype?: string; ts: string; text?: string; user?: string; bot_id?: string; blocks?: SlackBlock[]; thread_ts?: string }
-interface StoredToken { access_token: string; refresh_token?: string | null; expires_at?: number | null }
+interface StoredToken { access_token: string; refresh_token?: string | null; expires_at?: number | null; seed?: string | null }
+
+/** Short fingerprint of the env token a persisted (rotated) token descends from — never the token itself. */
+async function fingerprint(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 export class SlackError extends Error { constructor(public code: string, message?: string) { super(message || code); } }
 
@@ -116,10 +123,13 @@ async function loadToken(admin: SupabaseClient): Promise<{ token: StoredToken | 
   let canPersist = true;
   const { data, error } = await admin.from("app_settings").select("value").eq("key", "slack_user_token").maybeSingle();
   if (error) canPersist = false;                       // 42P01 undefined_table (migration not run) or no grant
-  const v = (data as { value?: StoredToken } | null)?.value;
-  if (v?.access_token) return { token: v, persisted: true, canPersist };
   const env = process.env.SLACK_USER_TOKEN?.trim();
-  return { token: env ? { access_token: env, refresh_token: process.env.SLACK_REFRESH_TOKEN?.trim() || null, expires_at: null } : null, persisted: false, canPersist };
+  const seed = env ? await fingerprint(env) : null;
+  const v = (data as { value?: StoredToken } | null)?.value;
+  // A persisted token only counts while it descends from the current SLACK_USER_TOKEN:
+  // setting a fresh token in Vercel must beat whatever was rotated from the old one.
+  if (v?.access_token && (!v.seed || v.seed === seed)) return { token: { ...v, seed }, persisted: true, canPersist };
+  return { token: env ? { access_token: env, refresh_token: process.env.SLACK_REFRESH_TOKEN?.trim() || null, expires_at: null, seed } : null, persisted: false, canPersist };
 }
 
 const canRefresh = (t: StoredToken | null) => !!(t?.refresh_token && process.env.SLACK_CLIENT_ID && process.env.SLACK_CLIENT_SECRET);
@@ -135,8 +145,15 @@ async function refreshToken(admin: SupabaseClient, t: StoredToken, canPersist: b
   const access = j.access_token || j.authed_user?.access_token;
   const refresh = j.refresh_token || j.authed_user?.refresh_token || t.refresh_token;
   const expiresIn = j.expires_in || j.authed_user?.expires_in || 12 * 3600;
-  if (!j.ok || !access) throw new SlackError(j.error || "refresh_failed", `Slack token refresh failed: ${j.error || "no token returned"}`);
-  const next: StoredToken = { access_token: access, refresh_token: refresh, expires_at: Date.now() + expiresIn * 1000 };
+  if (!j.ok || !access) {
+    if (j.error === "invalid_refresh_token") {
+      // another request may have rotated it a moment ago — use what it stored
+      const again = await loadToken(admin);
+      if (again.persisted && again.token && again.token.access_token !== t.access_token) return again.token;
+    }
+    throw new SlackError(j.error || "refresh_failed", `Slack token refresh failed: ${j.error || "no token returned"}`);
+  }
+  const next: StoredToken = { access_token: access, refresh_token: refresh, expires_at: Date.now() + expiresIn * 1000, seed: t.seed ?? null };
   const { error } = await admin.from("app_settings").upsert({ key: "slack_user_token", value: next, updated_at: new Date().toISOString() }, { onConflict: "key" });
   if (error) throw new SlackError("persist_failed", `Slack token renewed but ${PERSIST_HINT} (${error.message})`);
   return next;

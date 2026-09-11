@@ -19,6 +19,11 @@ async function authorize(req: Request): Promise<string> {
   return `Slack pull by ${profile?.display_name || user.email || "user"}`;
 }
 
+// Every phone that opens Work Orders asks for a pull; one Slack read a minute per
+// server instance is plenty and keeps the shared user token well under Slack's rate limits.
+let lastUserPull = 0;
+const USER_PULL_MIN_GAP_MS = 60 * 1000;
+
 export async function POST(req: Request) {
   try {
     const actor = await authorize(req);
@@ -26,6 +31,10 @@ export async function POST(req: Request) {
     const hours = Math.min(168, Math.max(1, Number(body?.hours) || 26));
     const admin = createAdminClient();
     const channel = intakeChannel();
+    if (actor !== "Slack intake" && !body?.force && Date.now() - lastUserPull < USER_PULL_MIN_GAP_MS) {
+      return Response.json({ created: [], skipped: 0, ignored: 0, ignored_not_maintenance: 0, existing: [], checked: 0, hours, channel, throttled: true, checked_at: new Date().toISOString() });
+    }
+    if (actor !== "Slack intake") lastUserPull = Date.now();
     const oldest = Math.floor(Date.now() / 1000) - hours * 3600;
     let history;
     try { history = await fetchSlackHistory(admin, channel, oldest); }

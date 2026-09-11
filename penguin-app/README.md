@@ -113,7 +113,10 @@ npm run import:live -- --overwrite  # live JSON wins for every item it contains
    | `EMAIL_FROM` | `Penguin Maintenance <noreply@coldbreezellc.com>` (a verified Resend domain) |
    | `NEXT_PUBLIC_REPORT_RECIPIENTS` | default "To:" for reports |
    | `NEXT_PUBLIC_APP_URL` | the app's own URL (used in Slack confirmations) |
-   | `SLACK_SIGNING_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_ALLOWED_CHANNELS` | optional — same values the Railway portal used; point the Slack app's Event URL at `/api/slack/events` and the `/wo` command at `/api/slack/command` |
+   | `SLACK_INTAKE_TOKEN` | shared secret for `/api/intake/slack` and `/api/intake/slack/pull` (the hourly routine uses it) |
+   | `SLACK_USER_TOKEN` | Slack *user* token (`xoxp-…`, scopes `channels:history`, `channels:read`) so the app can read `#help-facilities` itself; `SLACK_INTAKE_CHANNEL` / `SLACK_INTAKE_SITES` override the channel and sites |
+   | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_REFRESH_TOKEN` | only for a rotating token (`xoxe.xoxp-…`); the renewed token is kept in `app_settings` (run `supabase/update-slack.sql` once) |
+   | `SLACK_SIGNING_SECRET` | real-time push: point the Slack app's Event Subscriptions at `/api/slack/events` (user event `message.channels`); `SLACK_BOT_TOKEN`, `SLACK_ALLOWED_CHANNELS`, `/wo` at `/api/slack/command` as on the Railway portal |
 
 4. Deploy. Open the URL on a phone → **Add to Home Screen** to install it like an app.
 
