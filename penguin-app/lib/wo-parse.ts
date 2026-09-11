@@ -7,6 +7,8 @@ export interface ParsedWo {
   requester: string | null;
   /** Site named in the form header ("Submitted for Englewood Cliffs"), if any. */
   site: string | null;
+  /** True when the text named no building and DEFAULT_LOCATION was used. */
+  locationDefaulted: boolean;
   /** Labelled fields found in the paste (Slack workflow form), keyed by normalised label. */
   fields: Record<string, string>;
 }
@@ -102,8 +104,12 @@ const NAME_TIME_RE = /^(.{2,60}?)\s{1,}(\d{1,2}:\d{2}(?:\s?[AP]M)?)$/i;
 // "Yesterday at 3:12 PM", "Today at 9:01 AM", "Sep 9th at 10:32 AM", "[10:32 AM]"
 const STAMP_RE = /^(\[?\d{1,2}:\d{2}(\s?[AP]M)?\]?|(today|yesterday|mon|tue|wed|thu|fri|sat|sun)[a-z]*\s+at\s+\d{1,2}:\d{2}(\s?[AP]M)?|[a-z]{3,9}\s+\d{1,2}(st|nd|rd|th)?(,?\s+\d{4})?\s+at\s+\d{1,2}:\d{2}(\s?[AP]M)?)$/i;
 
+/** Where a request goes when the text names no building. 904 Sylvan Ave is
+ *  closed for now, so everything defaults to 900. */
+export const DEFAULT_LOCATION = "900 Sylvan Ave";
+
 function detect(t: string) {
-  let location = "Other";
+  let location = DEFAULT_LOCATION;
   if (/\b904\b/.test(t) || /904\s*sylvan/i.test(t)) location = "904 Sylvan Ave";
   else if (/\b900\b/.test(t) || /900\s*sylvan/i.test(t)) location = "900 Sylvan Ave";
 
@@ -154,7 +160,8 @@ export function parseHelpRequest(text: string, createdBy: string): ParsedWo {
     if (fields.requester) requester = fields.requester.replace(/^@/, "");
     const description = fields.description || "";
     const locText = [fields.building, fields.room, fields.floor, description, site ?? ""].join(" ");
-    const location = buildingFrom(locText) ?? (fields.building && !/englewood/i.test(fields.building) ? "Other" : "Other");
+    const explicit = buildingFrom(locText);
+    const location = explicit ?? DEFAULT_LOCATION;
     const priority = fields.priority ? mapPriority(fields.priority, guessed.priority) : detect(description).priority;
     const type = fields.category ? mapType(fields.category, guessed.type) : detect(description).type;
 
@@ -171,16 +178,17 @@ export function parseHelpRequest(text: string, createdBy: string): ParsedWo {
       requester ? `Requested by ${requester}` : null,
     ].filter((l) => l !== null && l !== undefined).map((l) => (l as string).trim());
     const details = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
-    return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester, site, fields };
+    return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester, site, locationDefaulted: !explicit, fields };
   }
 
   const { location, type, priority } = guessed;
+  const locationDefaulted = !buildingFrom(flat);
   let title = cleanLine(body[0] || "");
   if (title.length > 100) title = title.slice(0, 97) + "…";
   if (!title) title = "Work order from Slack";
 
   const details = [body.join("\n").trim(), requester ? `Requested by ${requester} (pasted from Slack)` : "Pasted from Slack"].filter(Boolean).join("\n\n");
-  return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester, site: requestSite(raw), fields };
+  return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester, site: requestSite(raw), locationDefaulted, fields };
 }
 
 /** Single-line Slack event text → work order (same rules the Railway portal used). */
@@ -190,5 +198,5 @@ export function parseSlackMessage(text: string, user: string): ParsedWo {
   let title = cleanLine(t);
   if (!title) title = "Work order from Slack";
   if (title.length > 100) title = title.slice(0, 97) + "…";
-  return { title, location, type, priority, status: "Open", details: t, created_by: user || "Slack", requester: null, site: null, fields: {} };
+  return { title, location, type, priority, status: "Open", details: t, created_by: user || "Slack", requester: null, site: null, locationDefaulted: !buildingFrom(t), fields: {} };
 }
