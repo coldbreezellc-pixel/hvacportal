@@ -1023,6 +1023,43 @@ export async function resendPm(record: PmRecord, onStatus: (s: string) => void =
 export const PM_REPORT_RECIPIENTS_TEXT = process.env.NEXT_PUBLIC_REPORT_RECIPIENTS || "mateusz.targosz@versantmedia.com, sean.fanning@versantmedia.com";
 export const PM_REPORT_RECIPIENTS = PM_REPORT_RECIPIENTS_TEXT.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
 
+/** Ask the server to read #help-facilities and import new HVAC / plumbing requests.
+ *  Runs when Work Orders opens (silent) and from the "Pull from Slack" button. */
+export interface SlackPullResult { created: { wo_number: string | null; title: string }[]; skipped: number; ignored: number; checked: number; throttled?: boolean; error?: string }
+let slackPullInFlight: Promise<SlackPullResult | null> | null = null;
+export function pullFromSlack(opts: { silent?: boolean } = {}): Promise<SlackPullResult | null> {
+  if (!navigator.onLine) { if (!opts.silent) flash("Pulling from Slack needs a connection.", "err"); return Promise.resolve(null); }
+  if (slackPullInFlight) return slackPullInFlight;   // a manual tap during the automatic pull just waits for it
+  slackPullInFlight = (async () => {
+    try {
+      const res = await fetch("/api/intake/slack/pull", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(opts.silent ? {} : { force: true }) });
+      const j = (await res.json().catch(() => ({}))) as SlackPullResult;
+      if (!res.ok) throw new Error(j.error || `Slack pull failed (${res.status})`);
+      if (j.created?.length) {
+        flash(`${j.created.length} new work order${j.created.length > 1 ? "s" : ""} from Slack: ${j.created.map((c) => c.wo_number).filter(Boolean).join(", ")}`);
+        await refresh();
+      } else if (!opts.silent) {
+        flash(j.throttled ? "Slack was checked less than a minute ago." : `Slack checked — no new maintenance requests (${j.checked ?? 0} message(s) seen).`);
+      }
+      return j;
+    } catch (e) {
+      if (!opts.silent) flash(e instanceof Error ? e.message : "Could not pull from Slack.", "err");
+      else console.warn("Slack pull skipped:", e instanceof Error ? e.message : e);
+      return null;
+    } finally {
+      // stamp on success and failure alike, so a mis-configured server isn't hit on every screen open
+      try { localStorage.setItem("slack_pull_at", String(Date.now())); } catch { /* ignore */ }
+      slackPullInFlight = null;
+    }
+  })();
+  return slackPullInFlight;
+}
+
+/** True when the last automatic pull is older than 3 minutes. */
+export function slackPullDue(): boolean {
+  try { const t = Number(localStorage.getItem("slack_pull_at") || 0); return Date.now() - t > 3 * 60 * 1000; } catch { return true; }
+}
+
 /** Admin: pull the PMs archived on the old portal into Supabase (idempotent). */
 export async function importLegacyPm(): Promise<{ imported: number; skipped: number; errors: string[] } | null> {
   const me = state.me!;

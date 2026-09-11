@@ -72,7 +72,7 @@ export function App() {
           ) : (
             <>
               {s.view === "home" && <HomeView user={me} items={s.items} workOrders={s.workOrders} pmRecords={s.pmRecords} />}
-              {s.view === "workorders" && <WorkOrdersView workOrders={s.workOrders} user={me} />}
+              {s.view === "workorders" && <WorkOrdersView workOrders={s.workOrders} user={me} online={s.online} />}
               {s.view === "pmsheet" && <PmSheetView user={me} online={s.online} records={s.pmRecords} />}
               {s.view === "pmrecords" && <PmRecordsView records={s.pmRecords} user={me} online={s.online} />}
               {s.view === "dashboard" && <Dashboard items={s.items} lowStock={lowStock} />}
