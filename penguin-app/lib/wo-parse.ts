@@ -23,7 +23,7 @@ const FIELD_LABELS = [
   "Preferred date", "Date needed", "Deadline", "Notes", "Additional notes", "Additional details",
 ];
 const LABEL_RE = new RegExp("(" + FIELD_LABELS.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s*")).join("|") + ")\\s*:\\s*", "gi");
-const EMOJI_RE = /[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]/gu;
+const EMOJI_RE = /[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]|:[a-z0-9_+-]+:(?:skin-tone-\d:)?/giu;  // unicode emoji + Slack :shortcodes:
 const normLabel = (l: string) => l.toLowerCase().replace(/\s+/g, " ").replace(/\s*#$/, "").trim();
 const canon = (l: string) => {
   const n = normLabel(l);
@@ -46,7 +46,7 @@ export function parseFormFields(text: string): Record<string, string> {
   if (hits.length < 2) return {};
   const out: Record<string, string> = {};
   hits.forEach((h, i) => {
-    const value = t.slice(h.end, i + 1 < hits.length ? hits[i + 1].start : undefined).replace(EMOJI_RE, "").replace(/\s+/g, " ").trim().replace(/[\s,;]+$/, "");
+    const value = t.slice(h.end, i + 1 < hits.length ? hits[i + 1].start : undefined).replace(EMOJI_RE, "").replace(/\s+/g, " ").trim().replace(/\s*the full request details.*$/i, "").replace(/[\s,;•·*-]+$/, "").replace(/^[\s•·*-]+/, "");
     if (value && !(h.key in out)) out[h.key] = value;
   });
   return out;
@@ -116,7 +116,7 @@ export function parseHelpRequest(text: string, createdBy: string): ParsedWo {
     else if (lines.length > 1 && TIME_RE.test(lines[1]) && lines[0].length <= 60 && !/[.!?]$/.test(lines[0])) { requester = lines[0]; lines.splice(0, 2); }
   }
   // Drop bare timestamps and reaction/thread noise anywhere in the paste.
-  const body = lines.filter((l) => !STAMP_RE.test(l) && !/^\d+\s+repl(y|ies)$/i.test(l) && !/^(last reply|view thread)/i.test(l) && !/^:[a-z_+-]+:\d*$/i.test(l));
+  const body = lines.filter((l) => !STAMP_RE.test(l) && !/^\d+\s+repl(y|ies)$/i.test(l) && !/^(last reply|view thread)/i.test(l) && !/^:[a-z_+-]+:\d*$/i.test(l) && !/^the full request details/i.test(l.replace(EMOJI_RE, "")));
 
   const flat = body.join(" ").replace(/\s+/g, " ").trim();
   const guessed = detect(flat);
@@ -124,7 +124,7 @@ export function parseHelpRequest(text: string, createdBy: string): ParsedWo {
   // ── Slack workflow form ("🏢 New Facilities Help Request Submitted for Englewood Cliffs!" + labelled fields) ──
   const fields = parseFormFields(flat);
   if (fields.description || fields.category) {
-    const site = /help request submitted for ([^!.\n]+)/i.exec(flat)?.[1]?.trim() ?? null;
+    const site = /help request submitted for ([^!.\n•]+)/i.exec(flat.replace(EMOJI_RE, ""))?.[1]?.trim() ?? null;
     if (fields.requester) requester = fields.requester.replace(/^@/, "");
     const description = fields.description || "";
     const locText = [fields.building, fields.room, fields.floor, description, site ?? ""].join(" ");
