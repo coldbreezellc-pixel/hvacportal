@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { WO_LOCATIONS, WO_PRIORITIES, WO_STATUSES, WO_TYPES, type Photo, type User, type WorkOrder } from "@/lib/types";
-import { createWorkOrder, updateWorkOrder, deleteWorkOrder, addVisit, deleteVisit, removeWorkOrderPhoto, flash, type WorkOrderInput, type VisitInput } from "@/lib/store";
+import { createWorkOrder, updateWorkOrder, deleteWorkOrder, addVisit, deleteVisit, removeWorkOrderPhoto, flash, pullFromSlack, slackPullDue, type WorkOrderInput, type VisitInput } from "@/lib/store";
 import { parseHelpRequest, DEFAULT_LOCATION } from "@/lib/wo-parse";
 import { PhotoGrid } from "./PhotoGrid";
 import { Lightbox } from "./Lightbox";
@@ -146,8 +146,12 @@ function VisitForm({ wo, user, onClose }: { wo: WorkOrder; user: User; onClose: 
 }
 
 // ── Main view ──
-export function WorkOrdersView({ workOrders, user }: { workOrders: WorkOrder[]; user: User }) {
+export function WorkOrdersView({ workOrders, user, online = true }: { workOrders: WorkOrder[]; user: User; online?: boolean }) {
   const isAdmin = user.role === "admin";
+  const [pulling, setPulling] = useState(false);
+  // New Slack help requests are fetched when the screen opens (at most every 3 minutes).
+  useEffect(() => { if (online && slackPullDue()) void pullFromSlack({ silent: true }); }, [online]);
+  const pullNow = async () => { setPulling(true); try { await pullFromSlack(); } finally { setPulling(false); } };
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -181,6 +185,7 @@ export function WorkOrdersView({ workOrders, user }: { workOrders: WorkOrder[]; 
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <h2 style={{ ...S.pageTitle, margin: 0, flex: 1 }}>🔧 Work Orders</h2>
+        <button style={{ ...S.btnSecondary, whiteSpace: "nowrap", padding: "10px 12px", color: "#5b21b6", borderColor: "#c4b5fd", opacity: pulling || !online ? 0.6 : 1 }} disabled={pulling || !online} onClick={() => void pullNow()} title="Read #help-facilities now and import new HVAC / plumbing requests">{pulling ? "⏳ Slack…" : "🔄 Pull Slack"}</button>
         <button style={{ ...S.btnSecondary, whiteSpace: "nowrap", padding: "10px 12px", color: "#5b21b6", borderColor: "#c4b5fd" }} onClick={() => setShowPaste(true)} title="Paste a Slack help request and generate a work order">⚡ From Slack</button>
         <button style={{ ...S.btnPrimary, width: "auto", padding: "10px 16px" }} onClick={() => setShowNew(true)}>+ New</button>
       </div>

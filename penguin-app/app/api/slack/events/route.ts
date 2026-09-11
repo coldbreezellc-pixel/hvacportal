@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { verifySlackSignature, parseSlackMessage, postToSlack, woConfirmation } from "@/lib/slack";
+import { importSlackMessages, intakeChannel, blocksText, looksLikeHelpRequest } from "@/lib/slack-intake";
 
 export const runtime = "nodejs";
 
@@ -7,6 +8,11 @@ export const runtime = "nodejs";
 //   https://<app>/api/slack/events
 // and subscribe to message.channels. Env: SLACK_SIGNING_SECRET (required),
 // SLACK_BOT_TOKEN (optional, for confirmations), SLACK_ALLOWED_CHANNELS, SLACK_TRIGGER_KEYWORDS.
+//
+// Posts in the #help-facilities intake channel (SLACK_INTAKE_CHANNEL) go through the
+// shared help-request intake in real time — same site / request-type filters and
+// de-duplication as the hourly pull — so a request becomes a work order seconds
+// after it is submitted. Everything else keeps the keyword / mention behaviour.
 
 const allowedChannels = () => (process.env.SLACK_ALLOWED_CHANNELS || "").split(",").map((s) => s.trim()).filter(Boolean);
 const triggerKeywords = () => (process.env.SLACK_TRIGGER_KEYWORDS || "wo,work order,cold call,repair,emergency").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
@@ -15,7 +21,7 @@ const triggerKeywords = () => (process.env.SLACK_TRIGGER_KEYWORDS || "wo,work or
 // so the DB unique check on slack_ts is the real guard)
 const recent: string[] = [];
 
-interface SlackEvent { type?: string; subtype?: string; bot_id?: string; text?: string; channel?: string; ts?: string; user?: string }
+interface SlackEvent { type?: string; subtype?: string; bot_id?: string; text?: string; channel?: string; ts?: string; user?: string; thread_ts?: string; blocks?: unknown[] }
 interface SlackBody { type?: string; challenge?: string; event_id?: string; event?: SlackEvent; authorizations?: { user_id: string }[] }
 
 export async function POST(req: Request) {
@@ -33,6 +39,22 @@ export async function POST(req: Request) {
   if (body.type !== "event_callback" || !body.event) return new Response("ok");
   const event = body.event;
   if (event.type !== "message") return new Response("ok");
+
+  // ── Help-request channel: workflow posts arrive as bot messages ──
+  if (event.channel && event.channel === intakeChannel()) {
+    if (event.subtype && !["bot_message", "file_share"].includes(event.subtype)) return new Response("ok");   // edits, deletes, joins…
+    if (event.thread_ts && event.thread_ts !== event.ts) return new Response("ok");                             // thread replies
+    const text = (event.text && event.text.trim()) || blocksText(event.blocks as Parameters<typeof blocksText>[0]);
+    if (!event.ts || !text || !looksLikeHelpRequest(text)) return new Response("ok");
+    try {
+      const result = await importSlackMessages(createAdminClient(), event.channel, [{ ts: event.ts, text, user: "", posted_at: new Date(Number(event.ts) * 1000).toISOString() }], { actor: "Slack events" });
+      if (result.created.length) console.log("Slack event → work order", result.created.map((c) => c.wo_number).join(", "));
+    } catch (e) {
+      console.error("Slack event intake error:", e);
+    }
+    return new Response("ok");
+  }
+
   if (event.subtype && event.subtype !== "file_share") return new Response("ok");
   if (event.bot_id || !event.text || !event.text.trim() || !event.channel) return new Response("ok");
 
