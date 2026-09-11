@@ -48,8 +48,18 @@ export async function requireAdmin(): Promise<{ admin: SupabaseClient; actor: Us
   return { admin, actor: profile as UserRow };
 }
 
+/** Turn any thrown value into a JSON error. Supabase/PostgREST errors are plain
+ *  objects ({ message, code, details, hint }) rather than Error instances, so
+ *  read their fields too — "Unexpected error" hides the real cause. */
 export function errorResponse(e: unknown) {
   const status = e instanceof HttpError ? e.status : 500;
-  const message = e instanceof Error ? e.message : "Unexpected error";
+  let message = "Unexpected error";
+  if (e instanceof Error) message = e.message;
+  else if (e && typeof e === "object") {
+    const o = e as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown };
+    const parts = [o.message, o.details, o.hint].filter((x) => typeof x === "string" && x).map(String);
+    if (parts.length) message = parts.join(" — ") + (typeof o.code === "string" ? ` (${o.code})` : "");
+  } else if (typeof e === "string" && e) message = e;
+  if (status >= 500) console.error("API error:", e);
   return Response.json({ error: message }, { status });
 }
