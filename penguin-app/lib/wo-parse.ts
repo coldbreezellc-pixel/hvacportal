@@ -5,8 +5,20 @@
 export interface ParsedWo {
   title: string; location: string; type: string; priority: string; status: string; details: string; created_by: string;
   requester: string | null;
+  /** Site named in the form header ("Submitted for Englewood Cliffs"), if any. */
+  site: string | null;
   /** Labelled fields found in the paste (Slack workflow form), keyed by normalised label. */
   fields: Record<string, string>;
+}
+
+/** Strip Slack mrkdwn (*bold*, _italic_, ~strike~) — the API delivers the form with the labels bold and the values italic. */
+export const stripMrkdwn = (s: string) => s.replace(/\*/g, "").replace(/(^|[\s(])[_~]+/g, "$1").replace(/[_~]+(?=[\s).,!?;:]|$)/g, "");
+
+/** Site from the workflow header, e.g. "Englewood Cliffs" / "New York" / "Los Angeles". */
+export function requestSite(text: string): string | null {
+  const t = stripMrkdwn(text).replace(EMOJI_RE, "").replace(/\s+/g, " ");
+  const m = /help request submitted for ([^!.\n•]+)/i.exec(t);
+  return m ? m[1].trim() : null;
 }
 
 // Labels the Facilities Help Request workflow (and similar Slack forms) use.
@@ -105,7 +117,7 @@ const cleanLine = (s: string) => s
  * header Slack puts on a copied message, multi-line requests and thread noise.
  */
 export function parseHelpRequest(text: string, createdBy: string): ParsedWo {
-  const raw = (text || "").replace(/\r/g, "").trim();
+  const raw = stripMrkdwn((text || "").replace(/\r/g, "")).trim();
   const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
   let requester: string | null = null;
 
@@ -124,7 +136,7 @@ export function parseHelpRequest(text: string, createdBy: string): ParsedWo {
   // ── Slack workflow form ("🏢 New Facilities Help Request Submitted for Englewood Cliffs!" + labelled fields) ──
   const fields = parseFormFields(flat);
   if (fields.description || fields.category) {
-    const site = /help request submitted for ([^!.\n•]+)/i.exec(flat.replace(EMOJI_RE, ""))?.[1]?.trim() ?? null;
+    const site = requestSite(flat);
     if (fields.requester) requester = fields.requester.replace(/^@/, "");
     const description = fields.description || "";
     const locText = [fields.building, fields.room, fields.floor, description, site ?? ""].join(" ");
@@ -145,7 +157,7 @@ export function parseHelpRequest(text: string, createdBy: string): ParsedWo {
       requester ? `Requested by ${requester}` : null,
     ].filter((l) => l !== null && l !== undefined).map((l) => (l as string).trim());
     const details = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
-    return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester, fields };
+    return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester, site, fields };
   }
 
   const { location, type, priority } = guessed;
@@ -154,7 +166,7 @@ export function parseHelpRequest(text: string, createdBy: string): ParsedWo {
   if (!title) title = "Work order from Slack";
 
   const details = [body.join("\n").trim(), requester ? `Requested by ${requester} (pasted from Slack)` : "Pasted from Slack"].filter(Boolean).join("\n\n");
-  return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester, fields };
+  return { title, location, type, priority, status: "Open", details, created_by: createdBy, requester, site: requestSite(raw), fields };
 }
 
 /** Single-line Slack event text → work order (same rules the Railway portal used). */
@@ -164,5 +176,5 @@ export function parseSlackMessage(text: string, user: string): ParsedWo {
   let title = cleanLine(t);
   if (!title) title = "Work order from Slack";
   if (title.length > 100) title = title.slice(0, 97) + "…";
-  return { title, location, type, priority, status: "Open", details: t, created_by: user || "Slack", requester: null, fields: {} };
+  return { title, location, type, priority, status: "Open", details: t, created_by: user || "Slack", requester: null, site: null, fields: {} };
 }

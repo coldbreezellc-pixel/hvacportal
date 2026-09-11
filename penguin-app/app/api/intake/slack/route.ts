@@ -1,5 +1,5 @@
 import { createAdminClient, errorResponse, HttpError } from "@/lib/supabase/server";
-import { parseHelpRequest } from "@/lib/wo-parse";
+import { parseHelpRequest, requestSite } from "@/lib/wo-parse";
 
 export const runtime = "nodejs";
 
@@ -10,7 +10,9 @@ export const runtime = "nodejs";
 // Auth: Authorization: Bearer <SLACK_INTAKE_TOKEN>
 // Body: { channel: "C…", messages: [{ ts, text, user?, posted_at? }] }
 // Each Slack message ts is stored on the work order, so re-sending the same
-// messages never creates duplicates.
+// messages never creates duplicates. Only requests for our sites are taken:
+// SLACK_INTAKE_SITES (comma-separated, default "Englewood Cliffs"); the channel
+// also carries New York / Los Angeles / DC / Orlando requests, which are ignored.
 
 interface InMsg { ts: string; text: string; user?: string | null; posted_at?: string | null }
 
@@ -35,7 +37,12 @@ export async function POST(req: Request) {
     for (const m of messages) if (!m || typeof m.ts !== "string" || typeof m.text !== "string") throw new HttpError(400, "each message needs ts and text");
 
     const admin = createAdminClient();
-    const wanted = messages.filter((m) => /help request/i.test(m.text) || /description of (the )?issue/i.test(m.text));
+    const sites = (process.env.SLACK_INTAKE_SITES || "Englewood Cliffs").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+    const wanted = messages.filter((m) => {
+      if (!(/help request/i.test(m.text) || /description of (the )?issue/i.test(m.text))) return false;
+      const site = requestSite(m.text);
+      return !site || sites.some((x) => site.toLowerCase().includes(x));   // no site named → let the parser decide
+    });
     const ignored = messages.length - wanted.length;
     if (!wanted.length) return Response.json({ created: [], skipped: 0, ignored });
 
